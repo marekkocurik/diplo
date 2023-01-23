@@ -43,8 +43,8 @@ CREATE TABLE users.users_to_chapters (
 CREATE TABLE users.exercises (
     id SERIAL PRIMARY KEY,
 	chapter_id INT NOT NULL,
-    name VARCHAR(50),
-    question VARCHAR(255),
+    name VARCHAR(255),
+    question VARCHAR(2000),
     schema VARCHAR(255),
     attempts INT DEFAULT 0,
 	FOREIGN KEY (chapter_id) REFERENCES users.chapters(id) ON UPDATE CASCADE ON DELETE RESTRICT
@@ -53,7 +53,7 @@ CREATE TABLE users.exercises (
 CREATE TABLE users.answers (
     id SERIAL PRIMARY KEY,
     exercise_id INT NOT NULL,
-    query VARCHAR(255),
+    query VARCHAR(1000),
     solution BOOLEAN,
     execution_time DECIMAL,
     similarity DECIMAL,
@@ -64,6 +64,6 @@ CREATE TABLE users.answers (
 CREATE TABLE users.solutions (
     id SERIAL PRIMARY KEY,
     exercise_id INT NOT NULL,
-    query VARCHAR(255),
+    query VARCHAR(1000),
     FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
