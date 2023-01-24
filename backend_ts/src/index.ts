@@ -3,7 +3,7 @@ const fastify = require('fastify')();
 fastify.register(require('./routes/routes'));
 
 fastify.get('/ping', async (request: any, reply: any) => {
-  return 'piong\n';
+  return 'pong\n';
 });
 
 fastify.listen({ port: 8080 }, (err: any, address: any) => {

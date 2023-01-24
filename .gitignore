@@ -11,6 +11,9 @@
 # backend_ts dependancies
 /backend_ts/node_modules
 
+# backend_ts env
+/backend_ts/.env
+
 # testing
 /coverage
 

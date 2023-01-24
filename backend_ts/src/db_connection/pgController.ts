@@ -4,9 +4,10 @@ export const pool = new Pool({
     host: 'localhost',
     user: 'postgres',
     password: 'postgres',
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    port: '5432',
+    // max: 20,
+    // idleTimeoutMillis: 30000,
+    // connectionTimeoutMillis: 2000,
 });
 
 pool.on('error', (err:any, client:any) => {
