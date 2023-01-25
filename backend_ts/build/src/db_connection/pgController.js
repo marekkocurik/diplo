@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const { Pool } = require('pg');
 const pool = new Pool({
-    password: "postgres",
+    password: "postgres"
 });
 pool.on('error', (err, client) => {
     console.error('Unexpected error on idle client', err);
@@ -24,7 +24,7 @@ class DBController {
             const result = await client.query(queryText);
             // await client.query('COMMIT');
             // return result;
-            return [200, { message: result.rows[0] }];
+            return [200, { message: result.rows }];
         }
         catch (e) {
             // await client.query('ROLLBACK');

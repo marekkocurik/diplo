@@ -1,4 +1,8 @@
-import { pool } from '../db_connection/pgController';
+// import { pool } from '../db_connection/pgController';
+import DBController from '../db_connection/pgController';
+import port from '../../env-config';
+
+const dbcontroller = new DBController();
 
 export default async function routes(server: any) {
   server.get('/test', async (request: any, reply: any) => {
@@ -15,4 +19,9 @@ export default async function routes(server: any) {
     //     return [200, { message: 'OK' }];
     // }
   });
+
+  server.get('/db', async (request:any, reply: any)=>{
+    let response = await dbcontroller.testDB();
+    return reply.code(200).send(response);
+  })
 }

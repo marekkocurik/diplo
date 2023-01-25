@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const fastify = require('fastify')();
 fastify.register(require('./routes/routes'));
 fastify.get('/ping', async (request, reply) => {
@@ -10,5 +11,5 @@ fastify.listen({ port: 8080 }, (err, address) => {
         process.exit(1);
     }
     console.log(`Server listening at ${address}`);
-    // console.log(process.env);
+    console.log(process.env.PORT);
 });

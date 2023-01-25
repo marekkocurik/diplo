@@ -1,10 +1,7 @@
 const fastify = require('fastify')();
+require('dotenv').config({ path: __dirname+'/./../.env' });
 
 fastify.register(require('./routes/routes'));
-
-fastify.get('/ping', async (request: any, reply: any) => {
-  return 'pong\n';
-});
 
 fastify.listen({ port: 8080 }, (err: any, address: any) => {
   if (err) {
