@@ -9,6 +9,19 @@ CREATE TABLE users.users (
     cluster INT DEFAULT 0
 );
 
+CREATE TABLE users.roles (
+    id SERIAL PRIMARY KEY,
+    name varchar(50)
+);
+
+CREATE TABLE users.users_to_roles (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    role_id INT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (role_id) REFERENCES users.roles(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
 CREATE TABLE users.tokens (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
