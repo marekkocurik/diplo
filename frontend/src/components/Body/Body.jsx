@@ -1,21 +1,15 @@
-import { React, useEffect } from "react";
-import Exercise from "./Exercise/Exercise";
-import ExerciseTree from "./ExerciseTree/ExerciseTree";
+import { React, useEffect } from 'react';
+import Exercise from './Exercise/Exercise';
+import ExerciseTree from './ExerciseTree/ExerciseTree';
 
-function Body() {
+export default function Body(props) {
+  useEffect(() => {});
 
-    useEffect(() => {
-
-    })
-
-    return (
-        // tu by mala byt Routovacia tabulka, ktora podla URL nastavi obsah BODY
-        <div>
-            <ExerciseTree></ExerciseTree>
-            <Exercise></Exercise>
-        </div>
-    );
+  return (
+    // tu by mala byt Routovacia tabulka, ktora podla URL nastavi obsah BODY
+    <div>
+      <ExerciseTree></ExerciseTree>
+      <Exercise></Exercise>
+    </div>
+  );
 }
-
-export default Body;
-
