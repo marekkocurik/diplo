@@ -23,12 +23,24 @@ export default class DBController {
     		return console.error('Error acquiring client');
     	try {
     		// await client.query('BEGIN');
-    		const queryText = 'SELECT * FROM exercises.members;';
+    		// const queryText = 'SELECT * FROM exercises.members;';
     		// const result = await client.query(queryText, [password, id]);
-            const result = await client.query(queryText);
+            // const result = await client.query(queryText);
     		// await client.query('COMMIT');
     		// return result;
-            return [200, {message: result.rows}];
+            // return [200, {message: result.rows}];
+
+			const ro = "SET default_transaction_read_only=OFF;";
+			const qselect = "SELECT * FROM exercises.test_view;";
+			const qinsert = "INSERT INTO exercises.test_view2(memid, surname, firstname, address) VALUES (13, 'surname3', 'firstname3', 'addr3');";
+			let result = await client.query(ro);
+			// await client.query('BEGIN');
+			// await client.query(qinsert);
+			// await client.query(qinsert);
+			// await client.query(qinsert);
+			// await client.query(qinsert);
+			// let res2 = await client.query(qselect);
+			console.log(result);
     	} catch(e) {
     		// await client.query('ROLLBACK');
     		throw e;
