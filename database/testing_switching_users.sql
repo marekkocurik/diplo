@@ -1,0 +1,49 @@
+CREATE USER u_test WITH LOGIN PASSWORD 'u_test';
+
+ALTER USER u_test WITH NOCREATEROLE;
+
+SET ROLE u_test;
+
+SET ROLE postgres;
+
+reset role;
+
+SET ROLE admin;
+
+REVOKE postgres FROM u_test;
+
+REVOKE CREATEROLE FROM u_test;
+
+SELECT current_user;
+
+SET SESSION AUTHORIZATION u_test;
+
+SET SESSION AUTHORIZATION admin;
+
+SET SESSION AUTHORIZATION postgres;
+
+
+
+
+
+
+
+
+
+Testing granting and revoking SUPERUSERS:
+
+SELECT current_user;
+
+RESET ROLE;
+
+SET ROLE student;
+
+SET ROLE teacher;
+
+SET SESSION AUTHORIZATION admin;
+
+RESET SESSION AUTHORIZATION;
+
+SET ROLE admin;
+
+ALTER USER u_default WITH SUPERUSER;
