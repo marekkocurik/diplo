@@ -32,7 +32,7 @@
 -- ('Smith', 'Darren', '3 Funktown, Denzington, Boston', '66796', '(822) 577-3541', NULL, '2012-09-26 18:08:45');
 
 
-INSERT INTO exercises.members(memid, surname, firstname, address, zipcode, telephone, recommendedby, joindate) VALUES
+INSERT INTO cd.members(memid, surname, firstname, address, zipcode, telephone, recommendedby, joindate) VALUES
 ('0', 'GUEST', 'GUEST', 'GUEST', '0', '(000) 000-0000', NULL, '2012-07-01 00:00:00'),
 ('1', 'Smith', 'Darren', '8 Bloomsbury Close, Boston', '4321', '555-555-5555', NULL, '2012-07-02 12:02:05'),
 ('2', 'Smith', 'Tracy', '8 Bloomsbury Close, New York', '4321', '555-555-5555', NULL, '2012-07-02 12:08:23'),

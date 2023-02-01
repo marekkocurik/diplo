@@ -28,7 +28,7 @@
 --     FOREIGN KEY (facility_id) REFERENCES exercises.facilities(id) ON UPDATE CASCADE ON DELETE RESTRICT
 -- );
 
-CREATE TABLE exercises.members (
+CREATE TABLE cd.members (
     memid INTEGER NOT NULL,
     surname CHARACTER VARYING(200) NOT NULL,
     firstname CHARACTER VARYING(200) NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE exercises.members (
     joindate TIMESTAMP WITHOUT TIME ZONE NOT NULL
 );
 
-CREATE TABLE exercises.facilities (
+CREATE TABLE cd.facilities (
     facid INTEGER NOT NULL,
     name CHARACTER VARYING(100) NOT NULL,
     membercost NUMERIC NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE exercises.facilities (
     monthlymaintenance NUMERIC NOT NULL
 );
 
-CREATE TABLE exercises.bookings (
+CREATE TABLE cd.bookings (
     bookid INTEGER NOT NULL,
     facid INTEGER NOT NULL,
     memid INTEGER NOT NULL,
