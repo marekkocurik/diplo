@@ -14,9 +14,6 @@
 # backend_ts env
 /backend_ts/.env
 
-#TODO
-TODO.txt
-
 # testing
 /coverage
 
