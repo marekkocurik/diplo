@@ -4,12 +4,10 @@ import routes from './routes';
 
 const router = createBrowserRouter(routes);
 
-function App() {
+export default function App() {
   return (
     <div>
       <RouterProvider router={router} />
     </div>
   );
 }
-
-export default App;

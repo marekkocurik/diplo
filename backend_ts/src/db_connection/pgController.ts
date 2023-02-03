@@ -28,8 +28,8 @@ export default class DBController {
     		// return result;
             // return [200, {message: result.rows}];
 
-			const ro = "SET default_transaction_read_only=OFF;";
-			const sel ="SELECT current_user;";
+			const ro = "SET ROLE u_student";
+			const sel ="SELECT * FROM cd.members;";
 			// const qselect = "SELECT * FROM exercises.test_view;";
 			// const qinsert = "INSERT INTO exercises.test_view2(memid, surname, firstname, address) VALUES (13, 'surname3', 'firstname3', 'addr3');";
 			let result = await client.query(ro);
@@ -40,7 +40,8 @@ export default class DBController {
 			// await client.query(qinsert);
 			// await client.query(qinsert);
 			// let res2 = await client.query(qselect);
-			console.log(result.rows);
+			// console.log(result.rows);
+			return [200, {message: result.rows}];
     	} catch(e) {
     		// await client.query('ROLLBACK');
     		throw e;

@@ -2,7 +2,7 @@ import { React, useEffect } from 'react';
 import Exercise from './Exercise/Exercise';
 import ExerciseTree from './ExerciseTree/ExerciseTree';
 
-export default function Body(props) {
+export default function Body({...props}) {
   useEffect(() => {});
 
   return (

@@ -27,7 +27,7 @@ const exercises = [
   { id: 2, name: 'SELECT ONLY' },
 ];
 
-function ExerciseTree() {
+export default function ExerciseTree({...props}) {
   const [exerciseNum, setExerciseNum] = useState(0);
 
   const handleExerciseClick = (n) => {
@@ -77,5 +77,3 @@ function ExerciseTree() {
     //     </div>
   );
 }
-
-export default ExerciseTree;

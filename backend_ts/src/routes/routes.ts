@@ -24,4 +24,10 @@ export default async function routes(server: any) {
     let response = await dbcontroller.testDB();
     return reply.code(200).send(response);
   })
-}
+
+  server.post('/auth/login', async (request:any, reply: any)=>{
+    const {email, password} = request.body;
+    console.log(email, password);
+    return reply.code(200).send("");
+  })
+};

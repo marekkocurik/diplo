@@ -1,6 +1,6 @@
 import { React, useEffect, useState } from "react";
 
-function Exercise({ exerciseNum }) {
+function Exercise({ exerciseNum , ...props}) {
 
     const [exercise, setExercise] = useState(null);
 
