@@ -4624,8 +4624,8 @@ r_facilities_update,
 r_facilities_delete;
 
 CREATE USER u_admin WITH NOLOGIN NOINHERIT CREATEDB;
-GRANT ALL ON DATABASE '' TO u_admin;
-REVOKE CONNECT ON DATABASE '' FROM u_admin;
+GRANT ALL ON DATABASE main TO u_admin;
+REVOKE CONNECT ON DATABASE main FROM u_admin;
 GRANT ALL ON SCHEMA users, cd TO u_admin;
 GRANT ALL ON ALL TABLES IN SCHEMA users, cd TO u_admin;
 
