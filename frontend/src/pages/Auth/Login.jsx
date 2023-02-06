@@ -5,15 +5,17 @@ import { services } from '../../api/services';
 
 export default function Login({ ...props }) {
   const navigate = useNavigate();
-  const [login, setLogin] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [title, setTitle] = useOutletContext();
+
   useEffect(() => {
     setTitle('Welcome');
   }, []);
+
   const handleLogin = async () => {
     try {
-      await services.login(login, password);
+      await services.login(email, password);
       // navigate('/dashboard');
     } catch (e) {}
   };
@@ -26,7 +28,7 @@ export default function Login({ ...props }) {
           <Form.Control
             type="email"
             placeholder="Enter your email"
-            onChange={(e) => setLogin(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </Form.Group>
 

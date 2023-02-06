@@ -4,6 +4,7 @@ import Dashboard from '../pages/Dashboard';
 import ForgotPassword from '../pages/Auth/ForgotPassword';
 import Register from '../pages/Auth/Register';
 import Auth from '../pages/Auth/Auth';
+import ResetPassword from '../pages/Auth/ResetPassword';
 
 export default [
   {
@@ -25,6 +26,10 @@ export default [
       {
         path: 'register',
         element: <Register />,
+      },
+      {
+        path: 'reset-password',
+        element: <ResetPassword />,
       },
     ],
   },

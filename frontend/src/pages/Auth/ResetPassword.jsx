@@ -2,16 +2,13 @@ import { useEffect, useState } from 'react';
 import { Button, Form } from 'react-bootstrap';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 
-export default function Register({ ...props }) {
-  const [name, setName] = useState('');
-  const [surname, setSurname] = useState('');
-  const [email, setEmail] = useState('');
+export default function ResetPassword({ ...props }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [title, setTitle] = useOutletContext();
-
+  
   useEffect(() => {
-    setTitle('Create your account');
+    setTitle('Reset Password');
   }, []);
 
   const checkLength = async () => {
@@ -41,11 +38,6 @@ export default function Register({ ...props }) {
     if (password !== confirmPassword) throw new Error('Passwords do not match.');
   }
 
-  const checkEmail = async () => {
-    if (email.includes('@') === false)
-      throw new Error('Invalid email address.');
-  };
-
   const checkPassword = async () => {
     try {
       await checkLength();
@@ -59,45 +51,20 @@ export default function Register({ ...props }) {
     }
   };
 
-  const handleSignUp = async () => {
+  const handleResetPassword = async () => {
     try {
-      await checkEmail();
-      await checkPassword();
-      // await services.register(name, surname, email, password);
-      // navigate('/dashboard');
-    } catch (e) {
-      console.log(e);
-    }
-  };
+        // console.log(email.includes('@')===false);
+        // await services.login(login, password);
+        // navigate('/dashboard');
+        await checkPassword();
+      } catch (e) {
+        console.log(e);
+      }
+  }
 
   return (
     <>
       <Form>
-        <Form.Group className="mb-3">
-          <Form.Label>Name</Form.Label>
-          <Form.Control
-            placeholder="Enter your name"
-            onChange={(e) => setName(e.target.value)}
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>Surname</Form.Label>
-          <Form.Control
-            placeholder="Enter your surname"
-            onChange={(e) => setSurname(e.target.value)}
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>Email</Form.Label>
-          <Form.Control
-            type="email"
-            placeholder="Enter your email"
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </Form.Group>
-
         <Form.Group className="mb-3">
           <Form.Label>Password</Form.Label>
           <Form.Control
@@ -116,8 +83,12 @@ export default function Register({ ...props }) {
           />
         </Form.Group>
 
-        <Button className="w-100 p-2 mt-2" type="submit" onClick={handleSignUp}>
-          Sign up
+        <Button
+          className="w-100 p-2 mt-2"
+          type="submit"
+          onClick={handleResetPassword}
+        >
+          Reset password
         </Button>
       </Form>
     </>
