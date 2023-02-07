@@ -90,6 +90,15 @@ GRANT USAGE ON SCHEMA cd TO r_facilities_insert;
 GRANT USAGE ON SCHEMA cd TO r_facilities_update;
 GRANT USAGE ON SCHEMA cd TO r_facilities_delete;
 
+GRANT USAGE ON SEQUENCE users.tokens_id_seq TO r_tokens_insert;
+GRANT USAGE ON SEQUENCE users.ratings_id_seq TO r_ratings_insert;
+GRANT USAGE ON SEQUENCE users.users_id_seq TO r_users_insert;
+GRANT USAGE ON SEQUENCE users.users_to_roles_id_seq TO r_users_to_roles_insert;
+GRANT USAGE ON SEQUENCE users.roles_id_seq TO r_roles_insert;
+GRANT USAGE ON SEQUENCE users.users_to_chapters_id_seq TO r_users_to_chapters_insert;
+GRANT USAGE ON SEQUENCE users.answers_id_seq TO r_answers_insert;
+GRANT USAGE ON SEQUENCE users.solutions_id_seq TO r_solutions_insert;
+
 GRANT SELECT ON users.tokens TO r_tokens_select;
 GRANT INSERT ON users.tokens TO r_tokens_insert;
 GRANT UPDATE ON users.tokens TO r_tokens_update;
@@ -204,6 +213,7 @@ GRANT ALL ON DATABASE main TO u_admin;
 REVOKE CONNECT ON DATABASE main FROM u_admin;
 GRANT ALL ON SCHEMA users, cd TO u_admin;
 GRANT ALL ON ALL TABLES IN SCHEMA users, cd TO u_admin;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA users, cd TO u_admin;
 
 CREATE USER u_connection WITH LOGIN ENCRYPTED PASSWORD '' VALID UNTIL 'infinity' NOINHERIT IN GROUP
 u_executioner,

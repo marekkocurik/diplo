@@ -66,9 +66,20 @@ r_facilities_update,
 r_facilities_delete
 FROM u_teacher;
 
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA users, cd FROM u_admin;
 REVOKE ALL ON ALL TABLES IN SCHEMA users, cd FROM u_admin;
 REVOKE ALL ON SCHEMA users, cd FROM u_admin;
-REVOKE ALL ON DATABASE test FROM u_admin;
+REVOKE ALL ON DATABASE main FROM u_admin;
+
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA users FROM
+r_tokens_insert,
+r_ratings_insert,
+r_users_insert,
+r_users_to_roles_insert,
+r_roles_insert,
+r_users_to_chapters_insert,
+r_answers_insert,
+r_solutions_insert;
 
 REVOKE ALL ON ALL TABLES IN SCHEMA users FROM
  r_tokens_select,

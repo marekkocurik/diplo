@@ -3,9 +3,9 @@ CREATE TABLE users.users (
     name VARCHAR(25) NOT NULL,
     surname VARCHAR(50) NOT NULL,
     email VARCHAR(75) UNIQUE NOT NULL,
-    password VARCHAR(25) NOT NULL,
+    password VARCHAR(128) NOT NULL,
     last_login TIMESTAMP,
-    salt VARCHAR(10),
+    salt VARCHAR(32),
     cluster INT DEFAULT 0
 );
 
