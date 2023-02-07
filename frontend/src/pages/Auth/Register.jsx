@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Form } from 'react-bootstrap';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { services } from '../../api/services';
 
 export default function Register({ ...props }) {
   const [name, setName] = useState('');
@@ -59,12 +60,13 @@ export default function Register({ ...props }) {
     }
   };
 
-  const handleSignUp = async () => {
+  const handleSignUp = async (e) => {
+    e.preventDefault();
     try {
-      await checkEmail();
-      await checkPassword();
-      // await services.register(name, surname, email, password);
-      // navigate('/dashboard');
+      // await checkEmail();
+      // await checkPassword();
+      await services.register(name, surname, email, password);
+      // navigate('/auth/login');
     } catch (e) {
       console.log(e);
     }

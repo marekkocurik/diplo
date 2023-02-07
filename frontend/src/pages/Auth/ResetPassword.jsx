@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Form } from 'react-bootstrap';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { services } from '../../api/services';
 
 export default function ResetPassword({ ...props }) {
   const [password, setPassword] = useState('');
@@ -55,8 +56,8 @@ export default function ResetPassword({ ...props }) {
     try {
         // console.log(email.includes('@')===false);
         // await services.login(login, password);
-        // navigate('/dashboard');
         await checkPassword();
+        // navigate('/auth/login');
       } catch (e) {
         console.log(e);
       }

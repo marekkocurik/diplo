@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Form } from 'react-bootstrap';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { services } from '../../api/services';
 
 export default function ForgotPassword({ ...props }) {
   const [email, setEmail] = useState('');
@@ -37,6 +38,13 @@ export default function ForgotPassword({ ...props }) {
         <Button className="w-100 p-2 mt-2" type="submit" onClick={handleSendEmail}>
           Send email
         </Button>
+
+        <div className="mt-2" style={{ fontSize: '0.8em', textAlign: 'right'}}>
+          <Form.Text>
+            <Link to="/auth/login">Back to login.</Link>
+          </Form.Text>
+        </div>
+
       </Form>
     </>
   );

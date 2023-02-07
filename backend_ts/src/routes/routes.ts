@@ -1,7 +1,7 @@
 // import * as loginRoutes from './auth/login';
 // import port from '../../env-config';
 // import MainController from '../controllers/mainController';
-import { loginHandler } from './auth/login';
+import { loginHandler, registrationHandler } from './auth/auth';
 
 // const mainController = new MainController();
 
@@ -29,5 +29,5 @@ export default async function routes(server: any) {
   // })
 
   server.post('/auth/login', loginHandler);
-
+  server.post('/auth/register', registrationHandler);
 };

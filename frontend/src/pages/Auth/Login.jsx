@@ -13,7 +13,8 @@ export default function Login({ ...props }) {
     setTitle('Welcome');
   }, []);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     try {
       await services.login(email, password);
       // navigate('/dashboard');
