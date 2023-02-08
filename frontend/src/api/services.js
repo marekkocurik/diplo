@@ -1,5 +1,11 @@
 import client from './client';
 
+const options = {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+}
+
 export const services = {
   login: (email, password) => //overenie emailu, hesla, vratenie JWT tokenu a prihlasenie
     client.post('auth/login', { json: { email, password } }).json(),
@@ -9,4 +15,6 @@ export const services = {
     client.post('auth/forgot-password', { json: { email } }).json(),
   resetPassword: (password) => //overenie tokenu ktory sa vytvoril pri forgot-password, zapisanie hesla v DB a nasledne prihlasenie
     client.post('auth/reset-password', { json: { password } }).json(),
+  listExercises: () =>
+    client.get('home/exercises', options).json(),
 };

@@ -1,6 +1,24 @@
 import DatabaseController from "./databaseController";
 
 export default class ExerciseController extends DatabaseController {
+  public async getAllChaptersWithExercises(): Promise<[Number, Object]> {
+    const client = await this.pool.connect();
+
+    if (client === undefined)
+      return [500, { message: 'Error accessing database' }];
+
+      try {
+        await client.query('SET ROLE u_executioner;');
+        
+        return [200, { message: 'OK' }];
+      } catch (e) {
+        console.log(e);
+        throw e;
+      } finally {
+        client.release();
+      }
+  }
+
     public async executeQuery(
         role: string,
         query: string

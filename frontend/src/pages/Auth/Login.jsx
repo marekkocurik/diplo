@@ -16,9 +16,12 @@ export default function Login({ ...props }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      await services.login(email, password);
-      // navigate('/dashboard');
-    } catch (e) {}
+      let response = await services.login(email, password);
+      localStorage.setItem('token', response.token);
+      navigate('/home/exercises');
+    } catch (e) {
+      console.log('login failed');
+    }
   };
 
   return (

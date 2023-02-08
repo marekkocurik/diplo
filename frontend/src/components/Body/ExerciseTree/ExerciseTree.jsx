@@ -1,9 +1,11 @@
-import { React, useState } from 'react';
+import { React, useEffect, useState } from 'react';
 import { Button } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { services } from '../../../api/services';
 
 const chapters = [
   {
-    chapter: 1,
+    id: 1,
     name: 'SELECT',
     exercises: [
       { id: 1, name: 'SELECT ALL' },
@@ -11,14 +13,20 @@ const chapters = [
     ],
   },
   {
-    chapter: 2,
+    id: 2,
     name: 'WHERE',
-    exercises: [{ id: 1 }, { id: 2 }],
+    exercises: [
+      { id: 1, name: 'SELECT ALL' },
+      { id: 2, name: 'SELECT ALL' },
+    ],
   },
   {
-    chapter: 3,
+    id: 3,
     name: 'JOIN',
-    exercises: [{ id: 1 }, { id: 2 }],
+    exercises: [
+      { id: 1, name: 'SELECT ALL' },
+      { id: 2, name: 'SELECT ALL' },
+    ],
   },
 ];
 
@@ -27,11 +35,22 @@ const exercises = [
   { id: 2, name: 'SELECT ONLY' },
 ];
 
-export default function ExerciseTree({...props}) {
-  const [exerciseNum, setExerciseNum] = useState(0);
+export default function ExerciseTree({ ...props }) {
+  const navigate = useNavigate();
+  const [tree, setTree] = useState([]);
 
-  const handleExerciseClick = (n) => {
-    setExerciseNum(n);
+  const initialize = async () => {
+    // let treeStructure = await services.
+    // setTree(treeStructure);
+  }
+
+  useEffect(() => {
+    initialize();
+  }, []);
+
+  const handleExerciseClick = async (n) => {
+    await services.listExercises();
+    navigate(`/home/exercises?id=${n}`)
   };
 
   return (
@@ -42,7 +61,23 @@ export default function ExerciseTree({...props}) {
         float: 'left',
         backgroundColor: 'grey',
       }}
-    ></div>
+    >
+      {chapters.map((chapter) => ( //tree?.
+        <div>
+          <div className="w-100 py-2 my-1 px-4">{chapter.name}</div>
+
+          {chapter.exercises.map((exercise) => (
+            <div
+              className="w-100 py-2 my-1 px-4"
+              style={{ fontSize: '0.8em' }}
+              onClick={() => handleExerciseClick(chapter.id+'-'+exercise.id)}
+            >
+              {exercise.name}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
 
     // <div>
     //     {
@@ -53,27 +88,5 @@ export default function ExerciseTree({...props}) {
     //     {/* <Exercise exerciseNum={exerciseNum}></Exercise> */}
     //     {exerciseNum}
     // </div>
-
-    // <div>
-    //       <div style={{ width: "20%", height: "100vh", float: "left", backgroundColor: "grey" }}></div>
-    //       <div style={{ width: "80%", height: "100vh", float: "left" }}>
-    //         <Routes>
-    //           <Route path="/" element={
-    //             <div style={{
-    //               width: "100%",
-    //               minHeight: "100vh",
-    //               backgroundColor: "red",
-    //             }}></div>
-    //           } />
-    //           <Route path="about" element={
-    //             <div style={{
-    //               width: "100%",
-    //               minHeight: "100vh",
-    //               backgroundColor: "blue",
-    //             }}></div>
-    //           } />
-    //         </Routes>
-    //       </div>
-    //     </div>
   );
 }
