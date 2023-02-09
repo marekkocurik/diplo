@@ -42,7 +42,8 @@ CREATE TABLE users.ratings (
 
 CREATE TABLE users.chapters (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50)
+    name VARCHAR(50),
+    chapter_order INT NOT NULL
 );
 
 CREATE TABLE users.users_to_chapters (
@@ -60,6 +61,7 @@ CREATE TABLE users.exercises (
     question VARCHAR(2000),
     schema VARCHAR(255),
     attempts INT DEFAULT 0,
+    exercise_order INT NOT NULL,
 	FOREIGN KEY (chapter_id) REFERENCES users.chapters(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 

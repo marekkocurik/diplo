@@ -50,7 +50,8 @@ CREATE TABLE users.ratings (
 
 CREATE TABLE users.chapters (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50)
+    name VARCHAR(50),
+    chapter_order INT NOT NULL
 );
 
 CREATE TABLE users.users_to_chapters (
@@ -68,6 +69,7 @@ CREATE TABLE users.exercises (
     question VARCHAR(2000),
     schema VARCHAR(255),
     attempts INT DEFAULT 0,
+    exercise_order INT NOT NULL,
 	FOREIGN KEY (chapter_id) REFERENCES users.chapters(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
@@ -4211,99 +4213,99 @@ INSERT INTO cd.bookings(bookid, facid, memid, starttime, slots) VALUES
 ('4042', '8', '29', '2012-09-30 19:30:00', '1'),
 ('4043', '8', '5', '2013-01-01 15:30:00', '1');
 
-INSERT INTO users.chapters(name) VALUES
-('Basic'),
-('Joins and Subqueries'),
-('Modifying data'),
-('Aggregates'),
-('Date'),
-('String'),
-('Recursive');
+INSERT INTO users.chapters(name, chapter_order) VALUES
+('Basic', 100),
+('Joins and Subqueries', 200),
+('Modifying data', 300),
+('Aggregates', 400),
+('Date', 500),
+('String', 600),
+('Recursive', 700);
 
-INSERT INTO users.exercises(chapter_id, name, question) VALUES
-(1, 'Retrieve everything from a table', 'How can you retrieve all the information from the exercises.facilities table?'),
-(1, 'Retrieve specific columns from a table', 'You want to print out a list of all of the facilities and their cost to members. How would you retrieve a list of only facility names and costs?'),
-(1, 'Control which rows are retrieved', 'How can you produce a list of facilities that charge a fee to members?'),
-(1, 'Control which rows are retrieved - part 2', 'How can you produce a list of facilities that charge a fee to members, and that fee is less than 1/50th of the monthly maintenance cost? Return the facid, facility name, member cost, and monthly maintenance of the facilities in question.'),
-(1, 'Basic string searches', 'How can you produce a list of all facilities with the word "Tennis" in their name?'),
-(1, 'Matching against multiple possible values', 'How can you retrieve the details of facilities with ID 1 and 5? Try to do it without using the <em>OR</em> operator.'),
-(1, 'Classify results into buckets', 'How can you produce a list of facilities, with each labelled as "cheap" or "expensive" depending on if their monthly maintenance cost is more than $100? Return the name and monthly maintenance of the facilities in question.'),
-(1, 'Working with dates', 'How can you produce a list of members who joined after the start of September 2012? Return the memid, surname, firstname, and joindate of the members in question.'),
-(1, 'Removing duplicates, and ordering results', 'How can you produce an ordered list of the first 10 surnames in the members table? The list must not contain duplicates.'),
-(1, 'Combining results from multiple queries', 'You, for some reason, want a combined list of all surnames and all facility names. Yes, this is a contrived example :-). Produce that list!'),
-(1, 'Simple aggregation', 'You''d like to get the signup date of your last member. How can you retrieve this information?'),
-(1, 'More aggregation', 'You''d like to get the first and last name of the last member(s) who signed up - not just the date. How can you do that?');
+INSERT INTO users.exercises(chapter_id, name, question, exercise_order) VALUES
+(1, 'Retrieve everything from a table', 'How can you retrieve all the information from the exercises.facilities table?', 100),
+(1, 'Retrieve specific columns from a table', 'You want to print out a list of all of the facilities and their cost to members. How would you retrieve a list of only facility names and costs?', 200),
+(1, 'Control which rows are retrieved', 'How can you produce a list of facilities that charge a fee to members?', 300),
+(1, 'Control which rows are retrieved - part 2', 'How can you produce a list of facilities that charge a fee to members, and that fee is less than 1/50th of the monthly maintenance cost? Return the facid, facility name, member cost, and monthly maintenance of the facilities in question.', 400),
+(1, 'Basic string searches', 'How can you produce a list of all facilities with the word "Tennis" in their name?', 500),
+(1, 'Matching against multiple possible values', 'How can you retrieve the details of facilities with ID 1 and 5? Try to do it without using the <em>OR</em> operator.', 600),
+(1, 'Classify results into buckets', 'How can you produce a list of facilities, with each labelled as "cheap" or "expensive" depending on if their monthly maintenance cost is more than $100? Return the name and monthly maintenance of the facilities in question.', 700),
+(1, 'Working with dates', 'How can you produce a list of members who joined after the start of September 2012? Return the memid, surname, firstname, and joindate of the members in question.', 800),
+(1, 'Removing duplicates, and ordering results', 'How can you produce an ordered list of the first 10 surnames in the members table? The list must not contain duplicates.', 900),
+(1, 'Combining results from multiple queries', 'You, for some reason, want a combined list of all surnames and all facility names. Yes, this is a contrived example :-). Produce that list!', 1000),
+(1, 'Simple aggregation', 'You''d like to get the signup date of your last member. How can you retrieve this information?', 1100),
+(1, 'More aggregation', 'You''d like to get the first and last name of the last member(s) who signed up - not just the date. How can you do that?', 1200);
 
-INSERT INTO users.exercises(chapter_id, name, question) VALUES
-(2, 'Retrieve the start times of members'' bookings', 'How can you produce a list of the start times for bookings by members named ''David Farrell''?'),
-(2, 'Work out the start times of bookings for tennis courts', 'How can you produce a list of the start times for bookings for tennis courts, for the date ''2012-09-21''? Return a list of start time and facility name pairings, ordered by the time.'),
-(2, 'Produce a list of all members who have recommended another member', 'How can you output a list of all members who have recommended another member? Ensure that there are no duplicates in the list, and that results are ordered by (surname, firstname).'),
-(2, 'Produce a list of all members, along with their recommender', 'How can you output a list of all members, including the individual who recommended them (if any)? Ensure that results are ordered by (surname, firstname).'),
-(2, 'Produce a list of all members who have used a tennis court', 'How can you produce a list of all members who have used a tennis court? Include in your output the name of the court, and the name of the member formatted as a single column. Ensure no duplicate data, and order by the member name followed by the facility name.'),
-(2, 'Produce a list of costly bookings', 'How can you produce a list of bookings on the day of 2012-09-14 which will cost the member (or guest) more than $30? Remember that guests have different costs to members (the listed costs are per half-hour ''slot''), and the guest user is always ID 0. Include in your output the name of the facility, the name of the member formatted as a single column, and the cost. Order by descending cost, and do not use any subqueries.'),
-(2, 'Produce a list of all members, along with their recommender, using no joins.', 'How can you output a list of all members, including the individual who recommended them (if any), without using any joins? Ensure that there are no duplicates in the list, and that each firstname + surname pairing is formatted as a column and ordered.'),
-(2, 'Produce a list of costly bookings, using a subquery', 'Previous exercise contained some messy logic: we had to calculate the booking cost in both the <em>WHERE</em> clause and the <em>CASE</em> statement. Try to simplify this calculation using subqueries. For reference, the question was:</p><p><em>How can you produce a list of bookings on the day of 2012-09-14 which will cost the member (or guest) more than $30? Remember that guests have different costs to members (the listed costs are per half-hour ''slot''), and the guest user is always ID 0. Include in your output the name of the facility, the name of the member formatted as a single column, and the cost. Order by descending cost.</em>');
+INSERT INTO users.exercises(chapter_id, name, question, exercise_order) VALUES
+(2, 'Retrieve the start times of members'' bookings', 'How can you produce a list of the start times for bookings by members named ''David Farrell''?', 100),
+(2, 'Work out the start times of bookings for tennis courts', 'How can you produce a list of the start times for bookings for tennis courts, for the date ''2012-09-21''? Return a list of start time and facility name pairings, ordered by the time.', 200),
+(2, 'Produce a list of all members who have recommended another member', 'How can you output a list of all members who have recommended another member? Ensure that there are no duplicates in the list, and that results are ordered by (surname, firstname).', 300),
+(2, 'Produce a list of all members, along with their recommender', 'How can you output a list of all members, including the individual who recommended them (if any)? Ensure that results are ordered by (surname, firstname).', 400),
+(2, 'Produce a list of all members who have used a tennis court', 'How can you produce a list of all members who have used a tennis court? Include in your output the name of the court, and the name of the member formatted as a single column. Ensure no duplicate data, and order by the member name followed by the facility name.', 500),
+(2, 'Produce a list of costly bookings', 'How can you produce a list of bookings on the day of 2012-09-14 which will cost the member (or guest) more than $30? Remember that guests have different costs to members (the listed costs are per half-hour ''slot'', 600), and the guest user is always ID 0. Include in your output the name of the facility, the name of the member formatted as a single column, and the cost. Order by descending cost, and do not use any subqueries.', 600),
+(2, 'Produce a list of all members, along with their recommender, using no joins.', 'How can you output a list of all members, including the individual who recommended them (if any), without using any joins? Ensure that there are no duplicates in the list, and that each firstname + surname pairing is formatted as a column and ordered.', 700),
+(2, 'Produce a list of costly bookings, using a subquery', 'Previous exercise contained some messy logic: we had to calculate the booking cost in both the <em>WHERE</em> clause and the <em>CASE</em> statement. Try to simplify this calculation using subqueries. For reference, the question was:</p><p><em>How can you produce a list of bookings on the day of 2012-09-14 which will cost the member (or guest) more than $30? Remember that guests have different costs to members (the listed costs are per half-hour ''slot'', 900), and the guest user is always ID 0. Include in your output the name of the facility, the name of the member formatted as a single column, and the cost. Order by descending cost.</em>', 800);
 
-INSERT INTO users.exercises(chapter_id, name, question) VALUES
-(3, 'Insert some data into a table', '<p>The club is adding a new facility - a spa. We need to add it into the facilities table. Use the following values:</p><ul><li>facid: 9, Name: ''Spa'', membercost: 20, guestcost: 30, initialoutlay: 100000, monthlymaintenance: 800.</li></ul>'),
-(3, 'Insert multiple rows of data into a table', '<p>In the previous exercise, you learned how to add a facility. Now you''re going to add multiple facilities in one command. Use the following values:</p><ul><li>facid: 9, Name: ''Spa'', membercost: 20, guestcost: 30, initialoutlay: 100000, monthlymaintenance: 800.</li><li>facid: 10, Name: ''Squash Court 2'', membercost: 3.5, guestcost: 17.5, initialoutlay: 5000, monthlymaintenance: 80.</li></ul>'),
-(3, 'Insert calculated data into a table', '<p>Let''s try adding the spa to the facilities table again. This time, though, we want to automatically generate the value for the next facid, rather than specifying it as a constant. Use the following values for everything else:</p><ul><li>Name: ''Spa'', membercost: 20, guestcost: 30, initialoutlay: 100000, monthlymaintenance: 800.</li></ul>'),
-(3, 'Update some existing data', 'We made a mistake when entering the data for the second tennis court. The initial outlay was 10000 rather than 8000: you need to alter the data to fix the error.'),
-(3, 'Update multiple rows and columns at the same time', 'We want to increase the price of the tennis courts for both members and guests. Update the costs to be 6 for members, and 30 for guests.'),
-(3, 'Update a row based on the contents of another row', 'We want to alter the price of the second tennis court so that it costs 10% more than the first one. Try to do this without using constant values for the prices, so that we can reuse the statement if we want to.'),
-(3, 'Delete all bookings', 'As part of a clearout of our database, we want to delete all bookings from the exercises.bookings table. How can we accomplish this?'),
-(3, 'Delete a member from the exercises.members table', 'We want to remove member 37, who has never made a booking, from our database. How can we achieve that?'),
-(3, 'Delete based on a subquery', 'In our previous exercises, we deleted a specific member who had never made a booking. How can we make that more general, to delete all members who have never made a booking?');
+INSERT INTO users.exercises(chapter_id, name, question, exercise_order) VALUES
+(3, 'Insert some data into a table', '<p>The club is adding a new facility - a spa. We need to add it into the facilities table. Use the following values:</p><ul><li>facid: 9, Name: ''Spa'', membercost: 20, guestcost: 30, initialoutlay: 100000, monthlymaintenance: 800.</li></ul>', 100),
+(3, 'Insert multiple rows of data into a table', '<p>In the previous exercise, you learned how to add a facility. Now you''re going to add multiple facilities in one command. Use the following values:</p><ul><li>facid: 9, Name: ''Spa'', membercost: 20, guestcost: 30, initialoutlay: 100000, monthlymaintenance: 800.</li><li>facid: 10, Name: ''Squash Court 2'', membercost: 3.5, guestcost: 17.5, initialoutlay: 5000, monthlymaintenance: 80.</li></ul>', 200),
+(3, 'Insert calculated data into a table', '<p>Let''s try adding the spa to the facilities table again. This time, though, we want to automatically generate the value for the next facid, rather than specifying it as a constant. Use the following values for everything else:</p><ul><li>Name: ''Spa'', membercost: 20, guestcost: 30, initialoutlay: 100000, monthlymaintenance: 800.</li></ul>', 300),
+(3, 'Update some existing data', 'We made a mistake when entering the data for the second tennis court. The initial outlay was 10000 rather than 8000: you need to alter the data to fix the error.', 400),
+(3, 'Update multiple rows and columns at the same time', 'We want to increase the price of the tennis courts for both members and guests. Update the costs to be 6 for members, and 30 for guests.', 500),
+(3, 'Update a row based on the contents of another row', 'We want to alter the price of the second tennis court so that it costs 10% more than the first one. Try to do this without using constant values for the prices, so that we can reuse the statement if we want to.', 600),
+(3, 'Delete all bookings', 'As part of a clearout of our database, we want to delete all bookings from the exercises.bookings table. How can we accomplish this?', 700),
+(3, 'Delete a member from the exercises.members table', 'We want to remove member 37, who has never made a booking, from our database. How can we achieve that?', 800),
+(3, 'Delete based on a subquery', 'In our previous exercises, we deleted a specific member who had never made a booking. How can we make that more general, to delete all members who have never made a booking?', 900);
 
-INSERT INTO users.exercises(chapter_id, name, question) VALUES
-(4, 'Count the number of facilities', 'For our first foray into aggregates, we''re going to stick to something simple. We want to know how many facilities exist - simply produce a total count.'),
-(4, 'Count the number of expensive facilities', 'Produce a count of the number of facilities that have a cost to guests of 10 or more.'),
-(4, 'Count the number of recommendations each member makes.', 'Produce a count of the number of recommendations each member has made. Order by member ID.'),
-(4, 'List the total slots booked per facility', 'Produce a list of the total number of slots booked per facility. For now, just produce an output table consisting of facility id and slots, sorted by facility id.'),
-(4, 'List the total slots booked per facility in a given month', 'Produce a list of the total number of slots booked per facility in the month of September 2012. Produce an output table consisting of facility id and slots, sorted by the number of slots.'),
-(4, 'List the total slots booked per facility per month', 'Produce a list of the total number of slots booked per facility per month in the year of 2012. Produce an output table consisting of facility id and slots, sorted by the id and month.'),
-(4, 'Find the count of members who have made at least one booking', 'Find the total number of members (including guests) who have made at least one booking.'),
-(4, 'List facilities with more than 1000 slots booked', 'Produce a list of facilities with more than 1000 slots booked. Produce an output table consisting of facility id and slots, sorted by facility id.'),
-(4, 'Find the total revenue of each facility', 'Produce a list of facilities along with their total revenue. The output table should consist of facility name and revenue, sorted by revenue. Remember that there''s a different cost for guests and members!'),
-(4, 'Find facilities with a total revenue less than 1000', 'Produce a list of facilities with a total revenue less than 1000. Produce an output table consisting of facility name and revenue, sorted by revenue. Remember that there''s a different cost for guests and members!'),
-(4, 'Output the facility id that has the highest number of slots booked', 'Output the facility id that has the highest number of slots booked. For bonus points, try a version without a <em>LIMIT</em> clause. This version will probably look messy!'),
-(4, 'List the total slots booked per facility per month, part 2', 'Produce a list of the total number of slots booked per facility per month in the year of 2012. In this version, include output rows containing totals for all months per facility, and a total for all months for all facilities. The output table should consist of facility id, month and slots, sorted by the id and month. When calculating the aggregated values for all months and all facids, return null values in the month and facid columns.'),
-(4, 'List the total hours booked per named facility', 'Produce a list of the total number of <em>hours</em> booked per facility, remembering that a slot lasts half an hour. The output table should consist of the facility id, name, and hours booked, sorted by facility id. Try formatting the hours to two decimal places.'),
-(4, 'List each member''s first booking after September 1st 2012', 'Produce a list of each member name, id, and their first booking after September 1st 2012. Order by member ID.'),
-(4, 'Produce a list of member names, with each row containing the total member count', 'Produce a list of member names, with each row containing the total member count. Order by join date, and include guest members.'),
-(4, 'Produce a numbered list of members', 'Produce a monotonically increasing numbered list of members (including guests), ordered by their date of joining. Remember that member IDs are not guaranteed to be sequential.'),
-(4, 'Output the facility id that has the highest number of slots booked, again', 'Output the facility id that has the highest number of slots booked. Ensure that in the event of a tie, all tieing results get output.'),
-(4, 'Rank members by (rounded) hours used', 'Produce a list of members (including guests), along with the number of hours they''ve booked in facilities, rounded to the nearest ten hours. Rank them by this rounded figure, producing output of first name, surname, rounded hours, rank. Sort by rank, surname, and first name.'),
-(4, 'Find the top three revenue generating facilities', 'Produce a list of the top three revenue generating facilities (including ties). Output facility name and rank, sorted by rank and facility name. '),
-(4, 'Classify facilities by value', 'Classify facilities into equally sized groups of high, average, and low based on their revenue. Order by classification and facility name.'),
-(4, 'Calculate the payback time for each facility', 'Based on the 3 complete months of data so far, calculate the amount of time each facility will take to repay its cost of ownership. Remember to take into account ongoing monthly maintenance. Output facility name and payback time in months, order by facility name. Don''t worry about differences in month lengths, we''re only looking for a rough value here!'),
-(4, 'Calculate a rolling average of total revenue', 'For each day in August 2012, calculate a rolling average of total revenue over the previous 15 days. Output should contain date and revenue columns, sorted by the date. Remember to account for the possibility of a day having zero revenue. This one''s a bit tough, so don''t be afraid to check out the hint!');
+INSERT INTO users.exercises(chapter_id, name, question, exercise_order) VALUES
+(4, 'Count the number of facilities', 'For our first foray into aggregates, we''re going to stick to something simple. We want to know how many facilities exist - simply produce a total count.', 100),
+(4, 'Count the number of expensive facilities', 'Produce a count of the number of facilities that have a cost to guests of 10 or more.', 200),
+(4, 'Count the number of recommendations each member makes.', 'Produce a count of the number of recommendations each member has made. Order by member ID.', 300),
+(4, 'List the total slots booked per facility', 'Produce a list of the total number of slots booked per facility. For now, just produce an output table consisting of facility id and slots, sorted by facility id.', 400),
+(4, 'List the total slots booked per facility in a given month', 'Produce a list of the total number of slots booked per facility in the month of September 2012. Produce an output table consisting of facility id and slots, sorted by the number of slots.', 500),
+(4, 'List the total slots booked per facility per month', 'Produce a list of the total number of slots booked per facility per month in the year of 2012. Produce an output table consisting of facility id and slots, sorted by the id and month.', 600),
+(4, 'Find the count of members who have made at least one booking', 'Find the total number of members (including guests) who have made at least one booking.', 700),
+(4, 'List facilities with more than 1000 slots booked', 'Produce a list of facilities with more than 1000 slots booked. Produce an output table consisting of facility id and slots, sorted by facility id.', 800),
+(4, 'Find the total revenue of each facility', 'Produce a list of facilities along with their total revenue. The output table should consist of facility name and revenue, sorted by revenue. Remember that there''s a different cost for guests and members!', 900),
+(4, 'Find facilities with a total revenue less than 1000', 'Produce a list of facilities with a total revenue less than 1000. Produce an output table consisting of facility name and revenue, sorted by revenue. Remember that there''s a different cost for guests and members!', 1000),
+(4, 'Output the facility id that has the highest number of slots booked', 'Output the facility id that has the highest number of slots booked. For bonus points, try a version without a <em>LIMIT</em> clause. This version will probably look messy!', 1100),
+(4, 'List the total slots booked per facility per month, part 2', 'Produce a list of the total number of slots booked per facility per month in the year of 2012. In this version, include output rows containing totals for all months per facility, and a total for all months for all facilities. The output table should consist of facility id, month and slots, sorted by the id and month. When calculating the aggregated values for all months and all facids, return null values in the month and facid columns.', 1200),
+(4, 'List the total hours booked per named facility', 'Produce a list of the total number of <em>hours</em> booked per facility, remembering that a slot lasts half an hour. The output table should consist of the facility id, name, and hours booked, sorted by facility id. Try formatting the hours to two decimal places.', 1300),
+(4, 'List each member''s first booking after September 1st 2012', 'Produce a list of each member name, id, and their first booking after September 1st 2012. Order by member ID.', 1400),
+(4, 'Produce a list of member names, with each row containing the total member count', 'Produce a list of member names, with each row containing the total member count. Order by join date, and include guest members.', 1500),
+(4, 'Produce a numbered list of members', 'Produce a monotonically increasing numbered list of members (including guests), ordered by their date of joining. Remember that member IDs are not guaranteed to be sequential.', 1600),
+(4, 'Output the facility id that has the highest number of slots booked, again', 'Output the facility id that has the highest number of slots booked. Ensure that in the event of a tie, all tieing results get output.', 1700),
+(4, 'Rank members by (rounded) hours used', 'Produce a list of members (including guests), along with the number of hours they''ve booked in facilities, rounded to the nearest ten hours. Rank them by this rounded figure, producing output of first name, surname, rounded hours, rank. Sort by rank, surname, and first name.', 1800),
+(4, 'Find the top three revenue generating facilities', 'Produce a list of the top three revenue generating facilities (including ties). Output facility name and rank, sorted by rank and facility name. ', 1900),
+(4, 'Classify facilities by value', 'Classify facilities into equally sized groups of high, average, and low based on their revenue. Order by classification and facility name.', 2000),
+(4, 'Calculate the payback time for each facility', 'Based on the 3 complete months of data so far, calculate the amount of time each facility will take to repay its cost of ownership. Remember to take into account ongoing monthly maintenance. Output facility name and payback time in months, order by facility name. Don''t worry about differences in month lengths, we''re only looking for a rough value here!', 2100),
+(4, 'Calculate a rolling average of total revenue', 'For each day in August 2012, calculate a rolling average of total revenue over the previous 15 days. Output should contain date and revenue columns, sorted by the date. Remember to account for the possibility of a day having zero revenue. This one''s a bit tough, so don''t be afraid to check out the hint!', 2200);
 
-INSERT INTO users.exercises(chapter_id, name, question) VALUES
-(5, 'Produce a timestamp for 1 a.m. on the 31st of August 2012', 'Produce a timestamp for 1 a.m. on the 31st of August 2012.'),
-(5, 'Subtract timestamps from each other', 'Find the result of subtracting the timestamp ''2012-07-30 01:00:00'' from the timestamp ''2012-08-31 01:00:00'''),
-(5, 'Generate a list of all the dates in October 2012', 'Produce a list of all the dates in October 2012. They can be output as a timestamp (with time set to midnight) or a date.'),
-(5, 'Get the day of the month from a timestamp', 'Get the day of the month from the timestamp ''2012-08-31'' as an integer.'),
-(5, 'Work out the number of seconds between timestamps', 'Work out the number of seconds between the timestamps ''2012-08-31 01:00:00'' and ''2012-09-02 00:00:00'''),
-(5, 'Work out the number of days in each month of 2012', 'For each month of the year in 2012, output the number of days in that month. Format the output as an integer column containing the month of the year, and a second column containing an interval data type.'),
-(5, 'Work out the number of days remaining in the month', 'For any given timestamp, work out the number of days remaining in the month. The current day should count as a whole day, regardless of the time. Use ''2012-02-11 01:00:00'' as an example timestamp for the purposes of making the answer. Format the output as a single interval value.'),
-(5, 'Work out the end time of bookings', 'Return a list of the start and end time of the last 10 bookings (ordered by the time at which they end, followed by the time at which they start) in the system.'),
-(5, 'Return a count of bookings for each month', 'Return a count of bookings for each month, sorted by month'),
-(5, 'Work out the utilisation percentage for each facility by month', 'Work out the utilisation percentage for each facility by month, sorted by name and month, rounded to 1 decimal place. Opening time is 8am, closing time is 8.30pm. You can treat every month as a full month, regardless of if there were some dates the club was not open.');
+INSERT INTO users.exercises(chapter_id, name, question, exercise_order) VALUES
+(5, 'Produce a timestamp for 1 a.m. on the 31st of August 2012', 'Produce a timestamp for 1 a.m. on the 31st of August 2012.', 100),
+(5, 'Subtract timestamps from each other', 'Find the result of subtracting the timestamp ''2012-07-30 01:00:00'' from the timestamp ''2012-08-31 01:00:00''', 200),
+(5, 'Generate a list of all the dates in October 2012', 'Produce a list of all the dates in October 2012. They can be output as a timestamp (with time set to midnight) or a date.', 300),
+(5, 'Get the day of the month from a timestamp', 'Get the day of the month from the timestamp ''2012-08-31'' as an integer.', 400),
+(5, 'Work out the number of seconds between timestamps', 'Work out the number of seconds between the timestamps ''2012-08-31 01:00:00'' and ''2012-09-02 00:00:00''', 500),
+(5, 'Work out the number of days in each month of 2012', 'For each month of the year in 2012, output the number of days in that month. Format the output as an integer column containing the month of the year, and a second column containing an interval data type.', 600),
+(5, 'Work out the number of days remaining in the month', 'For any given timestamp, work out the number of days remaining in the month. The current day should count as a whole day, regardless of the time. Use ''2012-02-11 01:00:00'' as an example timestamp for the purposes of making the answer. Format the output as a single interval value.', 700),
+(5, 'Work out the end time of bookings', 'Return a list of the start and end time of the last 10 bookings (ordered by the time at which they end, followed by the time at which they start) in the system.', 800),
+(5, 'Return a count of bookings for each month', 'Return a count of bookings for each month, sorted by month', 900),
+(5, 'Work out the utilisation percentage for each facility by month', 'Work out the utilisation percentage for each facility by month, sorted by name and month, rounded to 1 decimal place. Opening time is 8am, closing time is 8.30pm. You can treat every month as a full month, regardless of if there were some dates the club was not open.', 1000);
 
-INSERT INTO users.exercises(chapter_id, name, question) VALUES
-(6, 'Format the names of members', 'Output the names of all members, formatted as ''Surname, Firstname'''),
-(6, 'Find facilities by a name prefix', 'Find all facilities whose name begins with ''Tennis''. Retrieve all columns.'),
-(6, 'Perform a case-insensitive search', 'Perform a case-insensitive search to find all facilities whose name begins with ''tennis''. Retrieve all columns.'),
-(6, 'Find telephone numbers with parentheses', 'You''ve noticed that the club''s member table has telephone numbers with very inconsistent formatting. You''d like to find all the telephone numbers that contain parentheses, returning the member ID and telephone number sorted by member ID.'),
-(6, 'Pad zip codes with leading zeroes', 'The zip codes in our example dataset have had leading zeroes removed from them by virtue of being stored as a numeric type. Retrieve all zip codes from the members table, padding any zip codes less than 5 characters long with leading zeroes. Order by the new zip code.'),
-(6, 'Count the number of members whose surname starts with each letter of the alphabet', 'You''d like to produce a count of how many members you have whose surname starts with each letter of the alphabet. Sort by the letter, and don''t worry about printing out a letter if the count is 0.'),
-(6, 'Clean up telephone numbers', 'The telephone numbers in the database are very inconsistently formatted. You''d like to print a list of member ids and numbers that have had ''-'',''('','')'', and '' '' characters removed. Order by member id.');
+INSERT INTO users.exercises(chapter_id, name, question, exercise_order) VALUES
+(6, 'Format the names of members', 'Output the names of all members, formatted as ''Surname, Firstname''', 100),
+(6, 'Find facilities by a name prefix', 'Find all facilities whose name begins with ''Tennis''. Retrieve all columns.', 200),
+(6, 'Perform a case-insensitive search', 'Perform a case-insensitive search to find all facilities whose name begins with ''tennis''. Retrieve all columns.', 300),
+(6, 'Find telephone numbers with parentheses', 'You''ve noticed that the club''s member table has telephone numbers with very inconsistent formatting. You''d like to find all the telephone numbers that contain parentheses, returning the member ID and telephone number sorted by member ID.', 400),
+(6, 'Pad zip codes with leading zeroes', 'The zip codes in our example dataset have had leading zeroes removed from them by virtue of being stored as a numeric type. Retrieve all zip codes from the members table, padding any zip codes less than 5 characters long with leading zeroes. Order by the new zip code.', 500),
+(6, 'Count the number of members whose surname starts with each letter of the alphabet', 'You''d like to produce a count of how many members you have whose surname starts with each letter of the alphabet. Sort by the letter, and don''t worry about printing out a letter if the count is 0.', 600),
+(6, 'Clean up telephone numbers', 'The telephone numbers in the database are very inconsistently formatted. You''d like to print a list of member ids and numbers that have had ''-'',''('','')'', and '' '' characters removed. Order by member id.', 700);
 
-INSERT INTO users.exercises(chapter_id, name, question) VALUES
-(7, 'Find the upward recommendation chain for member ID 27', 'Find the upward recommendation chain for member ID 27: that is, the member who recommended them, and the member who recommended that member, and so on. Return member ID, first name, and surname. Order by descending member id.'),
-(7, 'Find the downward recommendation chain for member ID 1', 'Find the downward recommendation chain for member ID 1: that is, the members they recommended, the members those members recommended, and so on. Return member ID and name, and order by ascending member id.'),
-(7, 'Produce a CTE that can return the upward recommendation chain for any member', 'Produce a CTE that can return the upward recommendation chain for any member. You should be able to <em>select recommender from recommenders where member=x</em>. Demonstrate it by getting the chains for members 12 and 22. Results table should have member and recommender, ordered by member ascending, recommender descending.');
+INSERT INTO users.exercises(chapter_id, name, question, exercise_order) VALUES
+(7, 'Find the upward recommendation chain for member ID 27', 'Find the upward recommendation chain for member ID 27: that is, the member who recommended them, and the member who recommended that member, and so on. Return member ID, first name, and surname. Order by descending member id.', 100),
+(7, 'Find the downward recommendation chain for member ID 1', 'Find the downward recommendation chain for member ID 1: that is, the members they recommended, the members those members recommended, and so on. Return member ID and name, and order by ascending member id.', 200),
+(7, 'Produce a CTE that can return the upward recommendation chain for any member', 'Produce a CTE that can return the upward recommendation chain for any member. You should be able to <em>select recommender from recommenders where member=x</em>. Demonstrate it by getting the chains for members 12 and 22. Results table should have member and recommender, ordered by member ascending, recommender descending.', 300);
 
 INSERT INTO users.solutions(exercise_id, query) VALUES
 (1, 'select * from exercises.facilities;'),
