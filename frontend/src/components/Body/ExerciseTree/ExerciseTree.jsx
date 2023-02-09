@@ -37,20 +37,27 @@ const exercises = [
 
 export default function ExerciseTree({ ...props }) {
   const navigate = useNavigate();
-  const [tree, setTree] = useState([]);
+  const [exerciseTree, setExerciseTree] = useState([]);
 
   const initialize = async () => {
-    // let treeStructure = await services.
-    // setTree(treeStructure);
-  }
+    try {
+      let treeStructure = await services.getExerciseTree();
+      setExerciseTree(treeStructure);
+    } catch (e) {
+      console.log('Failed to get exercise tree.');
+    }
+  };
 
   useEffect(() => {
     initialize();
   }, []);
 
   const handleExerciseClick = async (n) => {
-    await services.listExercises();
-    navigate(`/home/exercises?id=${n}`)
+    try {
+      navigate(`/home/exercises?id=${n}`);
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   return (
@@ -62,21 +69,27 @@ export default function ExerciseTree({ ...props }) {
         backgroundColor: 'grey',
       }}
     >
-      {chapters.map((chapter) => ( //tree?.
-        <div>
-          <div className="w-100 py-2 my-1 px-4">{chapter.name}</div>
-
-          {chapter.exercises.map((exercise) => (
-            <div
-              className="w-100 py-2 my-1 px-4"
-              style={{ fontSize: '0.8em' }}
-              onClick={() => handleExerciseClick(chapter.id+'-'+exercise.id)}
-            >
-              {exercise.name}
+      {exerciseTree?.map(
+        (chapter) => (
+          <div>
+            <div className="w-100 py-2 my-1 px-4">
+              {chapter._id + '. ' + chapter.name}
             </div>
-          ))}
-        </div>
-      ))}
+
+            {chapter.exercises?.map((exercise) => (
+              <div
+                className="w-100 py-2 my-1 px-4"
+                style={{ fontSize: '0.8em' }}
+                onClick={() =>
+                  handleExerciseClick(chapter.id + '-' + exercise.id)
+                }
+              >
+                {exercise._id + '. ' + exercise.name}
+              </div>
+            ))}
+          </div>
+        )
+      )}
     </div>
 
     // <div>

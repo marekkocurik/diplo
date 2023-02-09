@@ -1,12 +1,14 @@
+require('dotenv').config({ path: __dirname + '/./../.env' });
+import { fe_ip_address } from '../env-config';
+
 const fastify = require('fastify')();
-require('dotenv').config({ path: __dirname+'/./../.env' });
 
 fastify.register(require('./routes/routes'));
 
 fastify.register(require('@fastify/cors'), {
   // methods: ['GET', 'PUT', 'POST', 'DELETE']
   credentials: true,
-  origin: 'http://localhost:5173',
+  origin: fe_ip_address,
 });
 
 fastify.listen({ port: 8080 }, (err: any, address: any) => {

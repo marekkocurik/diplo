@@ -1,9 +1,13 @@
 import client from './client';
 
-const options = {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
+let getOptions = (params) => {
+  let options = {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`
+    },
+    searchParams: params
+  };
+  return options;
 }
 
 export const services = {
@@ -15,6 +19,8 @@ export const services = {
     client.post('auth/forgot-password', { json: { email } }).json(),
   resetPassword: (password) => //overenie tokenu ktory sa vytvoril pri forgot-password, zapisanie hesla v DB a nasledne prihlasenie
     client.post('auth/reset-password', { json: { password } }).json(),
-  listExercises: () =>
-    client.get('home/exercises', options).json(),
+  getExerciseTree: () => //vylistovanie vsetkych chapters spolu s exercises
+    client.get('home/exercise-tree', getOptions()).json(),
+  getExercise: (exercise_id) => //get konkretnej ulohy
+    client.get('home/exercise', getOptions({exercise_id})).json(),
 };

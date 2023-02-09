@@ -18,6 +18,10 @@ export default [
     element: <Auth />,
     children: [
       {
+        path: '',
+        element: <Navigate to="/auth/login" />,
+      },
+      {
         path: 'login',
         element: <Login />,
       },

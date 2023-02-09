@@ -19,7 +19,7 @@ export default class UserController extends DatabaseController {
     const client = await this.pool.connect();
 
     if (client === undefined)
-      return [500, { message: 'Error accessing database' }];
+      return [500, { message: 'Error accessing database.' }];
 
     try {
       await client.query('SET ROLE u_executioner;');
@@ -80,7 +80,7 @@ export default class UserController extends DatabaseController {
     const client = await this.pool.connect();
 
     if (client === undefined)
-      return [500, { message: 'Error accessing database' }];
+      return [500, { message: 'Error accessing database.' }];
 
     try {
       await client.query('SET ROLE u_executioner;');
@@ -111,7 +111,7 @@ export default class UserController extends DatabaseController {
     const client = await this.pool.connect();
 
     if (client === undefined)
-      return [500, { message: 'Error accessing database' }];
+      return [500, { message: 'Error accessing database.' }];
 
     try {
       await client.query('SET ROLE u_executioner;');
