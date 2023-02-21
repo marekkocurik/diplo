@@ -3,38 +3,6 @@ import { Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { services } from '../../../api/services';
 
-const chapters = [
-  {
-    id: 1,
-    name: 'SELECT',
-    exercises: [
-      { id: 1, name: 'SELECT ALL' },
-      { id: 2, name: 'SELECT ONLY' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'WHERE',
-    exercises: [
-      { id: 1, name: 'SELECT ALL' },
-      { id: 2, name: 'SELECT ALL' },
-    ],
-  },
-  {
-    id: 3,
-    name: 'JOIN',
-    exercises: [
-      { id: 1, name: 'SELECT ALL' },
-      { id: 2, name: 'SELECT ALL' },
-    ],
-  },
-];
-
-const exercises = [
-  { id: 1, name: 'SELECT ALL' },
-  { id: 2, name: 'SELECT ONLY' },
-];
-
 export default function ExerciseTree({ ...props }) {
   const navigate = useNavigate();
   const [exerciseTree, setExerciseTree] = useState([]);
@@ -42,6 +10,7 @@ export default function ExerciseTree({ ...props }) {
   const initialize = async () => {
     try {
       let treeStructure = await services.getExerciseTree();
+      console.log(treeStructure);
       setExerciseTree(treeStructure);
     } catch (e) {
       console.log('Failed to get exercise tree.');
@@ -91,15 +60,5 @@ export default function ExerciseTree({ ...props }) {
         )
       )}
     </div>
-
-    // <div>
-    //     {
-    //         exercises.map(
-    //             exercise => <Button onClick={e => handleExerciseClick(exercise.id)}>{exercise.name}</Button>
-    //         )
-    //     }
-    //     {/* <Exercise exerciseNum={exerciseNum}></Exercise> */}
-    //     {exerciseNum}
-    // </div>
   );
 }
