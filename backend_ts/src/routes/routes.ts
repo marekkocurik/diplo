@@ -19,20 +19,16 @@ export default async function routes(server: any) {
       // console.log(decoded.role);
     } catch (e) {
       console.log('token is expired');
-      //.headers({'Origin': 'http://localhost:8080'})
       // reply.redirect(fe_ip_address);
-      reply.code(401).send({ message: 'nejde to' });
-      // reply.code(302).redirect(fe_ip_address).send({ message: 'Token is expired.' });
+      // reply.code(302).redirect(fe_ip_address).headers({'Origin': 'http://localhost:8080'}).send({ message: 'Token is expired.' });
+      reply.code(302).send({ message: 'Token is expired.' });
       return;
     }
   };
 
   server.post('/auth/login', userLogin);
   server.post('/auth/register', userRegistration);
-  server.get(
-    '/home/exercise-tree',
-    /*{ preHandler: checkJWT },*/ getExerciseTree
-  );
+  server.get('/home/exercise-tree', /*{ preHandler: checkJWT },*/ getExerciseTree);
   server.get('/home/exercise', /*{ preHandler: checkJWT },*/ getExercise);
   server.get('/home/query-result', { preHandler: checkJWT }, getQueryResult);
   // server.get('/home/expected-result', { preHandler: checkJWT }, getExpectedResult);

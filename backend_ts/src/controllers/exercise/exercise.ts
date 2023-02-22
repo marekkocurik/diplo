@@ -3,7 +3,6 @@ import ExerciseController from '../../database/exerciseController';
 const exerciseController = new ExerciseController();
 
 export const getExerciseTree = async (request: any, reply: any) => {
-  // console.log('preslo to')
   let [code, response] = await exerciseController.getExerciseTree();
   reply.code(code).send(response);
   return;
@@ -17,8 +16,8 @@ export const getExercise = async (request: any, reply: any) => {
 };
 
 export const getQueryResult = async (request:any, reply:any) => {
-  const { role, studentQuery } = request.query;
-  let [code, response] = await exerciseController.getQueryResult(role, studentQuery);
+  const { role, queryToExecute } = request.query;
+  let [code, response] = await exerciseController.getQueryResult(role, queryToExecute);
   reply.code(code).send(response);
   return;
 }

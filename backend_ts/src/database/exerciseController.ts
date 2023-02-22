@@ -10,30 +10,28 @@ export default class ExerciseController extends DatabaseController {
     try {
       await client.query('SET ROLE u_executioner;');
 
-      let query = 'SELECT E.id, E.name, E.question, E.schema FROM users.exercises E WHERE E.id=$1;';
+      let query =
+        'SELECT E.id, E.name, E.question, E.schema FROM users.exercises E WHERE E.id=$1;';
       let result = await client.query(query, [exerciseId]);
 
       if (result.rows[0] === undefined)
         return [500, { message: 'Error acquiring exercise from database.' }];
 
-      query = 'SELECT S.query FROM users.solutions S JOIN users.exercises E ON E.id = S.exercise_id WHERE S.exercise_id=$1 LIMIT 1;'
+      query =
+        'SELECT S.query FROM users.solutions S JOIN users.exercises E ON E.id = S.exercise_id WHERE S.exercise_id=$1 LIMIT 1;';
       let solution = await client.query(query, [exerciseId]);
 
       if (solution.rows[0] === undefined)
         return [500, { message: 'Error acquiring exercise from database.' }];
 
       result.rows[0].solution = solution.rows[0].query;
-      console.log('returning exercise like: ')
-      console.log(result.rows[0]);
       return [200, result.rows[0]];
     } catch (e) {
-      console.log(e);
-      throw e;
+      return [500, { message: 'Failed to acquire exercise' }];
     } finally {
       client.release();
     }
   }
-
 
   // public async getExpectedResult(
   //   exerciseId: number
@@ -59,8 +57,6 @@ export default class ExerciseController extends DatabaseController {
   //   }
   // }
 
-  
-
   public async getExerciseTree(): Promise<[Number, Object]> {
     const client = await this.pool.connect();
 
@@ -79,17 +75,25 @@ export default class ExerciseController extends DatabaseController {
         return [500, { message: 'Error acquiring chapters from database.' }];
 
       let res;
-      query = 'SELECT E.id, E.name FROM users.exercises E WHERE E.chapter_id=$1 ORDER BY E.exercise_order;';
+      query =
+        'SELECT E.id, E.name FROM users.exercises E WHERE E.chapter_id=$1 ORDER BY E.exercise_order;';
       let i = 1;
       for (let x of result.rows) {
         res = await client.query(query, [x.id]);
 
         if (res.rows[0] === undefined)
-          return [500, { message: 'Error acquiring exercises from database for chapter: '+x.id+'.' }];
+          return [
+            500,
+            {
+              message:
+                'Error acquiring exercises from database for chapter: ' +
+                x.id +
+                '.',
+            },
+          ];
 
         let j = 1;
-        for (let y of res.rows)
-          y._id = j++;
+        for (let y of res.rows) y._id = j++;
 
         x._id = i++;
         x.exercises = res.rows;
@@ -98,8 +102,7 @@ export default class ExerciseController extends DatabaseController {
 
       return [200, result.rows];
     } catch (e) {
-      console.log(e);
-      throw e;
+      return [500, { message: 'Failed to acquire exercise tree' }];
     } finally {
       client.release();
     }
@@ -117,13 +120,20 @@ export default class ExerciseController extends DatabaseController {
     try {
       let setRole = `SET ROLE ${role}`;
       await client.query(setRole);
+
+      if (query === undefined) return [400, { message: 'Empty query' }];
+
       await client.query('BEGIN');
       let result = await client.query(query);
       await client.query('ROLLBACK');
       return [200, result.rows];
     } catch (e) {
-      if (e instanceof Error) return [400, { message: e.message}];
-      return [400, { message: "Unknown error occured while trying to execute query" }];
+      await client.query('ROLLBACK');
+      if (e instanceof Error) return [400, { message: e.message }];
+      return [
+        400,
+        { message: 'Unknown error occured while trying to execute query' },
+      ];
     } finally {
       client.release();
     }

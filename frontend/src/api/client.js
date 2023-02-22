@@ -15,6 +15,8 @@ const client = ky.extend({
       (req, options, response) => {
         // Do something after every response
         // For example, check status code etc...
+        if(response.status >= 300 && response.status < 400)
+          window.location.href = '/auth/login'
       },
     ],
   },

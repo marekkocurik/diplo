@@ -10,7 +10,6 @@ export default function ExerciseTree({ ...props }) {
   const initialize = async () => {
     try {
       let treeStructure = await services.getExerciseTree();
-      console.log(treeStructure);
       setExerciseTree(treeStructure);
     } catch (e) {
       console.log('Failed to get exercise tree.');
@@ -38,27 +37,26 @@ export default function ExerciseTree({ ...props }) {
         backgroundColor: 'grey',
       }}
     >
-      {exerciseTree?.map(
-        (chapter) => (
-          <div>
-            <div className="w-100 py-2 my-1 px-4">
-              {chapter._id + '. ' + chapter.name}
-            </div>
-
-            {chapter.exercises?.map((exercise) => (
-              <div
-                className="w-100 py-2 my-1 px-4"
-                style={{ fontSize: '0.8em' }}
-                onClick={() =>
-                  handleExerciseClick(chapter.id + '-' + exercise.id)
-                }
-              >
-                {exercise._id + '. ' + exercise.name}
-              </div>
-            ))}
+      {exerciseTree?.map((chapter) => (
+        <div key={'chapter_' + chapter.id}>
+          <div className="w-100 py-2 my-1 px-4">
+            {chapter._id + '. ' + chapter.name}
           </div>
-        )
-      )}
+
+          {chapter.exercises?.map((exercise) => (
+            <div
+              key={'exercise_' + exercise.id}
+              className="w-100 py-2 my-1 px-4"
+              style={{ fontSize: '0.8em' }}
+              onClick={() =>
+                handleExerciseClick(chapter.id + '-' + exercise.id)
+              }
+            >
+              {exercise._id + '. ' + exercise.name}
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

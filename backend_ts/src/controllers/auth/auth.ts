@@ -19,7 +19,7 @@ const hashPassword = (password: string, salt: any) => {
 const createToken = (role: any) => {
   const payload = {
     role: role,
-    exp: Math.floor(Date.now() / 1000) + 3600, //15
+    exp: Math.floor(Date.now() / 1000) + 3600,
   };
   return jwt.sign(payload, jwt_secret);
 };
