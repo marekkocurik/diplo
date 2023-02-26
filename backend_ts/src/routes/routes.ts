@@ -26,6 +26,11 @@ export default async function routes(server: any) {
     }
   };
 
+  const sayHello = async (req:any, reply:any) => {
+    reply.code(200).send({message: "Ya man"});
+  }
+
+  server.get('/hello', sayHello);
   server.post('/auth/login', userLogin);
   server.post('/auth/register', userRegistration);
   server.get('/home/exercise-tree', /*{ preHandler: checkJWT },*/ getExerciseTree);

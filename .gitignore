@@ -14,6 +14,13 @@
 # backend_ts env
 /backend_ts/.env
 
+# backend_ts .vscode
+/backend_ts/.vscode
+
+#azure
+azure_deploy.txt
+azure_script.sh
+
 # testing
 /coverage
 
