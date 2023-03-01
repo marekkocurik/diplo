@@ -2,7 +2,7 @@ import ky from 'ky';
 
 const client = ky.extend({
   credentials: 'include',
-  prefixUrl: 'http://localhost:8080',
+  prefixUrl: 'http://localhost',
   timeout: false,
   hooks: {
     beforeRequest: [

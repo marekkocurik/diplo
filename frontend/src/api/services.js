@@ -27,4 +27,6 @@ export const services = {
     client.get('home/query-result', getOptions({queryToExecute})).json(),
   getExpectedResult: (exercise_id) => //get vysledku studentovho query
     client.get('home/expected-result', getOptions({exercise_id})).json(),
+  getHello: () =>
+    client.get('hello'),
 };

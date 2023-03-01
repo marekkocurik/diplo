@@ -11,13 +11,14 @@ export default function ForgotPassword({ ...props }) {
     setTitle('Forgot Password');
   }, []);
 
-  const verifyEmail = async () => {
-    //tu zavolam endpoint ktory overi ze emailova adresa je registrovana
-  }
+  // const verifyEmail = async () => {
+  //   //tu zavolam endpoint ktory overi ze emailova adresa je registrovana
+  // }
 
-  const handleSendEmail = async () => {
+  const handleSendEmail = async (e) => {
+    e.preventDefault();
     try {
-      await verifyEmail();
+      const response = await services.getHello();
     } catch (e) {
 
     }

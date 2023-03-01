@@ -7,7 +7,7 @@ exports.userRegistration = exports.userLogin = void 0;
 const userController_1 = __importDefault(require("../../database/userController"));
 const crypto_1 = __importDefault(require("crypto"));
 const crypto_js_1 = require("crypto-js");
-const env_config_1 = require("../../../env-config");
+const env_config_1 = require("../../env-config");
 const jwt = require('jsonwebtoken');
 const userController = new userController_1.default();
 const createSalt = () => {

@@ -8,4 +8,4 @@
 
 export const pepper = process.env.PEPPER;
 export const jwt_secret = process.env.JWT_SECRET;
-export const fe_ip_address = process.env.FE_IP_ADDRESS || 'http://localhost:5173';
+export const fe_ip_address = process.env.FE_IP_ADDRESS || 'http://localhost:3000';

@@ -1,7 +1,7 @@
 import UserController from '../../database/userController';
 import crypto from 'crypto';
 import { SHA512 } from 'crypto-js';
-import { pepper, jwt_secret } from '../../../env-config';
+import { pepper, jwt_secret } from '../../env-config';
 
 const jwt = require('jsonwebtoken');
 const userController = new UserController();
@@ -26,6 +26,7 @@ const createToken = (role: any) => {
 
 export const userLogin = async (request: any, reply: any) => {
   const { email, password } = request.body;
+  console.log('Attempting to login ... ');
   let [code, response] = await userController.getUserCredentialsByEmail(email);
 
   if (code !== 200) {

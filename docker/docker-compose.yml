@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  server-backend:
+    build: ../backend_ts
+    image: mk-dp/backend_ts
+    container_name: mk-dp-be
+    ports:
+      - 80:80
+    env_file:
+      - ../backend_ts/.env
+    restart: on-failure

@@ -5,7 +5,7 @@ import {
   getQueryResult,
   // getExpectedResult,
 } from '../controllers/exercise/exercise';
-import { jwt_secret, fe_ip_address } from '../../env-config';
+import { jwt_secret, fe_ip_address } from '../env-config';
 const jwt = require('jsonwebtoken');
 
 export default async function routes(server: any) {
