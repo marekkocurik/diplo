@@ -77,11 +77,14 @@ export default class UserController extends DatabaseController {
   }
 
   public async emailExists(email: string): Promise<[Number, Object]> {
+    console.log('Attempting to create client connection');
     const client = await this.pool.connect();
 
+    console.log('Checking client');
     if (client === undefined)
       return [500, { message: 'Error accessing database.' }];
 
+    console.log('Client connection established');
     try {
       await client.query('SET ROLE u_executioner;');
       let query = 'SELECT email FROM users.users WHERE email ILIKE $1;';

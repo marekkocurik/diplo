@@ -58,6 +58,7 @@ export const userLogin = async (request: any, reply: any) => {
 
 export const userRegistration = async (request: any, reply: any) => {
   const { name, surname, email, password } = request.body;
+  console.log('Attempting to register new user.');
   let [code, response] = await userController.emailExists(email);
   if (code !== 200) {
     reply.code(code).send(response);

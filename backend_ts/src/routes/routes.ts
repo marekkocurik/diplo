@@ -27,7 +27,8 @@ export default async function routes(server: any) {
   };
 
   const sayHello = async (req:any, reply:any) => {
-    reply.code(200).send({message: "Ya man"});
+    console.log('Ya man');
+    reply.code(200).send({message: "Ya man LETS GOO"});
   }
 
   server.get('/hello', sayHello);
