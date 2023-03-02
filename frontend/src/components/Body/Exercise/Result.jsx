@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { services } from '../../../api/services';
 import _ from 'lodash';
+import { Table } from 'react-bootstrap';
 
 export default function Result({ query, ...props }) {
   const [queryResult, setQueryResult] = useState([]);
@@ -26,15 +27,16 @@ export default function Result({ query, ...props }) {
 
   return (
     <div
+      className="p-2"
       id="exercise_query_result"
-      style={{ flex: 1, height: '100%', backgroundColor: 'lightgreen' }}
+      style={{ flex: 1, height: '100%' }}
     >
       {errorMessage ? (
         <div className="w-100 h-100 d-flex justify-content-center align-items-center text-center">
           <div>{errorMessage}</div>
         </div>
       ) : (
-        <table>
+        <Table striped bordered hover>
           <thead>
             <tr>
               {_.keys(queryResult[0]).map((key) => (
@@ -51,7 +53,7 @@ export default function Result({ query, ...props }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       )}
     </div>
   );
