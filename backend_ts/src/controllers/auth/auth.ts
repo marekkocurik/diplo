@@ -68,7 +68,7 @@ export const userRegistration = async (request: any, reply: any) => {
   const salt = createSalt();
   const hPassword = hashPassword(password, salt);
 
-  [code, response] = await userController.createNewUser(
+  let [_code, _response] = await userController.createNewUser(
     name,
     surname,
     email,
@@ -77,6 +77,6 @@ export const userRegistration = async (request: any, reply: any) => {
     'u_student'
   );
 
-  reply.code(code).send(response);
+  reply.code(_code).send(_response);
   return;
 };

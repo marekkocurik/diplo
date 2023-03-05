@@ -4,6 +4,7 @@ import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { services } from '../../api/services';
 
 export default function Register({ ...props }) {
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [email, setEmail] = useState('');
@@ -39,8 +40,9 @@ export default function Register({ ...props }) {
   };
 
   const passwordsMatch = async () => {
-    if (password !== confirmPassword) throw new Error('Passwords do not match.');
-  }
+    if (password !== confirmPassword)
+      throw new Error('Passwords do not match.');
+  };
 
   const checkEmail = async () => {
     if (email.includes('@') === false)
@@ -53,7 +55,7 @@ export default function Register({ ...props }) {
       await hasLowerCase();
       await hasUpperCase();
       await hasNumber();
-      await hasSpecial();
+      // await hasSpecial();
       await passwordsMatch();
     } catch (e) {
       throw e;
@@ -63,10 +65,10 @@ export default function Register({ ...props }) {
   const handleSignUp = async (e) => {
     e.preventDefault();
     try {
-      // await checkEmail();
-      // await checkPassword();
+      await checkEmail();
+      await checkPassword();
       await services.register(name, surname, email, password);
-      // navigate('/auth/login');
+      navigate('/auth/login');
     } catch (e) {
       console.log(e);
     }
@@ -121,6 +123,12 @@ export default function Register({ ...props }) {
         <Button className="w-100 p-2 mt-2" type="submit" onClick={handleSignUp}>
           Sign up
         </Button>
+
+        <div className="mt-2" style={{ fontSize: '0.8em', textAlign: 'right' }}>
+          <Form.Text>
+            <Link to="/auth/login">Back to login.</Link>
+          </Form.Text>
+        </div>
       </Form>
     </>
   );
