@@ -3,18 +3,29 @@ import { services } from '../../../api/services';
 import _ from 'lodash';
 import { Table } from 'react-bootstrap';
 
-export default function Result({ query, ...props }) {
+export default function Result({ query, action, ...props }) {
   const [queryResult, setQueryResult] = useState([]);
   const [errorMessage, setErrorMessage] = useState(null);
 
   const initialize = async () => {
-    console.log('query is ' + query);
+    // console.log('query is ' + query, 'action is: ' + action);
+    // console.log('props: ', props);
     try {
-      let result = await services.getQueryResult(query);
+      let result = [];
+      if (action === 'test') {
+        result = await services.getQueryTestResult(query, props.solution);
+      } else if (action === 'submit') {
+        // result = await services.getQuerySubmitResult(query);
+      } else {
+        result = await services.getQueryExpectedResult(query);
+      }
       setQueryResult(result);
       setErrorMessage(null);
     } catch (e) {
-      console.log('Failed to get query result');
+      console.log(
+        'Failed to get query result. Action: ' +
+          (action === '' ? 'expected result' : action)
+      );
       setQueryResult([]);
       const { message } = await e.response.json();
       setErrorMessage(message);

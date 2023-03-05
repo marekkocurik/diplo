@@ -2,8 +2,8 @@ import { userLogin, userRegistration } from '../controllers/auth/auth';
 import {
   getExerciseTree,
   getExercise,
-  getQueryResult,
-  // getExpectedResult,
+  getQueryExpectedResult,
+  getQueryTestResult,
 } from '../controllers/exercise/exercise';
 import { jwt_secret, fe_ip_address } from '../env-config';
 const jwt = require('jsonwebtoken');
@@ -36,6 +36,7 @@ export default async function routes(server: any) {
   server.post('/auth/register', userRegistration);
   server.get('/home/exercise-tree', /*{ preHandler: checkJWT },*/ getExerciseTree);
   server.get('/home/exercise', /*{ preHandler: checkJWT },*/ getExercise);
-  server.get('/home/query-result', { preHandler: checkJWT }, getQueryResult);
+  server.get('/home/query-expected-result', { preHandler: checkJWT }, getQueryExpectedResult);
+  server.get('/home/query-test-result', { preHandler: checkJWT }, getQueryTestResult);
   // server.get('/home/expected-result', { preHandler: checkJWT }, getExpectedResult);
 }

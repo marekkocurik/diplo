@@ -9,6 +9,7 @@ export default function Exercise({ ...props }) {
   const [searchParams, _] = useSearchParams();
   const [exercise, setExercise] = useState({ query: '' });
   const [studentQuery, setStudentQuery] = useState('');
+  const [queryAction, setQueryAction] = useState('');
 
   const initialize = async (chapter_exercise_id) => {
     let [chapterID, exerciseID] = chapter_exercise_id.split('-');
@@ -30,9 +31,15 @@ export default function Exercise({ ...props }) {
     e.preventDefault();
     const _studentQuery = document.getElementById('student_query').value;
     setStudentQuery(_studentQuery);
+    setQueryAction('test');
   };
 
-  const handleSubmittingQuery = async (e) => {};
+  const handleSubmittingQuery = async (e) => {
+    //e.preventDefault();
+    //const _studentQuery = document.getElementById('student_query').value;
+    //setStudentQuery(_studentQuery);
+    //setQueryAction('submit');
+  };
 
   return (
     <div
@@ -53,8 +60,12 @@ export default function Exercise({ ...props }) {
       </div>
       <Schema />
       <div id="exercise_results" style={{ display: 'flex', flex: 1 }}>
-        <Result query={exercise.solution} />
-        <Result query={studentQuery} />
+        <Result query={exercise.solution} action={''} />
+        <Result
+          query={studentQuery}
+          action={queryAction}
+          solution={exercise.solution}
+        />
       </div>
       <div id="exercise_query" className="d-flex" style={{ flex: 1 }}>
         <div style={{ width: '70%' }}>

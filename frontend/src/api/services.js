@@ -23,10 +23,14 @@ export const services = {
     client.get('home/exercise-tree', getOptions()).json(),
   getExercise: (exercise_id) => //get konkretnej ulohy
     client.get('home/exercise', getOptions({exercise_id})).json(),
-  getQueryResult: (queryToExecute) => //get vysledku studentovho query
-    client.get('home/query-result', getOptions({queryToExecute})).json(),
-  getExpectedResult: (exercise_id) => //get vysledku studentovho query
-    client.get('home/expected-result', getOptions({exercise_id})).json(),
+  
+  getQueryExpectedResult: (queryToExecute) => //get vysledku studentovho query
+    client.get('home/query-expected-result', getOptions({queryToExecute})).json(),
+  getQueryTestResult: (queryToExecute, solution) => //get vysledku studentovho query
+    client.get('home/query-test-result', getOptions({queryToExecute, solution})).json(),
+  getQuerySubmitResult: (queryToExecute) => //get vysledku studentovho query
+    client.get('home/query-submit-result', getOptions({queryToExecute})).json(),
+
   getHello: () =>
     client.get('hello'),
 };
