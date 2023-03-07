@@ -2,6 +2,7 @@ import DatabaseController from './databaseController';
 
 export default class ExerciseController extends DatabaseController {
   public async getExercise(exerciseId: number): Promise<[Number, Object]> {
+    // TODO: k ulohu doplnit aj historiu a vratit to na FE. FE potom rovno "vykresli" posledne testovane
     const client = await this.pool.connect();
 
     if (client === undefined)
@@ -33,31 +34,8 @@ export default class ExerciseController extends DatabaseController {
     }
   }
 
-  // public async getExpectedResult(
-  //   exerciseId: number
-  // ): Promise<[number, object]> {
-  //   const client = await this.pool.connect();
-
-  //   if (client === undefined)
-  //     return [500, { message: 'Error accessing database.' }];
-
-  //   try {
-  //     await client.query('SET ROLE u_executioner;');
-  //     let solutionResult = "SELECT S.query FROM users.solutions AS S JOIN users.exercises as E ON E.id = S.exercise_id WHERE S.exercise_id=$1"
-  //     let solution = await client.query(solutionResult, [exerciseId]);
-  //     // console.log(solution.rows[0].query);
-  //     let result = await client.query(solution.rows[0].query);
-  //     // console.log(result.rows)
-  //     return [200, result.rows];
-  //   } catch (e) {
-  //     // await client.query('ROLLBACK');
-  //     return [500, { message: "Error occured while trying to access expected result" }];
-  //   } finally {
-  //     client.release();
-  //   }
-  // }
-
   public async getExerciseTree(): Promise<[Number, Object]> {
+    // TODO: pridat aj kontrolu uz vyriesenych uloh a na FE to farebne rozlisit
     const client = await this.pool.connect();
 
     if (client === undefined)
@@ -139,9 +117,10 @@ export default class ExerciseController extends DatabaseController {
     }
   }
 
-  // public async executeQuery(
+  // public async insertNewAnswer(
   //   role: string,
-  //   query: string
+  //   query: string,
+  //   id: number
   // ): Promise<[number, object]> {
   //   const client = await this.pool.connect();
 
@@ -149,15 +128,22 @@ export default class ExerciseController extends DatabaseController {
   //     return [500, { message: 'Error accessing database.' }];
 
   //   try {
-  //     // await client.query('BEGIN');
   //     let setRole = `SET ROLE ${role}`;
-  //     let roleResult = await client.query(setRole);
-  //     console.log(roleResult.rows);
+  //     await client.query(setRole);
+
+  //     if (query === undefined) return [400, { message: 'Empty query' }];
+
+  //     await client.query('BEGIN');
   //     let result = await client.query(query);
-  //     return [200, { message: result.rows }];
+  //     await client.query('ROLLBACK');
+  //     return [200, result.rows];
   //   } catch (e) {
-  //     // await client.query('ROLLBACK');
-  //     throw e;
+  //     await client.query('ROLLBACK');
+  //     if (e instanceof Error) return [400, { message: e.message }];
+  //     return [
+  //       400,
+  //       { message: 'Unknown error occured while trying to execute query' },
+  //     ];
   //   } finally {
   //     client.release();
   //   }

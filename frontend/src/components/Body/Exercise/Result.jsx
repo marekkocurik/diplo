@@ -8,12 +8,10 @@ export default function Result({ query, action, ...props }) {
   const [errorMessage, setErrorMessage] = useState(null);
 
   const initialize = async () => {
-    // console.log('query is ' + query, 'action is: ' + action);
-    // console.log('props: ', props);
     try {
       let result = [];
       if (action === 'test') {
-        result = await services.getQueryTestResult(query, props.solution);
+        result = await services.getQueryTestResult(query, props.solution, props.exerciseId);
       } else if (action === 'submit') {
         // result = await services.getQuerySubmitResult(query);
       } else {
@@ -33,6 +31,8 @@ export default function Result({ query, action, ...props }) {
   };
 
   useEffect(() => {
+    setQueryResult([]);
+    setErrorMessage(null);
     if (query) initialize();
   }, [query]);
 

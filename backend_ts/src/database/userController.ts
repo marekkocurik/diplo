@@ -45,6 +45,66 @@ export default class UserController extends DatabaseController {
     }
   }
 
+  public async changeUserPassword(
+    id: number,
+    password: string
+  ): Promise<[Number, UserCredentialsByEmail]> {
+    const client = await this.pool.connect();
+
+    if (client === undefined)
+      return [500, { message: 'Error accessing database' }];
+
+    try {
+      await client.query('SET ROLE u_executioner;');
+      await client.query('BEGIN;');
+      let query = 'UPDATE users.users SET password = $1 WHERE id = $2;';
+      let result = await client.query(query, [password, id]);
+
+      if (result.rowCount !== 1) {
+        await client.query('ROLLBACK;');
+        return [500, { message: 'Failed to change user password.' }];
+      }
+
+      await client.query('COMMIT;');
+      return [200, { message: 'OK' }];
+    } catch (e) {
+      await client.query('ROLLBACK;');
+      console.log(e);
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getUserCredentialsById(
+    id: number
+  ): Promise<[Number, UserCredentialsByEmail]> {
+    const client = await this.pool.connect();
+
+    if (client === undefined)
+      return [500, { message: 'Error accessing database' }];
+
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query = 'SELECT password, salt FROM users.users WHERE id=$1;';
+      let result = await client.query(query, [id]);
+      if (result.rows[0] === undefined)
+        return [400, { message: 'User with this ID does not exist.' }];
+
+      let response = {
+        message: 'OK',
+        password: result.rows[0].password,
+        salt: result.rows[0].salt,
+      };
+      return [200, response];
+    } catch (e) {
+      console.log(e);
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
   public async getUserCredentialsByEmail(
     email: string
   ): Promise<[Number, UserCredentialsByEmail]> {
@@ -129,11 +189,13 @@ export default class UserController extends DatabaseController {
         salt,
       ]);
 
-      if (result.rows[0] === undefined)
+      if (result.rows[0] === undefined) {
+        await client.query('ROLLBACK;');
         return [
           500,
           { message: 'Registration failed - could not insert new user.' },
         ];
+      }
 
       let user_id = result.rows[0].id;
 
@@ -145,11 +207,50 @@ export default class UserController extends DatabaseController {
 
       result = await client.query(insert, [role, user_id]);
 
-      if (result.rows[0] === undefined)
+      if (result.rows[0] === undefined) {
+        await client.query('ROLLBACK;');
         return [
           500,
           { message: 'Registration failed - could not insert new role.' },
         ];
+      }
+
+      let query = 'SELECT id FROM users.chapters;';
+      result = await client.query(query);
+
+      if (result.rows[0] === undefined) {
+        await client.query('ROLLBACK;');
+        return [
+          500,
+          {
+            message:
+              'Registration failed - could not receive chapter from database.',
+          },
+        ];
+      }
+
+      insert =
+        'INSERT INTO users.users_to_chapters(user_id, chapter_id) VALUES (' +
+        user_id +
+        ', ' +
+        result.rows[0].id +
+        ')';
+      for (let chapter of result.rows.slice(1)) {
+        insert += ',\n(' + user_id + ',' + chapter.id + ')';
+      }
+      insert += ';';
+
+      result = await client.query(insert);
+      if (result.rows === undefined) {
+        await client.query('ROLLBACK;');
+        return [
+          500,
+          {
+            message:
+              'Registration failed - could not register chapters to new user.',
+          },
+        ];
+      }
 
       await client.query('COMMIT;');
       return [200, { message: 'OK' }];

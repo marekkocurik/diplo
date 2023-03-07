@@ -10,6 +10,16 @@ let getOptions = (params) => {
   return options;
 }
 
+let postOptions = (body) => {
+  let options = {
+    json: body,
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`
+    },
+  }
+  return options;
+}
+
 export const services = {
   login: (email, password) => //overenie emailu, hesla, vratenie JWT tokenu a prihlasenie
     client.post('auth/login', { json: { email, password } }).json(),
@@ -19,6 +29,10 @@ export const services = {
     client.post('auth/forgot-password', { json: { email } }).json(),
   resetPassword: (password) => //overenie tokenu ktory sa vytvoril pri forgot-password, zapisanie hesla v DB a nasledne prihlasenie
     client.post('auth/reset-password', { json: { password } }).json(),
+
+  changePassword: (currentPassword, newPassword) =>
+    client.post('home/profile/change-password', postOptions({ currentPassword, newPassword })).json(),
+
   getExerciseTree: () => //vylistovanie vsetkych chapters spolu s exercises
     client.get('home/exercise-tree', getOptions()).json(),
   getExercise: (exercise_id) => //get konkretnej ulohy
@@ -26,8 +40,8 @@ export const services = {
   
   getQueryExpectedResult: (queryToExecute) => //get vysledku studentovho query
     client.get('home/query-expected-result', getOptions({queryToExecute})).json(),
-  getQueryTestResult: (queryToExecute, solution) => //get vysledku studentovho query
-    client.get('home/query-test-result', getOptions({queryToExecute, solution})).json(),
+  getQueryTestResult: (queryToExecute, solution, exerciseId) => //get vysledku studentovho query
+    client.get('home/query-test-result', getOptions({queryToExecute, solution, exerciseId})).json(),
   getQuerySubmitResult: (queryToExecute) => //get vysledku studentovho query
     client.get('home/query-submit-result', getOptions({queryToExecute})).json(),
 

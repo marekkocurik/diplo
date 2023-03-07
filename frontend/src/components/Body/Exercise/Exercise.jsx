@@ -12,10 +12,13 @@ export default function Exercise({ ...props }) {
   const [queryAction, setQueryAction] = useState('');
 
   const initialize = async (chapter_exercise_id) => {
+    document.getElementById('student_query').value = '';
     let [chapterID, exerciseID] = chapter_exercise_id.split('-');
     try {
       let exerciseInfo = await services.getExercise(exerciseID);
       setExercise(exerciseInfo);
+      setQueryAction('');
+      setStudentQuery('');
     } catch (e) {
       console.log('Failed to get exercise.');
     }
@@ -65,6 +68,7 @@ export default function Exercise({ ...props }) {
           query={studentQuery}
           action={queryAction}
           solution={exercise.solution}
+          exerciseId={exercise.id}
         />
       </div>
       <div id="exercise_query" className="d-flex" style={{ flex: 1 }}>

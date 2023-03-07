@@ -7,6 +7,8 @@ import ResetPassword from '../pages/Auth/ResetPassword';
 import Home from '../pages/Home/Home';
 import Exercises from '../pages/Home/Exercises';
 import Dashboard from '../pages/Home/Dashboard';
+import Profile from '../pages/Home/Profile';
+import ChangePassword from '../pages/Home/Profile/ChangePassword';
 
 export default [
   {
@@ -54,6 +56,20 @@ export default [
       {
         path: 'exercises',
         element: <Exercises />,
+      },
+      {
+        path: 'profile',
+        element: <Profile />,
+        children: [
+          {
+            path: '',
+            element: <Navigate to="/home/profile/change-password" />,
+          },
+          {
+            path: 'change-password',
+            element: <ChangePassword />,
+          },
+        ],
       },
     ],
   },

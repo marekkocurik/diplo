@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Button, Form } from 'react-bootstrap';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
-import { services } from '../../api/services';
+import { services } from '../../../api/services';
 
-export default function ResetPassword({ ...props }) {
+export default function ChangePassword({ ...props }) {
+  const navigate = useNavigate();
+  const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [title, setTitle] = useOutletContext();
 
   useEffect(() => {
-    setTitle('Reset Password');
+    setTitle('Change Password');
   }, []);
 
   const checkLength = async () => {
@@ -53,21 +55,31 @@ export default function ResetPassword({ ...props }) {
     }
   };
 
-  const handleResetPassword = async (e) => {
+  const handleChangePassword = async (e) => {
+    console.log('Attempting to change password');
     e.preventDefault();
     try {
-      // console.log(email.includes('@')===false);
-      // await services.login(login, password);
       await checkPassword();
-      // navigate('/auth/login');
+      await services.changePassword(password, newPassword);
+      console.log('Password changed successfully.');
+      navigate('/home/exercises?id=1-1');
     } catch (e) {
-      console.log(e);
+      console.log('Changing password has failed.', e);
     }
   };
 
   return (
     <>
       <Form>
+        <Form.Group className="mb-3">
+          <Form.Label>Current password</Form.Label>
+          <Form.Control
+            type="password"
+            placeholder="Enter current password"
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Form.Group>
+
         <Form.Group className="mb-3">
           <Form.Label>New password</Form.Label>
           <Form.Control
@@ -89,9 +101,9 @@ export default function ResetPassword({ ...props }) {
         <Button
           className="w-100 p-2 mt-2"
           type="submit"
-          onClick={handleResetPassword}
+          onClick={handleChangePassword}
         >
-          Reset password
+          Change password
         </Button>
       </Form>
     </>

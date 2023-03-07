@@ -16,9 +16,10 @@ const hashPassword = (password: string, salt: any) => {
   return SHA512(hash + pepper).toString();
 };
 
-const createToken = (role: any) => {
+const createToken = (role: any, id: any) => {
   const payload = {
     role: role,
+    id: id,
     exp: Math.floor(Date.now() / 1000) + 3600,
   };
   return jwt.sign(payload, jwt_secret);
@@ -50,7 +51,7 @@ export const userLogin = async (request: any, reply: any) => {
     return;
   }
 
-  let token = createToken(_response.role);
+  let token = createToken(_response.role, dbID);
 
   reply.code(200).send({ message: 'OK', token: token });
   return;
@@ -77,6 +78,36 @@ export const userRegistration = async (request: any, reply: any) => {
     'u_student'
   );
 
+  reply.code(_code).send(_response);
+  return;
+};
+
+export const changeUserPassword = async (request: any, reply: any) => {
+  const { currentPassword, newPassword } = request.body;
+  const { id } = request.query;
+
+  let [code, response] = await userController.getUserCredentialsById(id);
+
+  if (code !== 200) {
+    reply.code(code).send(response);
+    return;
+  }
+
+  const dbPassword = response.password;
+  const dbSalt = response.salt;
+
+  const hashedPassword = hashPassword(currentPassword, dbSalt);
+  if (hashedPassword !== dbPassword) {
+    reply.code(400).send({ message: 'Wrong password.' });
+    return;
+  }
+
+  const newHashedPassword = hashPassword(newPassword, dbSalt);
+
+  let [_code, _response] = await userController.changeUserPassword(
+    id,
+    newHashedPassword
+  );
   reply.code(_code).send(_response);
   return;
 };
