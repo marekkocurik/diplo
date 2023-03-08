@@ -1,0 +1,186 @@
+JSON validator: https://jsonformatter.curiousconcept.com/#
+
+SELECT zoznam.meno, zoznam.priezvisko, (SELECT evidencia.cislo_SPZ, evidencia.mesto FROM evidencia WHERE evidencia.cislo_SPZ LIKE 'BL%')
+FROM zoznam
+WHERE pouzivatel.id IN (SELECT pouzivatel.id FROM pouzivatel WHERE pouzivatel.id > 5) OR evidencia.cislo > 20 AND evidencia.cislo < 100
+
+"keywords" - toto by sa napriklad mohlo vygenerovat az na konci (aby som nejako nezasahoval do struktury
+	     "type": "QUERY". Nech type=QUERY vyzera z pohladu algoritmu vzdy rovnako. Na koniec
+	     algoritmu sa prelustruje cela struktura a vyberu sa vsetky klucove slova
+	     (napr. vsetky "type", "operator", ..)
+	     - ak keywords obsahuje "QUERY", znamena to, ze sa jedna o vnorene query
+
+{
+	"type": "QUERY",
+	"keywords": ["COMMAND","QUERY","SELECT","FROM","WHERE","CONDITION","OR","IN","AND","LIKE",">","<"]
+	"query": [
+		{
+			"type": "COMMAND",
+			"command": "SELECT",
+			"attributes": [
+				{
+					"type": "SELECT",
+					"select": {"table": "zoznam", "column": "meno"}
+				},
+				{
+					"type": "SELECT",
+					"select": {"table": "zoznam", "column": "priezvisko"}
+				},
+				{
+					"type": "QUERY",
+					"query": [
+						{
+							"type": "COMMAND",
+							"command": "SELECT",
+							"attributes": [
+								{
+									"type": "SELECT",
+									"select": {"table": "evidencia", "column": "cislo_SPZ"}
+								},
+								{
+									"type": "SELECT",
+									"select": {"table": "evidencia", "column": "mesto"}
+								}
+							]
+						},
+						{
+							"type": "COMMAND",
+							"command": "FROM",
+							"attributes": [
+								{
+									"type": "FROM",
+									"from": "evidencia"
+								}
+							]
+						},
+						{
+							"type": "COMMAND",
+							"command": "WHERE",
+							"attributes": {
+								"type": "CONDITION",
+								"condition": {
+									"operator": "LIKE",
+									"operand_1": {
+										"type": "VALUE",
+										"value": "evidencia.cislo_SPZ"
+									},
+									"operand_2": {
+										"type": "VALUE",
+										"value": "'BL%'"
+									}
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "COMMAND",
+			"command": "FROM",
+			"attributes": [
+				{
+					"type": "FROM",
+					"from": "zoznam"
+				}
+			]
+		},
+		{
+			"type": "COMMAND",
+			"command": "WHERE",
+			"attributes": {
+				"type": "CONDITION",
+				"condition": {
+					"operator": "OR",
+					"operand_1": {
+						"type": "CONDITION",
+						"condition": {
+							"operator": "IN",
+							"operand_1": {
+								"type": "VALUE",
+								"value": "pouzivatel.id"
+							},
+							"operand_2": {
+								"type": "QUERY",
+								"query": [
+									{
+										"type": "COMMAND",
+										"command": "SELECT",
+										"attributes": [
+											{
+												"type": "SELECT",
+												"select": {"table": "pouzivatel", "column": "id"}
+											}
+										]
+									},
+									{
+										"type": "COMMAND",
+										"command": "FROM",
+										"attributes": [
+											{
+												"type": "FROM",
+												"from": "pouzivatel"
+											}
+										]
+									},
+									{
+										"type": "COMMAND",
+										"command": "WHERE",
+										"attributes": {
+											"type": "CONDITION",
+											"condition": {
+												"operator": ">",
+												"operand_1": {
+													"type": "VALUE",
+													"value": "pouzivatel.id"
+												},
+												"operand_2": {
+													"type": "VALUE",
+													"value": "5"
+												}
+											}
+										}
+									}
+								]
+							}
+						}
+					},
+					"operand_2": {
+						"type": "CONDITION",
+						"condition": {
+							"operator": "AND",
+							"operand_1": {
+								"type": "CONDITION",
+								"condition": {
+									"operator": ">",
+									"operand_1": {
+										"type": "VALUE",
+										"value": "evidencia.cislo"
+									},
+									"operand_2": {
+										"type": "VALUE",
+										"value": "20"
+									}
+								}
+							},
+							"operand_2": {
+								"type": "CONDITION",
+								"condition": {
+									"operator": "<",
+									"operand_1": {
+										"type": "VALUE",
+										"value": "evidencia.cislo"
+									},
+									"operand_2": {
+										"type": "VALUE",
+										"value": "100"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	]
+}

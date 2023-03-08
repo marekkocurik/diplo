@@ -1,9 +1,6 @@
 REVOKE u_executioner, u_student, u_teacher, u_admin FROM u_connection;
 
 REVOKE
-r_tokens_select,
-r_tokens_insert,
-r_tokens_update,
 r_ratings_select,
 r_ratings_insert,
 r_ratings_update,
@@ -14,8 +11,6 @@ r_users_to_roles_select,
 r_users_to_roles_insert,
 r_roles_select,
 r_roles_insert,
-r_users_to_chapters_select,
-r_users_to_chapters_insert,
 r_chapters_select,
 r_exercises_select,
 r_answers_select,
@@ -72,19 +67,14 @@ REVOKE ALL ON SCHEMA users, cd FROM u_admin;
 REVOKE ALL ON DATABASE main FROM u_admin;
 
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA users FROM
-r_tokens_insert,
 r_ratings_insert,
 r_users_insert,
 r_users_to_roles_insert,
 r_roles_insert,
-r_users_to_chapters_insert,
 r_answers_insert,
 r_solutions_insert;
 
 REVOKE ALL ON ALL TABLES IN SCHEMA users FROM
- r_tokens_select,
- r_tokens_insert,
- r_tokens_update,
  r_ratings_select,
  r_ratings_insert,
  r_ratings_update,
@@ -95,8 +85,6 @@ REVOKE ALL ON ALL TABLES IN SCHEMA users FROM
  r_users_to_roles_insert,
  r_roles_select,
  r_roles_insert,
- r_users_to_chapters_select,
- r_users_to_chapters_insert,
  r_chapters_select,
  r_exercises_select,
  r_answers_select,
@@ -119,9 +107,6 @@ REVOKE ALL ON ALL TABLES IN SCHEMA users FROM
  r_facilities_delete;
 
 REVOKE ALL ON SCHEMA users FROM
-r_tokens_select,
-r_tokens_insert,
-r_tokens_update,
 r_ratings_select,
 r_ratings_insert,
 r_ratings_update,
@@ -132,8 +117,6 @@ r_users_to_roles_select,
 r_users_to_roles_insert,
 r_roles_select,
 r_roles_insert,
-r_users_to_chapters_select,
-r_users_to_chapters_insert,
 r_chapters_select,
 r_exercises_select,
 r_answers_select,
@@ -161,9 +144,6 @@ DROP ROLE IF EXISTS u_teacher;
 DROP ROLE IF EXISTS u_student;
 DROP ROLE IF EXISTS u_executioner;
 
-DROP ROLE IF EXISTS r_tokens_select;
-DROP ROLE IF EXISTS r_tokens_insert;
-DROP ROLE IF EXISTS r_tokens_update;
 DROP ROLE IF EXISTS r_ratings_select;
 DROP ROLE IF EXISTS r_ratings_insert;
 DROP ROLE IF EXISTS r_ratings_update;
@@ -174,8 +154,6 @@ DROP ROLE IF EXISTS r_users_to_roles_select;
 DROP ROLE IF EXISTS r_users_to_roles_insert;
 DROP ROLE IF EXISTS r_roles_select;
 DROP ROLE IF EXISTS r_roles_insert;
-DROP ROLE IF EXISTS r_users_to_chapters_select;
-DROP ROLE IF EXISTS r_users_to_chapters_insert;
 DROP ROLE IF EXISTS r_chapters_select;
 DROP ROLE IF EXISTS r_exercises_select;
 DROP ROLE IF EXISTS r_answers_select;

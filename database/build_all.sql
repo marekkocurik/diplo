@@ -13,13 +13,13 @@ CREATE TABLE users.users (
     email VARCHAR(75) UNIQUE NOT NULL,
     password VARCHAR(128) NOT NULL,
     last_login TIMESTAMP,
-    salt VARCHAR(32),
+    salt VARCHAR(32) NOT NULL,
     cluster INT DEFAULT 0
 );
 
 CREATE TABLE users.roles (
     id SERIAL PRIMARY KEY,
-    name varchar(50)
+    name VARCHAR(50)
 );
 
 CREATE TABLE users.users_to_roles (
@@ -30,18 +30,11 @@ CREATE TABLE users.users_to_roles (
     FOREIGN KEY (role_id) REFERENCES users.roles(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
-CREATE TABLE users.tokens (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    token VARCHAR(50),
-    FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
 CREATE TABLE users.ratings (
   id SERIAL PRIMARY KEY,
   user_id INT NOT NULL,
   rating INT,
-  type VARCHAR(10),
+  type VARCHAR(20),
   visited BOOLEAN,
   detail_level INT,
   date TIMESTAMP,
@@ -52,14 +45,6 @@ CREATE TABLE users.chapters (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50),
     chapter_order INT NOT NULL
-);
-
-CREATE TABLE users.users_to_chapters (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    chapter_id INT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    FOREIGN KEY (chapter_id) REFERENCES users.chapters(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 CREATE TABLE users.exercises (
@@ -75,19 +60,25 @@ CREATE TABLE users.exercises (
 
 CREATE TABLE users.answers (
     id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
     exercise_id INT NOT NULL,
     query VARCHAR(1000),
-    solution BOOLEAN,
+    solution VARCHAR(10),
     execution_time DECIMAL,
     similarity DECIMAL,
     date TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 CREATE TABLE users.solutions (
     id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
     exercise_id INT NOT NULL,
     query VARCHAR(1000),
+    execution_time DECIMAL,
+    abstract_syntax_tree VARCHAR(10000),
+    FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
@@ -4424,10 +4415,6 @@ CREATE INDEX "cd.members.recommendedby" ON cd.members USING btree (recommendedby
 
 -- Create users:
 
-CREATE ROLE r_tokens_select WITH NOINHERIT;
-CREATE ROLE r_tokens_insert WITH NOINHERIT;
-CREATE ROLE r_tokens_update WITH NOINHERIT;
-
 CREATE ROLE r_ratings_select WITH NOINHERIT;
 CREATE ROLE r_ratings_insert WITH NOINHERIT;
 CREATE ROLE r_ratings_update WITH NOINHERIT;
@@ -4441,9 +4428,6 @@ CREATE ROLE r_users_to_roles_insert WITH NOINHERIT;
 
 CREATE ROLE r_roles_select WITH NOINHERIT;
 CREATE ROLE r_roles_insert WITH NOINHERIT;
-
-CREATE ROLE r_users_to_chapters_select WITH NOINHERIT;
-CREATE ROLE r_users_to_chapters_insert WITH NOINHERIT;
 
 CREATE ROLE r_chapters_select WITH NOINHERIT;
 
@@ -4470,10 +4454,6 @@ CREATE ROLE r_facilities_insert WITH NOINHERIT;
 CREATE ROLE r_facilities_update WITH NOINHERIT;
 CREATE ROLE r_facilities_delete WITH NOINHERIT;
 
-GRANT USAGE ON SCHEMA users TO r_tokens_select;
-GRANT USAGE ON SCHEMA users TO r_tokens_insert;
-GRANT USAGE ON SCHEMA users TO r_tokens_update;
-
 GRANT USAGE ON SCHEMA users TO r_ratings_select;
 GRANT USAGE ON SCHEMA users TO r_ratings_insert;
 GRANT USAGE ON SCHEMA users TO r_ratings_update;
@@ -4487,9 +4467,6 @@ GRANT USAGE ON SCHEMA users TO r_users_to_roles_insert;
 
 GRANT USAGE ON SCHEMA users TO r_roles_select;
 GRANT USAGE ON SCHEMA users TO r_roles_insert;
-
-GRANT USAGE ON SCHEMA users TO r_users_to_chapters_select;
-GRANT USAGE ON SCHEMA users TO r_users_to_chapters_insert;
 
 GRANT USAGE ON SCHEMA users TO r_chapters_select;
 
@@ -4516,18 +4493,12 @@ GRANT USAGE ON SCHEMA cd TO r_facilities_insert;
 GRANT USAGE ON SCHEMA cd TO r_facilities_update;
 GRANT USAGE ON SCHEMA cd TO r_facilities_delete;
 
-GRANT USAGE ON SEQUENCE users.tokens_id_seq TO r_tokens_insert;
 GRANT USAGE ON SEQUENCE users.ratings_id_seq TO r_ratings_insert;
 GRANT USAGE ON SEQUENCE users.users_id_seq TO r_users_insert;
 GRANT USAGE ON SEQUENCE users.users_to_roles_id_seq TO r_users_to_roles_insert;
 GRANT USAGE ON SEQUENCE users.roles_id_seq TO r_roles_insert;
-GRANT USAGE ON SEQUENCE users.users_to_chapters_id_seq TO r_users_to_chapters_insert;
 GRANT USAGE ON SEQUENCE users.answers_id_seq TO r_answers_insert;
 GRANT USAGE ON SEQUENCE users.solutions_id_seq TO r_solutions_insert;
-
-GRANT SELECT ON users.tokens TO r_tokens_select;
-GRANT INSERT ON users.tokens TO r_tokens_insert;
-GRANT UPDATE ON users.tokens TO r_tokens_update;
 
 GRANT SELECT ON users.ratings TO r_ratings_select;
 GRANT INSERT ON users.ratings TO r_ratings_insert;
@@ -4542,9 +4513,6 @@ GRANT INSERT ON users.users_to_roles TO r_users_to_roles_insert;
 
 GRANT SELECT ON users.roles TO r_roles_select;
 GRANT INSERT ON users.roles TO r_roles_insert;
-
-GRANT SELECT ON users.users_to_chapters TO r_users_to_chapters_select;
-GRANT INSERT ON users.users_to_chapters TO r_users_to_chapters_insert;
 
 GRANT SELECT ON users.chapters TO r_chapters_select;
 
@@ -4572,9 +4540,6 @@ GRANT UPDATE ON cd.facilities TO r_facilities_update;
 GRANT DELETE ON cd.facilities TO r_facilities_delete;
 
 CREATE USER u_executioner WITH NOLOGIN IN GROUP
-r_tokens_select,
-r_tokens_insert,
-r_tokens_update,
 r_ratings_select,
 r_ratings_insert,
 r_ratings_update,
@@ -4585,8 +4550,6 @@ r_users_to_roles_select,
 r_users_to_roles_insert,
 r_roles_select,
 r_roles_insert,
-r_users_to_chapters_select,
-r_users_to_chapters_insert,
 r_chapters_select,
 r_exercises_select,
 r_answers_select,
