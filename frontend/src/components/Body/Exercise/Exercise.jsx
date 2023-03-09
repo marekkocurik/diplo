@@ -63,8 +63,9 @@ export default function Exercise({ ...props }) {
       </div>
       <Schema />
       <div id="exercise_results" style={{ display: 'flex', flex: 1 }}>
-        <Result query={exercise.solution} action={''} />
+        <Result table_name={'Expected result:'} query={exercise.solution} action={''} />
         <Result
+          table_name={'Your query result:'}
           query={studentQuery}
           action={queryAction}
           solution={exercise.solution}
