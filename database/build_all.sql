@@ -63,7 +63,7 @@ CREATE TABLE users.answers (
     user_id INT NOT NULL,
     exercise_id INT NOT NULL,
     query VARCHAR(1000),
-    solution VARCHAR(10),
+    solution_success VARCHAR(10),
     execution_time DECIMAL,
     similarity DECIMAL,
     date TIMESTAMP,

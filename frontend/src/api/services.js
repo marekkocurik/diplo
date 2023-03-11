@@ -34,16 +34,16 @@ export const services = {
     client.post('home/profile/change-password', postOptions({ currentPassword, newPassword })).json(),
 
   getExerciseTree: () => //vylistovanie vsetkych chapters spolu s exercises
-    client.get('home/exercise-tree', getOptions()).json(),
+    client.get('home/exercise-tree', { ...getOptions(), retry: 0 }).json(),
   getExercise: (exercise_id) => //get konkretnej ulohy
     client.get('home/exercise', getOptions({exercise_id})).json(),
   
   getQueryExpectedResult: (queryToExecute) => //get vysledku studentovho query
     client.get('home/query-expected-result', getOptions({queryToExecute})).json(),
   getQueryTestResult: (queryToExecute, solution, exerciseId) => //get vysledku studentovho query
-    client.get('home/query-test-result', getOptions({queryToExecute, solution, exerciseId})).json(),
+    client.get('home/query-test-result', { ...getOptions({queryToExecute, solution, exerciseId}), retry: 0 }).json(),
   getQuerySubmitResult: (queryToExecute) => //get vysledku studentovho query
-    client.get('home/query-submit-result', getOptions({queryToExecute})).json(),
+    client.get('home/query-submit-result', { ...getOptions({queryToExecute}), retry: 0 }).json(),
 
   getHello: () =>
     client.get('hello'),

@@ -13,7 +13,9 @@ export default function ExerciseTree({ ...props }) {
 
   const initialize = async () => {
     try {
+      console.log('calling getExerciseTree');
       let treeStructure = await services.getExerciseTree();
+      console.log('call finished');
       setExerciseTree(treeStructure);
     } catch (e) {
       console.log('Failed to get exercise tree.');
