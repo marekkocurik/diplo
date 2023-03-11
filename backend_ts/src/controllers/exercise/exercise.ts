@@ -130,7 +130,8 @@ const compareQueries = async (
       user_id,
       exercise_id,
       queryToExecute,
-      response.solution_success
+      response.solution_success,
+      action === 'test' ? false : true
     );
     if (insert_code !== 200) {
       reply.code(insert_code).send(insert_response);
@@ -158,40 +159,35 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
   const { role, id, exerciseId, queryToExecute, solution } = request.query;
   let [status, response] = await compareQueries(reply, role, solution, queryToExecute, id, exerciseId, 'submit');
 
-  if (status === 1) {
-    if (response.solution_success === 'COMPLETE') {
-      let [sol_code, sol_response] = await exerciseController.getExerciseSolutionsByExerciseID(exerciseId);
-      if (sol_code !== 200) {
-        reply.code(sol_code).send(sol_response);
-        return;
-      }
-
-      // TODO: if(solution este neexistuje)
-      /*
-        1. vlozit SELECT a, b, c, FROM ...
-        2. vlozit SELECT * FROM (SELECT * FROM ..)
-        3. console.log(sol_response)
-        4. for (solution of sol_response)
-            if (queryToExecute === solution)
-                {reply 200.send response, return}
-       */
-
-      let [save_code, save_response] = await exerciseController.insertNewSolution(id, exerciseId, queryToExecute);
-      if (save_code !== 200) {
-        reply.code(save_code).send(save_response);
-        return;
-      }
-
-      reply.code(200).send(response);
-    } else {
-      reply.code(200).send(response); // TODO: 200?
-    } 
+  try {
+    if (status === 1) {
+      if (response.solution_success === 'COMPLETE') {
+        let [sol_code, sol_response] = await exerciseController.getExerciseSolutionsByExerciseID(exerciseId);
+        if (sol_code !== 200) {
+          reply.code(sol_code).send(sol_response);
+          return;
+        }
+        let new_solution: string = queryToExecute as string;
+        if (new_solution.charAt(new_solution.length - 1) !== ';') new_solution += ';'
+        for (let s of sol_response.solutions) {
+          if (new_solution.toLowerCase() === (s.query as string).toLowerCase()) {
+            reply.code(200).send(response);
+            return;
+          }
+        }
+        let [save_code, save_response] = await exerciseController.insertNewSolution(id, exerciseId, new_solution);
+        if (save_code !== 200) {
+          reply.code(save_code).send(save_response);
+          return;
+        }
+        reply.code(200).send(response);
+      } else {
+        reply.code(200).send(response); // TODO: 200?
+      } 
+    }
+    return;
+  } catch (e) {
+    reply.code(500).send({ message: 'Unknown error occured while trying to insert new solution' });
+    return;
   }
-  return;
-  /*
-    4. IF query = solution
-      a. vytiahnut vsetky solutions
-      b. compare query so vsetkymi solutions
-      c. ak sa nejake rovna, break cyklus, inak ulozit do solutions
-    */
 };

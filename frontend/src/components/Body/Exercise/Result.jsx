@@ -13,6 +13,8 @@ export default function Result({ table_name, action, query, ...props }) {
         let result = await services.getQueryTestResult(query, props.solution, props.exerciseId);
         setQueryResult(result.queryResult);
       } else if (action === 'submit') {
+        let result = await services.getQuerySubmitResult(query, props.solution, props.exerciseId);
+        setQueryResult(result.queryResult);
         /*
         let result = await ..
         if (result.solution_success = ...)
@@ -32,7 +34,7 @@ export default function Result({ table_name, action, query, ...props }) {
 
   useEffect(() => {
     initialize();
-  }, [query]);
+  }, [query, action]);
 
   return (
     <div className="p-2" id="exercise_query_result" style={{ flex: 1, height: '100%' }}>

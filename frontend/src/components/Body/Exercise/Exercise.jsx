@@ -42,10 +42,10 @@ export default function Exercise({ ...props }) {
   };
 
   const handleSubmittingQuery = async (e) => {
-    //e.preventDefault();
-    //const _studentQuery = document.getElementById('student_query').value;
-    //setStudentQuery(_studentQuery);
-    //setQueryAction('submit');
+    e.preventDefault();
+    const _studentQuery = document.getElementById('student_query').value;
+    setStudentQuery(_studentQuery);
+    setQueryAction('submit');
     // TODO: ak je spravne query, treba aktualizovat tabulku s TOP solutions, leaderboard ...
   };
 

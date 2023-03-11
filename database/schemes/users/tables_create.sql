@@ -56,6 +56,7 @@ CREATE TABLE users.answers (
     exercise_id INT NOT NULL,
     query VARCHAR(1000),
     solution_success VARCHAR(10),
+    submit_attempt BOOLEAN NOT NULL,
     execution_time DECIMAL,
     similarity DECIMAL,
     date TIMESTAMP,
@@ -65,11 +66,9 @@ CREATE TABLE users.answers (
 
 CREATE TABLE users.solutions (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
     exercise_id INT NOT NULL,
     query VARCHAR(1000),
     execution_time DECIMAL,
     abstract_syntax_tree VARCHAR(10000),
-    FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
