@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { services } from '../../../api/services';
-import _, { property } from 'lodash';
+import _ from 'lodash';
 import { Table } from 'react-bootstrap';
 
 export default function Result({ table_name, action, query, ...props }) {
@@ -37,18 +37,18 @@ export default function Result({ table_name, action, query, ...props }) {
   }, [query, action]);
 
   return (
-    <div className="p-2" id="exercise_query_result" style={{ flex: 1, height: '100%' }}>
+    <div id="exercise_query_result" /*className="p-2" style={{ flex: 1, height: '100%' }}*/ >
       <div>
         <div>
           <b>{table_name}</b>
         </div>
-        <div>
+        <div /* style={{ height: '70vh', overflow: 'scroll', overflowX: 'hidden', overflowY: 'auto' }} */>
           {errorMessage ? (
-            <div className="w-100 h-100 d-flex justify-content-center align-items-center text-center">
+            <div /*className="w-100 h-100 d-flex justify-content-center align-items-center text-center" */>
               <div>{errorMessage}</div>
             </div>
           ) : (
-            <Table striped bordered hover>
+            <Table striped bordered hover /*style={{ fontSize: '11px', maxWidth: '50%', tableLayout: 'auto' }} */>
               <thead>
                 <tr>
                   {_.keys(queryResult[0]).map((key) => (

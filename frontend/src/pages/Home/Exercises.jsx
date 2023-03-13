@@ -3,9 +3,13 @@ import ExerciseTree from '../../components/Body/ExerciseTree/ExerciseTree';
 
 export default function Exercises({ ...props }) {
   return (
-    <div>
-      <ExerciseTree />
-      <Exercise />
+    <div style={{ display: 'flex', flexDirection: 'row' }}>
+      <div style={{ flex: 1 }}>
+        <ExerciseTree  />
+      </div>
+      <div style={{ flex: 5, overflowX: 'auto' }}>
+        <Exercise  />
+      </div>
     </div>
   );
 }

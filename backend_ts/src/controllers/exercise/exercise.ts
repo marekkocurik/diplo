@@ -26,7 +26,7 @@ export const getExercise = async (request: any, reply: any) => {
       reply.code(solution_code).send(solution_response);
       return;
     }
-    let solution_query = solution_response.solution;
+    let solution_query = solution_response.query;
     let [query_code, query_response] = await exerciseController.getQueryResult(role, solution_query);
     if (query_code !== 200) {
       reply.code(query_code).send(query_response);
@@ -60,6 +60,7 @@ export const getExerciseTree = async (request: any, reply: any) => {
       reply.code(chapters_code).send(chapters_response);
       return;
     }
+    let exercise_ids: number[] = [];
     let i = 1;
     for (let chapter of chapters_response.chapters) {
       let [c_e_code, c_e_response] = await exerciseController.getChapterExercisesByChapterID(chapter.id);
@@ -69,11 +70,24 @@ export const getExerciseTree = async (request: any, reply: any) => {
       }
 
       let j = 1;
-      for (let exercise of c_e_response.exercises) exercise._id = j++;
-
+      for (let exercise of c_e_response.exercises) {
+        exercise._id = j++;
+        exercise_ids.push(exercise.id);
+      }
       chapter._id = i++;
       chapter.exercises = c_e_response.exercises;
     }
+    let [ex_code, ex_response] = await exerciseController.exerciseIsSolved(id, exercise_ids);
+    if (ex_code === 200) {
+      for (let c of chapters_response.chapters) {
+        for (let e of c.exercises) {
+          let o = ex_response.user_exercises_solved.find(item => item.id === e.id);
+          let st = o?.status;
+          e.solved = st? st:false;
+        }
+      }
+    }
+
     reply.code(200).send(chapters_response.chapters);
     return;
   } catch (e) {

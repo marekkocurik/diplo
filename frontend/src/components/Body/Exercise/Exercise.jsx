@@ -54,22 +54,22 @@ export default function Exercise({ ...props }) {
   ) : (
     <div
       style={{
-        paddingLeft: '22vw',
-        width: '100vw',
-        height: '100vh',
-        float: 'left',
-        display: 'flex',
-        flexDirection: 'column',
+        // paddingLeft: '10vw',
+        // width: '80%',
+        // height: '100vh',
+        // float: 'left',
+        // display: 'flex',
+        // flexDirection: 'column',
       }}
     >
-      <div id="exercise_name" className="py-3">
+      <div /*id="exercise_name" className="py-3"*/ >
         <h1 dangerouslySetInnerHTML={{ __html: exercise?.name }} />
       </div>
-      <div id="exercise_question" style={{ width: '80%' }}>
+      <div /*id="exercise_question" style={{ width: '80%' }}*/ >
         <p dangerouslySetInnerHTML={{ __html: exercise?.question }} />
       </div>
       <Schema />
-      <div id="exercise_results" style={{ display: 'flex', flex: 1 }}>
+      <div /* id="exercise_results" style={{ display: 'flex', flex: 1 }} */>
         <Result table_name={'Expected result:'} action={''} queryResult={exercise?.queryResult} query={exercise?.solution } />
         <Result
           table_name={'Your query result:'}
@@ -79,20 +79,20 @@ export default function Exercise({ ...props }) {
           exerciseId={exercise?.id}
         />
       </div>
-      <div id="exercise_query" className="d-flex" style={{ flex: 1 }}>
-        <div style={{ width: '70%' }}>
-          <Form.Control className="w-100 h-100" id="student_query" as="textarea" placeholder="Write your answer here" />
+      <div id="exercise_query" /*className="d-flex" style={{ flex: 1 }} */ >
+        <div /*style={{ width: '70%' }} */>
+          <Form.Control /*className="w-100 h-100" */ id="student_query" as="textarea" placeholder="Write your answer here" />
         </div>
-        <div className="d-flex flex-column p-4">
-          <Button className="px-4 p-2 my-1" onClick={handleGivingHelp}>
+        <div /*className="d-flex flex-column p-4" */>
+          <Button /*className="px-4 p-2 my-1"*/ onClick={handleGivingHelp}>
             Help
           </Button>
 
-          <Button className="px-4 p-2 my-1" onClick={handleTestingQuery}>
+          <Button /*className="px-4 p-2 my-1"*/ onClick={handleTestingQuery}>
             Test
           </Button>
 
-          <Button className="px-4 p-2 my-1" onClick={handleSubmittingQuery}>
+          <Button /*className="px-4 p-2 my-1"*/ onClick={handleSubmittingQuery}>
             Submit
           </Button>
         </div>

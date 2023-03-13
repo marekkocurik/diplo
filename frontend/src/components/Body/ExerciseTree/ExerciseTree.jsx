@@ -1,21 +1,22 @@
 import { React, useEffect, useState } from 'react';
-import { Button } from 'react-bootstrap';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { services } from '../../../api/services';
 import SimpleBar from 'simplebar-react';
 import { motion } from 'framer-motion';
+import _ from 'lodash';
 
 export default function ExerciseTree({ ...props }) {
   const navigate = useNavigate();
   const [exerciseTree, setExerciseTree] = useState([]);
   const [searchParams] = useSearchParams();
-  const activeTask = searchParams.get('id');
+  const [expandedChapter, setExpandedChapter] = useState(null);
+  const [maxHeight, setMaxHeight] = useState(null);
+  let exerciseClick = false;
+  let activeTask = searchParams.get('id');
 
   const initialize = async () => {
     try {
-      console.log('calling getExerciseTree');
       let treeStructure = await services.getExerciseTree();
-      console.log('call finished');
       setExerciseTree(treeStructure);
     } catch (e) {
       console.log('Failed to get exercise tree.');
@@ -23,24 +24,46 @@ export default function ExerciseTree({ ...props }) {
   };
 
   useEffect(() => {
-    initialize();
-  }, []);
+    if (_.isEqual(exerciseTree, [])) {
+      const headerHeight = document.getElementById('header').offsetHeight;
+      const footerHeight = document.getElementById('footer').offsetHeight;
+      const maxAvailableHeight = window.innerHeight - headerHeight - footerHeight;
+      setMaxHeight(maxAvailableHeight);
+      initialize();
+    }
+    activeTask = searchParams.get('id');
+  }, [searchParams.get('id')]);
 
-  const handleExerciseClick = async (n) => {
+  const handleChapterClick = (chapterId) => {
+    if (!exerciseClick) setExpandedChapter(chapterId === expandedChapter ? null : chapterId);
+    exerciseClick = false;
+  };
+
+  const handleExerciseClick = async (chapterId, exerciseId) => {
+    exerciseClick = true;
     try {
-      navigate(`/home/exercises?id=${n}`);
+      navigate(`/home/exercises?id=${chapterId}-${exerciseId}`);
     } catch (e) {
       console.log(e);
     }
   };
 
-  const MenuElement = ({ active, children, ...props }) => (
+  const ChapterMenuElement = ({ active, children, ...props }) => (
     <motion.div
       initial={false}
       animate={{ opacity: active ? 1 : 0.55 }}
       whileHover={!active && { opacity: 0.8 }}
-      style={{ fontSize: '0.75em' }}
-      className="w-100 py-1 my-1 px-5 font-weight-600 clickable"
+      {...props}
+    >
+      {children}
+    </motion.div>
+  );
+
+  const ExerciseMenuElement = ({ active, children, ...props }) => (
+    <motion.div
+      initial={false}
+      animate={{ opacity: active ? 1 : 0.55, backgroundColor: props.exerciseSolved? '#03C988':'white' }}
+      whileHover={!active && { opacity: 0.8 }}
       {...props}
     >
       {children}
@@ -48,36 +71,32 @@ export default function ExerciseTree({ ...props }) {
   );
 
   return (
-    <div
-      style={{
-        boxShadow: '0px 2px 3px 1px #00000020',
-        width: '20%',
-        height: '100vh',
-        overflow: 'auto',
-        float: 'left',
-        backgroundColor: 'white',
-        position: 'fixed',
-      }}
-    >
-      <SimpleBar style={{ maxHeight: '100vh' }}>
+    <div style={{ boxShadow: '0px 2px 3px 1px #00000020' }}>
+      <SimpleBar style={{ height: maxHeight }}>
         {exerciseTree?.map((chapter) => (
-          <div key={'chapter_' + chapter.id}>
-            <div className="font-weight-600 py-3 px-5">
-              {chapter.name}
-            </div>
+          <ChapterMenuElement
+            key={'chapter_' + chapter.id}
+            onClick={() => handleChapterClick(chapter.id)}
+            className="font-weight-700 py-2 px-3 clickable"
+            active={chapter.id === expandedChapter}
+          >
+            <div>
+              <div>{chapter.name}</div>
 
-            {chapter.exercises?.map((exercise) => (
-              <MenuElement
-                key={'exercise_' + exercise.id}
-                onClick={() =>
-                  handleExerciseClick(chapter.id + '-' + exercise.id)
-                }
-                active={chapter.id + '-' + exercise.id === activeTask}
-              >
-                {exercise._id + '. ' + exercise.name}
-              </MenuElement>
-            ))}
-          </div>
+              {expandedChapter === chapter.id &&
+                chapter.exercises?.map((exercise) => (
+                  <ExerciseMenuElement
+                    key={'exercise_' + exercise.id}
+                    onClick={() => handleExerciseClick(chapter.id, exercise.id)}
+                    className="py-1 my-1 px-3 font-weight-300 font-size-80 clickable"
+                    active={chapter.id + '-' + exercise.id === activeTask}
+                    exerciseSolved={exercise.solved}
+                  >
+                    {exercise._id + '. ' + exercise.name}
+                  </ExerciseMenuElement>
+                ))}
+            </div>
+          </ChapterMenuElement>
         ))}
       </SimpleBar>
     </div>
