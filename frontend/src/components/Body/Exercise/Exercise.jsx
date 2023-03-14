@@ -1,19 +1,23 @@
 import { React, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { services } from '../../../api/services';
 import { Button, Form } from 'react-bootstrap';
 import Schema from './Schema';
 import Result from './Result';
+import History from './History';
+import Solutions from './Solutions';
 
-export default function Exercise({ ...props }) {
+export default function Exercise({ exerciseTree, ...props }) {
+  const navigate = useNavigate();
   const [searchParams, _] = useSearchParams();
   const [exercise, setExercise] = useState(null);
   const [studentQuery, setStudentQuery] = useState('');
   const [queryAction, setQueryAction] = useState('');
+  const [nextExerciseExists, setNextExerciseExists] = useState(true);
+  const [previousExerciseExists, setPreviousExerciseExists] = useState(true);
 
-  const initialize = async (chapter_exercise_id) => {
+  const initialize = async (exerciseID) => {
     document.getElementById('student_query').value = '';
-    let [chapterID, exerciseID] = chapter_exercise_id.split('-');
     try {
       let exerciseInfo = await services.getExercise(exerciseID);
       setExercise(exerciseInfo);
@@ -27,8 +31,15 @@ export default function Exercise({ ...props }) {
   };
 
   useEffect(() => {
-    if(searchParams.get('id') !== null)
-      initialize(searchParams.get('id'));
+    if (searchParams.get('id') !== null) {
+      let [chapterID, exercise_id] = searchParams.get('id').split('-');
+      // TODO: zistit aka je prva a posledna uloha
+      if (exercise_id == 1) setPreviousExerciseExists(false);
+      else setPreviousExerciseExists(true);
+      if (exercise_id == 71) setNextExerciseExists(false);
+      else setNextExerciseExists(true);
+      initialize(exercise_id);
+    }
   }, [searchParams.get('id')]);
 
   const handleGivingHelp = async (e) => {};
@@ -49,51 +60,123 @@ export default function Exercise({ ...props }) {
     // TODO: ak je spravne query, treba aktualizovat tabulku s TOP solutions, leaderboard ...
   };
 
+  const handleNextExercise = async (e) => {
+    e.preventDefault();
+    if (searchParams.get('id') !== null) {
+      let [chapterID, exercise_id] = searchParams.get('id').split('-');
+      let new_id = Number(exercise_id) + 1;
+      // TODO: treba zistit kedy zmenit hodnotu chapterID
+      navigate(`/home/exercises?id=${chapterID}-${new_id}`);
+    }
+  };
+
+  const handlePreviousExercise = async (e) => {
+    e.preventDefault();
+    if (searchParams.get('id') !== null) {
+      let [chapterID, exercise_id] = searchParams.get('id').split('-');
+      let new_id = Number(exercise_id) - 1;
+      // TODO: treba zistit kedy zmenit hodnotu chapterID
+      navigate(`/home/exercises?id=${chapterID}-${new_id}`);
+    }
+  };
+
   return searchParams.get('id') === null ? (
     <div></div>
   ) : (
     <div
       style={{
-        // paddingLeft: '10vw',
-        // width: '80%',
-        // height: '100vh',
-        // float: 'left',
-        // display: 'flex',
-        // flexDirection: 'column',
+        paddingLeft: '1vw',
+        height: '100%',
+        width: '100%',
+        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      <div /*id="exercise_name" className="py-3"*/ >
-        <h1 dangerouslySetInnerHTML={{ __html: exercise?.name }} />
+      <div className="pt-2" style={{ width: '100%' }}>
+        <h2 dangerouslySetInnerHTML={{ __html: exercise?.name }} />
       </div>
-      <div /*id="exercise_question" style={{ width: '80%' }}*/ >
+      <div className="pt-1" style={{ width: '100%' }}>
         <p dangerouslySetInnerHTML={{ __html: exercise?.question }} />
       </div>
-      <Schema />
-      <div /* id="exercise_results" style={{ display: 'flex', flex: 1 }} */>
-        <Result table_name={'Expected result:'} action={''} queryResult={exercise?.queryResult} query={exercise?.solution } />
-        <Result
-          table_name={'Your query result:'}
-          action={queryAction}
-          query={studentQuery}
-          solution={exercise?.solution}
-          exerciseId={exercise?.id}
-        />
+      <div style={{ width: '100%', maxHeight: '35vh' }}>
+        <Schema />
       </div>
-      <div id="exercise_query" /*className="d-flex" style={{ flex: 1 }} */ >
-        <div /*style={{ width: '70%' }} */>
-          <Form.Control /*className="w-100 h-100" */ id="student_query" as="textarea" placeholder="Write your answer here" />
+      <div
+        className="py-2"
+        style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '60vh' }}
+      >
+        <div style={{ width: '50%' }}>
+          <Result
+            table_name={'Expected result:'}
+            action={''}
+            queryResult={exercise?.queryResult}
+            query={exercise?.solution}
+          />
         </div>
-        <div /*className="d-flex flex-column p-4" */>
-          <Button /*className="px-4 p-2 my-1"*/ onClick={handleGivingHelp}>
-            Help
+        <div style={{ width: '50%'}}>
+          <Result
+            table_name={'Your query result:'}
+            action={queryAction}
+            query={studentQuery}
+            solution={exercise?.solution}
+            exerciseId={exercise?.id}
+          />
+        </div>
+      </div>
+      <div
+        className="py-2 px-1"
+        style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '30vh' }}
+      >
+        <div style={{ width: '70%', height: '100%' }}>
+          <Form.Control
+            id="student_query"
+            style={{ resize: 'none', height: '100%', maxHeight: '100%' }}
+            as="textarea"
+            placeholder="Write your answer here"
+          />
+        </div>
+        <div
+          className="px-2"
+          style={{ width: '20%', display: 'flex', flexDirection: 'column' }}
+        >
+          <div className="pb-1" style={{ width: '100%' }}>
+            <Button style={{ width: '60%', backgroundColor: '#2666CF' }} onClick={handleGivingHelp}>
+              Help
+            </Button>
+          </div>
+          <div className="py-1" style={{ width: '100%' }}>
+            <Button style={{ width: '60%', backgroundColor: '#2666CF' }} onClick={handleTestingQuery}>
+              Test
+            </Button>
+          </div>
+          <div className="py-1" style={{ width: '100%' }}>
+            <Button style={{ width: '60%', backgroundColor: '#2666CF' }} onClick={handleSubmittingQuery}>
+              Submit
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="py-2" style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '40vh' }}>
+        <div style={{ width: '50%' }}>
+          <History query_history={exercise?.history}/>
+        </div>
+        <div style={{ width: '50%', maxHeight: '100%' }}>
+          <Solutions />
+        </div>
+      </div>
+      <div
+        className="py-2"
+        style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}
+      >
+        <div>
+          <Button disabled={!previousExerciseExists} onClick={handlePreviousExercise}>
+            Previous
           </Button>
-
-          <Button /*className="px-4 p-2 my-1"*/ onClick={handleTestingQuery}>
-            Test
-          </Button>
-
-          <Button /*className="px-4 p-2 my-1"*/ onClick={handleSubmittingQuery}>
-            Submit
+        </div>
+        <div>
+          <Button disabled={!nextExerciseExists} onClick={handleNextExercise}>
+            Next
           </Button>
         </div>
       </div>

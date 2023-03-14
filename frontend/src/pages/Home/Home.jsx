@@ -4,26 +4,24 @@ import Header from '../../components/Header/Header';
 import { Outlet } from 'react-router-dom';
 
 export default function Home({ ...props }) {
-  const headerRef = useRef(null);
-  const footerRef = useRef(null);
   const [outletHeight, setOutletHeight] = useState(0);
 
   useEffect(() => {
-    const headerHeight = headerRef.current.offsetHeight;
-    const footerHeight = footerRef.current.offsetHeight;
-    const outletHeight = `calc(100vh - ${headerHeight}px - ${footerHeight}px)`;
+    const hHeight = document.getElementById('header').offsetHeight;
+    const fHeight = document.getElementById('footer').offsetHeight;
+    const outletHeight = `calc(100vh - ${hHeight}px - ${fHeight}px)`;
     setOutletHeight(outletHeight);
   }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '100vh' }}>
-      <div ref={headerRef}>
+      <div id="header">
         <Header />
       </div>
-      <div style={{ height: outletHeight, overflowY: 'auto' }}>
+      <div id="outlet" style={{ minHeight: outletHeight, height: outletHeight, maxHeight: outletHeight, overflowY: 'auto' }}>
         <Outlet />
       </div>
-      <div ref={footerRef}>
+      <div id="footer">
         <Footer />
       </div>
     </div>

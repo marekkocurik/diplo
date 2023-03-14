@@ -5,12 +5,11 @@ import SimpleBar from 'simplebar-react';
 import { motion } from 'framer-motion';
 import _ from 'lodash';
 
-export default function ExerciseTree({ ...props }) {
+export default function ExerciseTree({ exerciseTree, setExerciseTree, ...props }) {
   const navigate = useNavigate();
-  const [exerciseTree, setExerciseTree] = useState([]);
+  
   const [searchParams] = useSearchParams();
   const [expandedChapter, setExpandedChapter] = useState(null);
-  const [maxHeight, setMaxHeight] = useState(null);
   let exerciseClick = false;
   let activeTask = searchParams.get('id');
 
@@ -25,10 +24,6 @@ export default function ExerciseTree({ ...props }) {
 
   useEffect(() => {
     if (_.isEqual(exerciseTree, [])) {
-      const headerHeight = document.getElementById('header').offsetHeight;
-      const footerHeight = document.getElementById('footer').offsetHeight;
-      const maxAvailableHeight = window.innerHeight - headerHeight - footerHeight;
-      setMaxHeight(maxAvailableHeight);
       initialize();
     }
     activeTask = searchParams.get('id');
@@ -51,7 +46,7 @@ export default function ExerciseTree({ ...props }) {
   const ChapterMenuElement = ({ active, children, ...props }) => (
     <motion.div
       initial={false}
-      animate={{ opacity: active ? 1 : 0.55 }}
+      animate={{ opacity: active ? 1 : 0.55, backgroundColor: 'white' }}
       whileHover={!active && { opacity: 0.8 }}
       {...props}
     >
@@ -62,7 +57,10 @@ export default function ExerciseTree({ ...props }) {
   const ExerciseMenuElement = ({ active, children, ...props }) => (
     <motion.div
       initial={false}
-      animate={{ opacity: active ? 1 : 0.55, backgroundColor: props.exerciseSolved? '#03C988':'white' }}
+      animate={{
+        opacity: active ? 1 : 0.55,
+        backgroundColor: props.exerciseSolved ? '#03C988' : props.exerciseStarted ? 'yellow' : 'white',
+      }}
       whileHover={!active && { opacity: 0.8 }}
       {...props}
     >
@@ -71,33 +69,36 @@ export default function ExerciseTree({ ...props }) {
   );
 
   return (
-    <div style={{ boxShadow: '0px 2px 3px 1px #00000020' }}>
-      <SimpleBar style={{ height: maxHeight }}>
-        {exerciseTree?.map((chapter) => (
-          <ChapterMenuElement
-            key={'chapter_' + chapter.id}
-            onClick={() => handleChapterClick(chapter.id)}
-            className="font-weight-700 py-2 px-3 clickable"
-            active={chapter.id === expandedChapter}
-          >
-            <div>
-              <div>{chapter.name}</div>
-
-              {expandedChapter === chapter.id &&
-                chapter.exercises?.map((exercise) => (
-                  <ExerciseMenuElement
-                    key={'exercise_' + exercise.id}
-                    onClick={() => handleExerciseClick(chapter.id, exercise.id)}
-                    className="py-1 my-1 px-3 font-weight-300 font-size-80 clickable"
-                    active={chapter.id + '-' + exercise.id === activeTask}
-                    exerciseSolved={exercise.solved}
-                  >
-                    {exercise._id + '. ' + exercise.name}
-                  </ExerciseMenuElement>
-                ))}
-            </div>
-          </ChapterMenuElement>
-        ))}
+    <div style={{ boxShadow: '0px 2px 3px 1px #00000020', height: '100%' }}>
+      <SimpleBar style={{ overflowY: 'auto', height: '100%' }}>
+        <div>
+          {exerciseTree?.map((chapter) => (
+            <ChapterMenuElement
+              key={'chapter_' + chapter.id}
+              onClick={() => handleChapterClick(chapter.id)}
+              className="font-weight-700 py-2 px-3 clickable"
+              active={chapter.id === expandedChapter}
+            >
+              <div>
+                <div>{chapter.name}</div>
+                <div>
+                  {expandedChapter === chapter.id &&
+                    chapter.exercises?.map((exercise) => (
+                      <ExerciseMenuElement
+                        key={'exercise_' + exercise.id}
+                        onClick={() => handleExerciseClick(chapter.id, exercise.id)}
+                        className="py-1 my-1 px-3 font-weight-300 font-size-80 clickable"
+                        active={chapter.id + '-' + exercise.id === activeTask}
+                        exerciseSolved={exercise.solved}
+                      >
+                        {exercise._id + '. ' + exercise.name}
+                      </ExerciseMenuElement>
+                    ))}
+                </div>
+              </div>
+            </ChapterMenuElement>
+          ))}
+        </div>
       </SimpleBar>
     </div>
   );

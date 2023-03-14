@@ -31,7 +31,9 @@ interface Answers extends GeneralResponse {
   answers: {
     query: string;
     solution_success: string;
+    submit_attempt: boolean;
     similarity: number;
+    date: Date;
   }[];
 }
 
@@ -149,7 +151,7 @@ export default class ExerciseController extends DatabaseController {
     try {
       await client.query('SET ROLE u_executioner;');
       let query =
-        'SELECT A.query, A.solution_success, A.submit_attempt, A.similarity FROM users.answers A ' +
+        'SELECT A.query, A.solution_success, A.submit_attempt, A.similarity, A.date FROM users.answers A ' +
         'JOIN users.exercises E ON E.id = A.exercise_id ' +
         'JOIN users.users U ON U.id = A.user_id ' +
         'WHERE A.exercise_id = $1 AND A.user_id = $2;';
