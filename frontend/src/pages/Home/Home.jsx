@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import Footer from '../../components/Footer/Footer';
 import Header from '../../components/Header/Header';
 import { Outlet } from 'react-router-dom';
 
@@ -8,21 +7,20 @@ export default function Home({ ...props }) {
 
   useEffect(() => {
     const hHeight = document.getElementById('header').offsetHeight;
-    const fHeight = document.getElementById('footer').offsetHeight;
-    const outletHeight = `calc(100vh - ${hHeight}px - ${fHeight}px)`;
+    const outletHeight = `calc(100vh - ${hHeight}px)`;
     setOutletHeight(outletHeight);
   }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '100vh' }}>
-      <div id="header">
+      <div id="header" >
         <Header />
       </div>
-      <div id="outlet" style={{ minHeight: outletHeight, height: outletHeight, maxHeight: outletHeight, overflowY: 'auto' }}>
+      <div
+        id="outlet"
+        style={{ minHeight: outletHeight, height: outletHeight, maxHeight: outletHeight, overflowY: 'auto' }}
+      >
         <Outlet />
-      </div>
-      <div id="footer">
-        <Footer />
       </div>
     </div>
   );

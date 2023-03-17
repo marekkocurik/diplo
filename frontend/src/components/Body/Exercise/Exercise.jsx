@@ -7,7 +7,7 @@ import Result from './Result';
 import History from './History';
 import Solutions from './Solutions';
 
-export default function Exercise({ exerciseTree, ...props }) {
+export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
   const navigate = useNavigate();
   const [searchParams, _] = useSearchParams();
   const [exercise, setExercise] = useState(null);
@@ -102,10 +102,7 @@ export default function Exercise({ exerciseTree, ...props }) {
       <div style={{ width: '100%', maxHeight: '35vh' }}>
         <Schema />
       </div>
-      <div
-        className="py-2"
-        style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '60vh' }}
-      >
+      <div className="py-2" style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '60vh' }}>
         <div style={{ width: '50%' }}>
           <Result
             table_name={'Expected result:'}
@@ -114,7 +111,7 @@ export default function Exercise({ exerciseTree, ...props }) {
             query={exercise?.solution}
           />
         </div>
-        <div style={{ width: '50%'}}>
+        <div style={{ width: '50%' }}>
           <Result
             table_name={'Your query result:'}
             action={queryAction}
@@ -124,59 +121,60 @@ export default function Exercise({ exerciseTree, ...props }) {
           />
         </div>
       </div>
-      <div
-        className="py-2 px-1"
-        style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '30vh' }}
-      >
-        <div style={{ width: '70%', height: '100%' }}>
+      <div className="py-2 px-1" style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '50vh' }}>
+        <div style={{ width: '70%' }}>
           <Form.Control
             id="student_query"
-            style={{ resize: 'none', height: '100%', maxHeight: '100%' }}
+            style={{ resize: 'vertical', minHeight: '100%', maxHeight: '100%' }}
             as="textarea"
             placeholder="Write your answer here"
+            defaultValue={studentQuery}
           />
         </div>
-        <div
-          className="px-2"
-          style={{ width: '20%', display: 'flex', flexDirection: 'column' }}
-        >
-          <div className="pb-1" style={{ width: '100%' }}>
-            <Button style={{ width: '60%', backgroundColor: '#2666CF' }} onClick={handleGivingHelp}>
+        <div className="px-2" style={{ width: '10%', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ width: '100%' }}>
+            <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleGivingHelp}>
               Help
             </Button>
           </div>
           <div className="py-1" style={{ width: '100%' }}>
-            <Button style={{ width: '60%', backgroundColor: '#2666CF' }} onClick={handleTestingQuery}>
+            <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleTestingQuery}>
               Test
             </Button>
           </div>
-          <div className="py-1" style={{ width: '100%' }}>
-            <Button style={{ width: '60%', backgroundColor: '#2666CF' }} onClick={handleSubmittingQuery}>
+          <div style={{ width: '100%' }}>
+            <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleSubmittingQuery}>
               Submit
             </Button>
           </div>
         </div>
       </div>
       <div className="py-2" style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '40vh' }}>
-        <div style={{ width: '50%' }}>
-          <History query_history={exercise?.history}/>
+        <div style={{ width: '100%' }}>
+          <History query_history={exercise?.history} setStudentQuery={setStudentQuery} />
         </div>
-        <div style={{ width: '50%', maxHeight: '100%' }}>
+        {/* <div style={{ width: '50%', maxHeight: '100%' }}>
           <Solutions />
-        </div>
+        </div> */}
       </div>
-      <div
-        className="py-2"
-        style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}
-      >
-        <div>
-          <Button disabled={!previousExerciseExists} onClick={handlePreviousExercise}>
-            Previous
+      <div className="py-3" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
+        <div className="px-2">
+          <Button
+            style={{ width: '8vw', backgroundColor: '#2666CF' }}
+            disabled={!previousExerciseExists}
+            onClick={handlePreviousExercise}
+          >
+            {' '}
+            {'< Previous'}
           </Button>
         </div>
-        <div>
-          <Button disabled={!nextExerciseExists} onClick={handleNextExercise}>
-            Next
+        <div className="px-2">
+          <Button
+            style={{ width: '8vw', backgroundColor: '#2666CF' }}
+            disabled={!nextExerciseExists}
+            onClick={handleNextExercise}
+          >
+            {'Next >'}
           </Button>
         </div>
       </div>

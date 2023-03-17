@@ -7,7 +7,7 @@ export default function Profile({ ...props }) {
   return (
     <div
       className="w-100 d-flex flex-column justify-content-center align-items-center"
-      style={{ height: '100vh' }}
+      style={{ height: '100%' }}
     >
       <h2 className="mb-4">{title}</h2>
       <Card className="auth-window">

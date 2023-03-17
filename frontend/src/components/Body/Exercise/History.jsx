@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import _ from 'lodash';
 import { Table } from 'react-bootstrap';
 
-export default function History({ query_history, ...props }) {
+export default function History({ query_history, setStudentQuery, ...props }) {
   const [history, setHistory] = useState(null);
 
   const formatDate = (date) => {
@@ -22,8 +22,8 @@ export default function History({ query_history, ...props }) {
   }, []);
 
   return (
-    <div className="px-1" style={{ width: '100%' }}>
-      <div className="py-1" style={{ maxHeight: '10%' }}>
+    <div className="px-1" style={{ width: '100%', height: '100%' }}>
+      <div className="py-1">
         <b>History:</b>
       </div>
       <div
@@ -33,23 +33,23 @@ export default function History({ query_history, ...props }) {
           overflow: 'auto',
         }}
       >
-        {history === null ? null : (
+        {query_history === null ? null : (
           <Table id="user_query_history" striped bordered hover style={{ fontSize: '0.7em' }}>
             <thead>
               <tr>
-                <th key={'th_action'}>Action</th>
-                <th key={'th_query'}>Query</th>
-                <th key={'th_success'}>Success</th>
-                <th key={'th_date'}>Date</th>
+                <th key={'th_action'} style={{maxWidth: '15%'}}>Action</th>
+                <th key={'th_query'} style={{maxWidth: '50%'}}>Query</th>
+                <th key={'th_success'} style={{maxWidth: '15%'}}>Success</th>
+                <th key={'th_date'} style={{maxWidth: '20%'}}>Date</th>
               </tr>
             </thead>
             <tbody>
-              {history?.map((item, i) => (
-                <tr>
-                  <td>{item.submit_attempt ? 'Submit' : 'Test'}</td>
-                  <td>{item.query}</td>
-                  <td>{item.solution_success}</td>
-                  <td>{formatDate(item.date)}</td>
+              {query_history?.map((item, i) => (
+                <tr className="clickable" onClick={() => setStudentQuery(item.query)}>
+                  <td key={item.id+'_'+'action'}>{item.submit_attempt ? 'Submit' : 'Test'}</td>
+                  <td key={item.id+'_'+'query'}>{item.query}</td>
+                  <td key={item.id+'_'+'success'}>{item.solution_success}</td>
+                  <td key={item.id+'_'+'date'}>{formatDate(item.date)}</td>
                 </tr>
               ))}
             </tbody>

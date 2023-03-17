@@ -13,7 +13,7 @@ export default function Exercises({ ...props }) {
         <ExerciseTree exerciseTree={exerciseTree} setExerciseTree={setExerciseTree} />
       </div>
       <div id="exercise" style={{ width: exWidth, maxWidth: exWidth, overflowX: 'auto' }}>
-        <Exercise exerciseTree={exerciseTree} />
+        <Exercise exerciseTree={exerciseTree} setExerciseTree={setExerciseTree} />
       </div>
     </div>
   );

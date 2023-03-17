@@ -18,7 +18,7 @@ export default function Login({ ...props }) {
     try {
       let response = await services.login(email, password);
       localStorage.setItem('token', response.token);
-      navigate('/home/exercises');
+      navigate('/home/dashboard');
     } catch (e) {
       console.log('login failed');
     }

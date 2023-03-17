@@ -9,6 +9,8 @@ import Exercises from '../pages/Home/Exercises';
 import Dashboard from '../pages/Home/Dashboard';
 import Profile from '../pages/Home/Profile';
 import ChangePassword from '../pages/Home/Profile/ChangePassword';
+import Leaderboard from '../pages/Home/Leaderboard';
+import ReportBug from '../pages/Home/ReportBug';
 
 export default [
   {
@@ -58,6 +60,10 @@ export default [
         element: <Exercises />,
       },
       {
+        path: 'leaderboard',
+        element: <Leaderboard />,
+      },
+      {
         path: 'profile',
         element: <Profile />,
         children: [
@@ -70,6 +76,10 @@ export default [
             element: <ChangePassword />,
           },
         ],
+      },
+      {
+        path: 'report-bug',
+        element: <ReportBug />,
       },
     ],
   },

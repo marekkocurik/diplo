@@ -19,18 +19,15 @@ export default function ChangePassword({ ...props }) {
   };
 
   const hasLowerCase = async () => {
-    if (newPassword.match(/[a-z]/) === null)
-      throw new Error('Password must include a small letter.');
+    if (newPassword.match(/[a-z]/) === null) throw new Error('Password must include a small letter.');
   };
 
   const hasUpperCase = async () => {
-    if (newPassword.match(/[A-Z]/) === null)
-      throw new Error('Password must include a capital letter.');
+    if (newPassword.match(/[A-Z]/) === null) throw new Error('Password must include a capital letter.');
   };
 
   const hasNumber = async () => {
-    if (newPassword.match(/[0-9]/) === null)
-      throw new Error('Password must include a number.');
+    if (newPassword.match(/[0-9]/) === null) throw new Error('Password must include a number.');
   };
 
   const hasSpecial = async () => {
@@ -38,8 +35,7 @@ export default function ChangePassword({ ...props }) {
   };
 
   const passwordsMatch = async () => {
-    if (newPassword !== confirmNewPassword)
-      throw new Error('Passwords do not match.');
+    if (newPassword !== confirmNewPassword) throw new Error('Passwords do not match.');
   };
 
   const checkPassword = async () => {
@@ -69,43 +65,37 @@ export default function ChangePassword({ ...props }) {
   };
 
   return (
-    <>
-      <Form>
-        <Form.Group className="mb-3">
-          <Form.Label>Current password</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="Enter current password"
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </Form.Group>
+    <Form>
+      <Form.Group className="mb-3">
+        <Form.Label>Current password</Form.Label>
+        <Form.Control
+          type="password"
+          placeholder="Enter current password"
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>New password</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="Enter new password"
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-        </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label>New password</Form.Label>
+        <Form.Control
+          type="password"
+          placeholder="Enter new password"
+          onChange={(e) => setNewPassword(e.target.value)}
+        />
+      </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Confirm new password</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="Confirm new password"
-            onChange={(e) => setConfirmNewPassword(e.target.value)}
-          />
-        </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label>Confirm new password</Form.Label>
+        <Form.Control
+          type="password"
+          placeholder="Confirm new password"
+          onChange={(e) => setConfirmNewPassword(e.target.value)}
+        />
+      </Form.Group>
 
-        <Button
-          className="w-100 p-2 mt-2"
-          type="submit"
-          onClick={handleChangePassword}
-        >
-          Change password
-        </Button>
-      </Form>
-    </>
+      <Button className="w-100 p-2 mt-2" type="submit" onClick={handleChangePassword}>
+        Change password
+      </Button>
+    </Form>
   );
 }

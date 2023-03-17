@@ -151,10 +151,11 @@ export default class ExerciseController extends DatabaseController {
     try {
       await client.query('SET ROLE u_executioner;');
       let query =
-        'SELECT A.query, A.solution_success, A.submit_attempt, A.similarity, A.date FROM users.answers A ' +
+        'SELECT A.id, A.query, A.solution_success, A.submit_attempt, A.similarity, A.date FROM users.answers A ' +
         'JOIN users.exercises E ON E.id = A.exercise_id ' +
         'JOIN users.users U ON U.id = A.user_id ' +
-        'WHERE A.exercise_id = $1 AND A.user_id = $2;';
+        'WHERE A.exercise_id = $1 AND A.user_id = $2 ' +
+        'ORDER BY A.id DESC;';
       let result = await client.query(query, [exercise_id, user_id]);
       if (result.rows === undefined) return [500, { message: "Failed to obtain user's exercise answers", answers: [] }];
       let response = {
@@ -221,7 +222,11 @@ export default class ExerciseController extends DatabaseController {
       await client.query(setRole);
       if (query === undefined || query.trim().length === 0) return [400, { message: 'Empty query' }];
       await client.query('BEGIN;');
+      const exec_start = process.hrtime();
       let result = await client.query(query);
+      const exec_end = process.hrtime(exec_start);
+      const exec_time = exec_end[0] * 1000 + exec_end[1] / 1000000;
+      console.log('exec time: ', exec_time, 'ms');      
       await client.query('ROLLBACK;');
       return [200, result.rows];
     } catch (e) {
