@@ -61,20 +61,20 @@ GRANT USAGE ON SCHEMA users TO r_answers_insert;
 GRANT USAGE ON SCHEMA users TO r_solutions_select;
 GRANT USAGE ON SCHEMA users TO r_solutions_insert;
 
-GRANT USAGE ON SCHEMA cd TO r_members_select;
-GRANT USAGE ON SCHEMA cd TO r_members_insert;
-GRANT USAGE ON SCHEMA cd TO r_members_update;
-GRANT USAGE ON SCHEMA cd TO r_members_delete;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_members_select;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_members_insert;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_members_update;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_members_delete;
 
-GRANT USAGE ON SCHEMA cd TO r_bookings_select;
-GRANT USAGE ON SCHEMA cd TO r_bookings_insert;
-GRANT USAGE ON SCHEMA cd TO r_bookings_update;
-GRANT USAGE ON SCHEMA cd TO r_bookings_delete;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_bookings_select;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_bookings_insert;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_bookings_update;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_bookings_delete;
 
-GRANT USAGE ON SCHEMA cd TO r_facilities_select;
-GRANT USAGE ON SCHEMA cd TO r_facilities_insert;
-GRANT USAGE ON SCHEMA cd TO r_facilities_update;
-GRANT USAGE ON SCHEMA cd TO r_facilities_delete;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_facilities_select;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_facilities_insert;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_facilities_update;
+GRANT USAGE ON SCHEMA cd, cd2 TO r_facilities_delete;
 
 GRANT USAGE ON SEQUENCE users.ratings_id_seq TO r_ratings_insert;
 GRANT USAGE ON SEQUENCE users.users_id_seq TO r_users_insert;
@@ -111,16 +111,28 @@ GRANT SELECT ON cd.members TO r_members_select;
 GRANT INSERT ON cd.members TO r_members_insert;
 GRANT UPDATE ON cd.members TO r_members_update;
 GRANT DELETE ON cd.members TO r_members_delete;
+GRANT SELECT ON cd2.members TO r_members_select;
+GRANT INSERT ON cd2.members TO r_members_insert;
+GRANT UPDATE ON cd2.members TO r_members_update;
+GRANT DELETE ON cd2.members TO r_members_delete;
 
 GRANT SELECT ON cd.bookings TO r_bookings_select;
 GRANT INSERT ON cd.bookings TO r_bookings_insert;
 GRANT UPDATE ON cd.bookings TO r_bookings_update;
 GRANT DELETE ON cd.bookings TO r_bookings_delete;
+GRANT SELECT ON cd2.bookings TO r_bookings_select;
+GRANT INSERT ON cd2.bookings TO r_bookings_insert;
+GRANT UPDATE ON cd2.bookings TO r_bookings_update;
+GRANT DELETE ON cd2.bookings TO r_bookings_delete;
 
 GRANT SELECT ON cd.facilities TO r_facilities_select;
 GRANT INSERT ON cd.facilities TO r_facilities_insert;
 GRANT UPDATE ON cd.facilities TO r_facilities_update;
 GRANT DELETE ON cd.facilities TO r_facilities_delete;
+GRANT SELECT ON cd2.facilities TO r_facilities_select;
+GRANT INSERT ON cd2.facilities TO r_facilities_insert;
+GRANT UPDATE ON cd2.facilities TO r_facilities_update;
+GRANT DELETE ON cd2.facilities TO r_facilities_delete;
 
 CREATE USER u_executioner WITH NOLOGIN IN GROUP
 r_ratings_select,
@@ -183,9 +195,9 @@ r_facilities_delete;
 CREATE USER u_admin WITH NOLOGIN NOINHERIT CREATEDB;
 GRANT ALL ON DATABASE main TO u_admin;
 REVOKE CONNECT ON DATABASE main FROM u_admin;
-GRANT ALL ON SCHEMA users, cd TO u_admin;
-GRANT ALL ON ALL TABLES IN SCHEMA users, cd TO u_admin;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA users, cd TO u_admin;
+GRANT ALL ON SCHEMA users, cd, cd2 TO u_admin;
+GRANT ALL ON ALL TABLES IN SCHEMA users, cd, cd2 TO u_admin;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA users, cd, cd2 TO u_admin;
 
 CREATE USER u_connection WITH LOGIN ENCRYPTED PASSWORD '' VALID UNTIL 'infinity' NOINHERIT IN GROUP
 u_executioner,

@@ -61,9 +61,9 @@ r_facilities_update,
 r_facilities_delete
 FROM u_teacher;
 
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA users, cd FROM u_admin;
-REVOKE ALL ON ALL TABLES IN SCHEMA users, cd FROM u_admin;
-REVOKE ALL ON SCHEMA users, cd FROM u_admin;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA users, cd, cd2 FROM u_admin;
+REVOKE ALL ON ALL TABLES IN SCHEMA users, cd, cd2 FROM u_admin;
+REVOKE ALL ON SCHEMA users, cd, cd2 FROM u_admin;
 REVOKE ALL ON DATABASE main FROM u_admin;
 
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA users FROM
@@ -92,7 +92,7 @@ REVOKE ALL ON ALL TABLES IN SCHEMA users FROM
  r_solutions_select,
  r_solutions_insert;
 
- REVOKE ALL ON ALL TABLES IN SCHEMA cd FROM
+ REVOKE ALL ON ALL TABLES IN SCHEMA cd, cd2 FROM
  r_members_select,
  r_members_insert,
  r_members_update,
@@ -124,7 +124,7 @@ r_answers_insert,
 r_solutions_select,
 r_solutions_insert;
 
-REVOKE ALL ON SCHEMA cd FROM
+REVOKE ALL ON SCHEMA cd, cd2 FROM
 r_members_select,
 r_members_insert,
 r_members_update,
@@ -184,8 +184,12 @@ DROP TABLE users.users;
 DROP TABLE cd.bookings;
 DROP TABLE cd.members;
 DROP TABLE cd.facilities;
+DROP TABLE cd2.bookings;
+DROP TABLE cd2.members;
+DROP TABLE cd2.facilities;
 
 DROP SCHEMA IF EXISTS public;
 DROP SCHEMA IF EXISTS users;
 DROP SCHEMA IF EXISTS cd;
+DROP SCHEMA IF EXISTS cd2;
 

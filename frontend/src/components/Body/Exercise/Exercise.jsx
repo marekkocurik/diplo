@@ -13,10 +13,46 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
   const [exercise, setExercise] = useState(null);
   const [studentQuery, setStudentQuery] = useState('');
   const [queryAction, setQueryAction] = useState('');
-  const [nextExerciseExists, setNextExerciseExists] = useState(true);
-  const [previousExerciseExists, setPreviousExerciseExists] = useState(true);
+  const [nextExerciseExists, setNextExerciseExists] = useState(false);
+  const [nextExerciseID, setNextExerciseID] = useState(null);
+  const [nextChapterID, setNextChapterID] = useState(null);
+  const [previousExerciseExists, setPreviousExerciseExists] = useState(false);
+  const [previousExerciseID, setPreviousExerciseID] = useState(null);
+  const [previousChapterID, setPreviousChapterID] = useState(null);
 
-  const initialize = async (exerciseID) => {
+  const checkNextAvailableExercise = (c_id, e_id, inc) => {
+    const c_index = exerciseTree.findIndex((chapter) => chapter.id === c_id);
+    if (c_index !== undefined) {
+      const exercises = exerciseTree[c_index].exercises;
+      const e_index = exercises.findIndex((e) => e.id === e_id);
+
+      const next_e_index = e_index + inc;
+      if (next_e_index >= exercises.length || next_e_index < 0) {
+        const next_c_index = c_index + inc;
+        if (next_c_index >= exerciseTree.length || next_c_index < 0) return [-1, -1];
+        if (inc === 1) return [exerciseTree[next_c_index].id, exerciseTree[next_c_index].exercises[0].id];
+        const len = exerciseTree[next_c_index].exercises.length;
+        return [exerciseTree[next_c_index].id, exerciseTree[next_c_index].exercises[len - 1].id];
+      }
+      return [c_id, exercises[next_e_index].id];
+    }
+    return [-1, -1];
+  };
+
+  const initialize = async (chapterID, exerciseID) => {
+    let [n_c_id, n_e_id] = checkNextAvailableExercise(chapterID, exerciseID, 1);
+    let [p_c_id, p_e_id] = checkNextAvailableExercise(chapterID, exerciseID, -1);
+    if (n_c_id !== -1) {
+      setNextExerciseExists(true);
+      setNextChapterID(n_c_id);
+      setNextExerciseID(n_e_id);
+    }
+    if (p_c_id !== -1) {
+      setPreviousExerciseExists(true);
+      setPreviousChapterID(p_c_id);
+      setPreviousExerciseID(p_e_id);
+    }
+
     document.getElementById('student_query').value = '';
     try {
       let exerciseInfo = await services.getExercise(exerciseID);
@@ -32,13 +68,8 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
 
   useEffect(() => {
     if (searchParams.get('id') !== null) {
-      let [chapterID, exercise_id] = searchParams.get('id').split('-');
-      // TODO: zistit aka je prva a posledna uloha
-      if (exercise_id == 1) setPreviousExerciseExists(false);
-      else setPreviousExerciseExists(true);
-      if (exercise_id == 71) setNextExerciseExists(false);
-      else setNextExerciseExists(true);
-      initialize(exercise_id);
+      let [chapterID, exerciseID] = searchParams.get('id').split('-');
+      initialize(parseInt(chapterID), parseInt(exerciseID));
     }
   }, [searchParams.get('id')]);
 
@@ -62,22 +93,24 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
 
   const handleNextExercise = async (e) => {
     e.preventDefault();
-    if (searchParams.get('id') !== null) {
-      let [chapterID, exercise_id] = searchParams.get('id').split('-');
-      let new_id = Number(exercise_id) + 1;
-      // TODO: treba zistit kedy zmenit hodnotu chapterID
-      navigate(`/home/exercises?id=${chapterID}-${new_id}`);
-    }
+    navigate(`/home/exercises?id=${nextChapterID}-${nextExerciseID}`);
+    // if (searchParams.get('id') !== null) {
+    //   let [chapterID, exercise_id] = searchParams.get('id').split('-');
+    //   let new_id = Number(exercise_id) + 1;
+    //   // TODO: treba zistit kedy zmenit hodnotu chapterID
+    //   navigate(`/home/exercises?id=${chapterID}-${new_id}`);
+    // }
   };
 
   const handlePreviousExercise = async (e) => {
     e.preventDefault();
-    if (searchParams.get('id') !== null) {
-      let [chapterID, exercise_id] = searchParams.get('id').split('-');
-      let new_id = Number(exercise_id) - 1;
-      // TODO: treba zistit kedy zmenit hodnotu chapterID
-      navigate(`/home/exercises?id=${chapterID}-${new_id}`);
-    }
+    navigate(`/home/exercises?id=${previousChapterID}-${previousExerciseID}`);
+    // if (searchParams.get('id') !== null) {
+    //   let [chapterID, exercise_id] = searchParams.get('id').split('-');
+    //   let new_id = Number(exercise_id) - 1;
+    //   // TODO: treba zistit kedy zmenit hodnotu chapterID
+    //   navigate(`/home/exercises?id=${chapterID}-${new_id}`);
+    // }
   };
 
   return searchParams.get('id') === null ? (

@@ -45,11 +45,11 @@ export default function History({ query_history, setStudentQuery, ...props }) {
             </thead>
             <tbody>
               {query_history?.map((item, i) => (
-                <tr className="clickable" onClick={() => setStudentQuery(item.query)}>
-                  <td key={item.id+'_'+'action'}>{item.submit_attempt ? 'Submit' : 'Test'}</td>
-                  <td key={item.id+'_'+'query'}>{item.query}</td>
-                  <td key={item.id+'_'+'success'}>{item.solution_success}</td>
-                  <td key={item.id+'_'+'date'}>{formatDate(item.date)}</td>
+                <tr className="clickable" key={item.id+'_tr'} onClick={() => setStudentQuery(item.query)}>
+                  <td key={item.id+'_action'}>{item.submit_attempt ? 'Submit' : 'Test'}</td>
+                  <td key={item.id+'_query'}>{item.query}</td>
+                  <td key={item.id+'_success'}>{item.solution_success}</td>
+                  <td key={item.id+'_date'}>{formatDate(item.date)}</td>
                 </tr>
               ))}
             </tbody>
