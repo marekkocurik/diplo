@@ -11,7 +11,7 @@ interface QueryCompareResponse extends GeneralResponse {
   solution_success: string;
 }
 
-interface QueryExecuteReponse extends GeneralResponse{
+interface QueryExecuteReponse extends GeneralResponse {
   queryResult: {};
   executionTime: number;
 }
@@ -22,40 +22,40 @@ interface QueryTestResponse extends QueryExecuteReponse {
 
 const exerciseController = new ExerciseController();
 
-const queryResultsMatch = (solution_query_result: Object, student_query_result: Object):boolean => {
+const queryResultsMatch = (solution_query_result: Object, student_query_result: Object): boolean => {
   if (JSON.stringify(solution_query_result) === JSON.stringify(student_query_result)) return true;
   return false;
 };
 
 export const getExercise = async (request: any, reply: any) => {
-  const { role, id, exercise_id } = request.query;
+  const { role, id, exerciseId } = request.query;
   try {
-    let [exercise_code, exercise_response] = await exerciseController.getExerciseByID(exercise_id);
+    let [exercise_code, exercise_response] = await exerciseController.getExerciseByID(exerciseId);
     if (exercise_code !== 200) {
       reply.code(exercise_code).send(exercise_response);
       return;
     }
-    let [solution_code, solution_response] = await exerciseController.getExerciseSolutionByExerciseID(exercise_id);
+    let [solution_code, solution_response] = await exerciseController.getExerciseSolutionByExerciseID(exerciseId);
     if (solution_code !== 200) {
       reply.code(solution_code).send(solution_response);
       return;
     }
-    let solution_query = solution_response.query;
-    let [query_code, query_response] = await exerciseController.getQueryResult(role, solution_query);
-    if (query_code !== 200) {
-      reply.code(query_code).send(query_response);
-      return;
-    }
-    let [hist_code, hist_response] = await exerciseController.getExerciseAnswersByExerciseIDAndUserID(exercise_id, id);
-    if (hist_code !== 200) {
-      reply.code(hist_code).send(hist_response);
-      return;
-    }
+    // let solution_query = solution_response.query;
+    // let [query_code, query_response] = await exerciseController.getQueryResult(role, solution_query);
+    // if (query_code !== 200) {
+    //   reply.code(query_code).send(query_response);
+    //   return;
+    // }
+    // let [hist_code, hist_response] = await exerciseController.getExerciseAnswersByExerciseIDAndUserID(exercise_id, id);
+    // if (hist_code !== 200) {
+    //   reply.code(hist_code).send(hist_response);
+    //   return;
+    // }
     let response = {
       ...exercise_response,
-      solution: solution_query,
-      queryResult: query_response.queryResult,
-      history: hist_response.answers,
+      solution: solution_response.query,
+      // queryResult: query_response.queryResult,
+      // history: hist_response.answers,
     };
     reply.code(200).send(response);
     return;
@@ -210,14 +210,14 @@ export const getExerciseTree = async (request: any, reply: any) => {
 //           reply.code(sol_code).send(sol_response);
 //           return;
 //         }
-        // let new_solution: string = queryToExecute as string;
-        // if (new_solution.charAt(new_solution.length - 1) !== ';') new_solution += ';';
-        // for (let s of sol_response.solutions) {
-        //   if (new_solution.toLowerCase() === (s.query as string).toLowerCase()) {
-        //     reply.code(200).send(response);
-        //     return;
-        //   }
-        // }
+// let new_solution: string = queryToExecute as string;
+// if (new_solution.charAt(new_solution.length - 1) !== ';') new_solution += ';';
+// for (let s of sol_response.solutions) {
+//   if (new_solution.toLowerCase() === (s.query as string).toLowerCase()) {
+//     reply.code(200).send(response);
+//     return;
+//   }
+// }
 //         let [save_code, save_response] = await exerciseController.insertNewSolution(exerciseId, new_solution, response.execution_time);
 //         if (save_code !== 200) {
 //           reply.code(save_code).send(save_response);
@@ -235,9 +235,36 @@ export const getExerciseTree = async (request: any, reply: any) => {
 //   }
 // };
 
+export const getExerciseHistory = async (request: any, reply: any) => {
+  const { id, exerciseId } = request.query;
+  try {
+    let [code, response] = await exerciseController.getExerciseAnswersByExerciseIDAndUserID(exerciseId, id);
+    reply.code(code).send(response);
+    return;
+  } catch (e) {
+    reply.code(500).send({ message: "Unknown error occured while trying to obtain user's exerecise query history" });
+    return;
+  }
+};
 
+export const getUserExerciseSolutions = async (request: any, reply: any) => {
+  const { id, exerciseId } = request.query;
+  try {
+    let [code, response] = await exerciseController.getUserExerciseSolutionsByExerciseID(id, exerciseId);
+    reply.code(code).send(response);
+    return;
+  } catch (e) {
+    reply.code(500).send({ message: "Unknown error occured while trying to obtain user's exercise solutions" });
+    return;
+  }
+};
 
-const executeQuery = async (role: string, query: string, action: string, queryType: string):Promise<[number, QueryExecuteReponse]> => {
+const executeQuery = async (
+  role: string,
+  query: string,
+  action: string,
+  queryType: string
+): Promise<[number, QueryExecuteReponse]> => {
   try {
     let [code, response] = await exerciseController.getQueryResult(role, query);
     return [code, response];
@@ -245,8 +272,8 @@ const executeQuery = async (role: string, query: string, action: string, queryTy
     let response = {
       message: '',
       queryResult: {},
-      executionTime: 0
-    }
+      executionTime: 0,
+    };
     if (e instanceof Error) {
       response.message = e.message;
       return [400, response];
@@ -255,12 +282,17 @@ const executeQuery = async (role: string, query: string, action: string, queryTy
       return [500, response];
     }
   }
-}
+};
 
-const testQueries = async (role: string, solutionQuery: string, studentQuery: string, action: string):Promise<[number, QueryTestResponse]> => {
+const testQueries = async (
+  role: string,
+  solutionQuery: string,
+  studentQuery: string,
+  action: string
+): Promise<[number, QueryTestResponse]> => {
   let testResponse = {
     queriesMatch: false,
-  }
+  };
   let [code, response] = await executeQuery(role, solutionQuery, action, 'solution');
   if (code !== 200) return [code, Object.assign(testResponse, response)];
   let solutionResult = response.queryResult;
@@ -269,18 +301,29 @@ const testQueries = async (role: string, solutionQuery: string, studentQuery: st
   let studentResult = response.queryResult;
   testResponse.queriesMatch = queryResultsMatch(solutionResult, studentResult);
   return [200, Object.assign(testResponse, response)];
-}
+};
 
-const insertNewSolution = async (exerciseID: number, solution: string, executionTime: number):Promise<[number, GeneralResponse]> => {
+const insertNewSolution = async (
+  exerciseID: number,
+  solution: string,
+  executionTime: number
+): Promise<[number, GeneralResponse]> => {
   try {
     let [code, response] = await exerciseController.insertNewSolution(exerciseID, solution, executionTime);
     return [code, response];
   } catch (e) {
     return [500, { message: 'Unknown error occured while trying to insert new solution' }];
   }
-}
+};
 
-const insertNewAnswer = async (userID: number, exerciseID: number, query: string, solutionSuccess: string, submitAttempt: boolean, executionTime: number):Promise<[number, GeneralResponse]> => {
+const insertNewAnswer = async (
+  userID: number,
+  exerciseID: number,
+  query: string,
+  solutionSuccess: string,
+  submitAttempt: boolean,
+  executionTime: number
+): Promise<[number, GeneralResponse]> => {
   try {
     let [code, response] = await exerciseController.insertNewAnswer(
       userID,
@@ -291,23 +334,25 @@ const insertNewAnswer = async (userID: number, exerciseID: number, query: string
       executionTime
     );
     return [code, response];
-  } catch(e) {
+  } catch (e) {
     return [500, { message: "Unknow error occured while trying to insert user's answer" }];
   }
-}
+};
 
 const editQueryToSecondScheme = (query: string) => {
   const regex = /\scd\./g;
   const replacement = ' cd2.';
   const newQuery = query.replace(regex, replacement);
   return newQuery;
-}
+};
 
-const checkIfSolutionExist = async (exerciseID: number, potentialSolution: string):Promise<[number, GeneralResponse]> => {
+const checkIfSolutionExist = async (
+  exerciseID: number,
+  potentialSolution: string
+): Promise<[number, GeneralResponse]> => {
   try {
-    let [code, response] = await exerciseController.getExerciseSolutionsByExerciseID(exerciseID);
-    if (code !== 200)
-      return [code, response];
+    let [code, response] = await exerciseController.getAllExerciseSolutionsByExerciseID(exerciseID);
+    if (code !== 200) return [code, response];
     for (let solution of response.solutions) {
       if (potentialSolution.toLowerCase() === (solution.query as string).toLowerCase())
         return [200, { message: 'Solution already exists' }];
@@ -316,21 +361,32 @@ const checkIfSolutionExist = async (exerciseID: number, potentialSolution: strin
   } catch (e) {
     return [500, { message: 'Unknown error occured while trying to get exercise solutions' }];
   }
-}
+};
 
 const editSolutionBeforeSaving = (solution: string) => {
-  if(solution.charAt(solution.length - 1) !== ';') solution += ';';
+  if (solution.charAt(solution.length - 1) !== ';') solution += ';';
   return solution;
-}
+};
 
-const proccessNewSolution = async (exerciseID: number, potentialSolution: string, executionTime: number):Promise<[number, GeneralResponse]> => {
+const proccessNewSolution = async (
+  exerciseID: number,
+  potentialSolution: string,
+  executionTime: number
+): Promise<[number, GeneralResponse]> => {
   potentialSolution = editSolutionBeforeSaving(potentialSolution);
   let [code, response] = await checkIfSolutionExist(exerciseID, potentialSolution);
   if (code === 200 && response.message === 'Solution does not exist yet') {
     [code, response] = await insertNewSolution(exerciseID, potentialSolution, executionTime);
   }
   return [code, response];
-}
+};
+
+export const getQueryExpectedResult = async (request: any, reply: any) => {
+  const { role, queryToExecute } = request.query;
+  let [code, response] = await executeQuery(role, queryToExecute, 'get', 'expected');
+  reply.code(code).send(response);
+  return;
+};
 
 export const getQueryTestResult = async (request: any, reply: any) => {
   const { role, id, exerciseId, queryToExecute, solution } = request.query;
@@ -339,18 +395,29 @@ export const getQueryTestResult = async (request: any, reply: any) => {
   // 400 - ERROR query
   // 403 - BAD REQUEST (prazdne query)
   // 500 - chyba s pripojenim na DB
-
+  let solutionSuccess = 'ERROR';
   if (code === 400 || code === 200) {
-    let solutionSuccess = code === 400 ? 'ERROR' : response.queriesMatch ? 'PARTIAL' : 'WRONG';
-    let [insertCode, insertResponse] = await insertNewAnswer(id, exerciseId, queryToExecute, solutionSuccess, false, response.executionTime);
-    if( insertCode !== 200) {
+    solutionSuccess = code === 400 ? 'ERROR' : response.queriesMatch ? 'PARTIAL' : 'WRONG';
+    let [insertCode, insertResponse] = await insertNewAnswer(
+      id,
+      exerciseId,
+      queryToExecute,
+      solutionSuccess,
+      false,
+      response.executionTime
+    );
+    if (insertCode !== 200) {
       reply.code(insertCode).send(insertResponse);
       return;
     }
   }
-  reply.code(code).send(response);
-  return; 
-}
+  let res = {
+    ...response,
+    solutionSuccess: solutionSuccess,
+  };
+  reply.code(code).send(res);
+  return;
+};
 
 export const getQuerySubmitResult = async (request: any, reply: any) => {
   const { role, id, exerciseId, queryToExecute, solution } = request.query;
@@ -367,12 +434,16 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
         return;
       } else if (code === 200) {
         solutionSuccess = 'COMPLETE';
-        let [processSolutionCode, processSolutionResponse] = await proccessNewSolution(exerciseId, queryToExecute, response.executionTime);
+        let [processSolutionCode, processSolutionResponse] = await proccessNewSolution(
+          exerciseId,
+          queryToExecute,
+          response.executionTime
+        );
         if (processSolutionCode !== 200) {
           // TODO: solution je spravne, ale nejde ulozit - co s tym chcem spravit? Mozem vytvorit nejaky proces, ktory raz za cas prebehne answers a porovna, ci vsetky success = 'COMPLETE' su aj v users.solutions
           let res = {
             message: 'Solution is correct, but it could not be saved.',
-          }
+          };
         }
       } else {
         solutionSuccess = 'ERROR';
@@ -381,12 +452,19 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
 
     // TODO: ak porovnanie nad sekundarnou db = ERROR, potom asi nechcem ulozit response.executionTime (ktory je z porovnania nad primarnou DB)
     // TODO: na druhej strane, userovi ukaze execTime nad primarnou db, ze execTime je X, potom submitne query, a zrazu execTime = iny cas?
-    let [insertCode, insertResponse] = await insertNewAnswer(id, exerciseId, queryToExecute, solutionSuccess, true, response.executionTime);
-    if( insertCode !== 200) {
+    let [insertCode, insertResponse] = await insertNewAnswer(
+      id,
+      exerciseId,
+      queryToExecute,
+      solutionSuccess,
+      true,
+      response.executionTime
+    );
+    if (insertCode !== 200) {
       reply.code(insertCode).send(insertResponse);
       return;
     }
   }
   reply.code(code).send(response);
-  return; 
-}
+  return;
+};

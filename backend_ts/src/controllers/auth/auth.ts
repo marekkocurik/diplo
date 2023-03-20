@@ -124,3 +124,19 @@ export const changeUserPassword = async (request: any, reply: any) => {
     return;
   }
 };
+
+export const getUsername = async (request: any, reply: any) => {
+  const { id } = request.query;
+  try {
+    let [code, response] = await userController.getUserNameAndSurname(id);
+    let res = {
+      message: response.message,
+      username: response.name + ' ' + response.surname
+    }
+    reply.code(code).send(res);
+    return;
+  } catch (e) {
+    reply.code(500).send({ message: 'Unknown error occured while trying to obtain Username' });
+    return;
+  }
+};

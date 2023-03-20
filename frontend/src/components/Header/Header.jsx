@@ -2,14 +2,24 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdBugReport, MdHomeFilled } from 'react-icons/md';
 import { NavDropdown } from 'react-bootstrap';
+import { services } from '../../api/services';
 
 export default function Header({ ...props }) {
   const navigate = useNavigate();
   const [userName, setUserName] = useState(null);
 
+  const initialize = async () => {
+    try {
+      const response = await services.getUsername();
+      setUserName(response.username);
+    } catch (e) {
+      console.log('Failed to obtain username: ', e);
+      setUserName('User');
+    }
+  };
+
   useEffect(() => {
-    // TODO: dorobit nacitavanie username
-    setUserName('Marek Kocurik');
+    initialize();
   }, []);
 
   const handleLogoutClick = () => {

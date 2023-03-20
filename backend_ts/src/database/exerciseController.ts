@@ -33,6 +33,7 @@ interface Exercise extends GeneralResponse {
 }
 
 interface Solution extends GeneralResponse {
+  id: number;
   query: string;
 }
 
@@ -119,14 +120,15 @@ export default class ExerciseController extends DatabaseController {
 
   public async getExerciseSolutionByExerciseID(exercise_id: number): Promise<[number, Solution]> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database.', query: '' }];
+    if (client === undefined) return [500, { message: 'Error accessing database.', query: '', id: -1 }];
     try {
       await client.query('SET ROLE u_executioner;');
-      let query = 'SELECT S.query FROM users.solutions S WHERE S.exercise_id = $1 LIMIT 1;';
+      let query = 'SELECT S.id, S.query FROM users.solutions S WHERE S.exercise_id = $1 LIMIT 1;';
       let result = await client.query(query, [exercise_id]);
-      if (result.rows[0] === undefined) return [500, { message: 'Failed to obtain exercise solution', query: '' }];
+      if (result.rows[0] === undefined) return [500, { message: 'Failed to obtain exercise solution', query: '', id: -1 }];
       let response = {
         message: 'OK',
+        id: result.rows[0].id,
         query: result.rows[0].query,
       };
       return [200, response];
@@ -138,7 +140,7 @@ export default class ExerciseController extends DatabaseController {
     }
   }
 
-  public async getExerciseSolutionsByExerciseID(exercise_id: number): Promise<[number, Solutions]> {
+  public async getAllExerciseSolutionsByExerciseID(exercise_id: number): Promise<[number, Solutions]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database.', solutions: [] }];
     try {
@@ -146,6 +148,32 @@ export default class ExerciseController extends DatabaseController {
       let query = 'SELECT S.query FROM users.solutions S WHERE S.exercise_id = $1;';
       let result = await client.query(query, [exercise_id]);
       if (result.rows[0] === undefined) return [500, { message: 'Failed to obtain exercise solutions', solutions: [] }];
+      let response = {
+        message: 'OK',
+        solutions: result.rows,
+      };
+      return [200, response];
+    } catch (e) {
+      console.log(e);
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getUserExerciseSolutionsByExerciseID(
+    user_id: number,
+    exercise_id: number
+  ): Promise<[number, Solutions]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [500, { message: 'Error accessing database.', solutions: [] }];
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query =
+        "SELECT A.id, A.query FROM users.answers as A WHERE A.exercise_id = $1 AND A.user_id = $2 AND A.solution_success = 'COMPLETE' ORDER BY A.id DESC;";
+      let result = await client.query(query, [exercise_id, user_id]);
+      if (result.rows === undefined)
+        return [500, { message: "Failed to obtain user's exercise solutions", solutions: [] }];
       let response = {
         message: 'OK',
         solutions: result.rows,
@@ -237,7 +265,8 @@ export default class ExerciseController extends DatabaseController {
     try {
       let setRole = `SET ROLE ${role}`;
       await client.query(setRole);
-      if (query === undefined || query.trim().length === 0) return [403, { message: 'Empty query', queryResult: {}, executionTime: 0  }];
+      if (query === undefined || query.trim().length === 0)
+        return [403, { message: 'Empty query', queryResult: {}, executionTime: 0 }];
       await client.query('BEGIN;');
       const exec_start = process.hrtime();
       let result = await client.query(query);
@@ -248,7 +277,7 @@ export default class ExerciseController extends DatabaseController {
         message: 'OK',
         queryResult: result.rows,
         executionTime: exec_time,
-      }
+      };
       return [200, response];
     } catch (e) {
       await client.query('ROLLBACK;');
@@ -275,7 +304,14 @@ export default class ExerciseController extends DatabaseController {
       let insert =
         'INSERT INTO users.answers(user_id, exercise_id, query, solution_success, submit_attempt, execution_time, date) ' +
         "VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP + INTERVAL '1 hour');";
-      let result = await client.query(insert, [user_id, exercise_id, query, solution_success, submit_attempt, execution_time]);
+      let result = await client.query(insert, [
+        user_id,
+        exercise_id,
+        query,
+        solution_success,
+        submit_attempt,
+        execution_time,
+      ]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
         return [500, { message: "Failed to insert new record into user's exercise history" }];
@@ -340,7 +376,7 @@ export default class ExerciseController extends DatabaseController {
       let response = {
         message: 'OK',
         user_exercises_solved: result.rows,
-      }
+      };
       return [200, response];
     } catch (e) {
       console.log(e);
@@ -360,19 +396,22 @@ export default class ExerciseController extends DatabaseController {
         'SELECT id, ' +
         'CASE WHEN id IN ( ' +
         'SELECT exercise_id FROM users.answers ' +
-        "WHERE user_id = $1 " +
+        'WHERE user_id = $1 ' +
         ') THEN true ELSE false END AS status ' +
         'FROM users.exercises WHERE id IN (' +
         ex_ids +
         ');';
       let result = await client.query(query, [user_id]);
       if (result.rows[0] === undefined) {
-        return [500, { message: 'Failed to check if user has already started solving the exercise', user_exercises_started: [] }];
+        return [
+          500,
+          { message: 'Failed to check if user has already started solving the exercise', user_exercises_started: [] },
+        ];
       }
       let response = {
         message: 'OK',
         user_exercises_started: result.rows,
-      }
+      };
       return [200, response];
     } catch (e) {
       console.log(e);

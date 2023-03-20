@@ -6,19 +6,37 @@ import Schema from './Schema';
 import Result from './Result';
 import History from './History';
 import Solutions from './Solutions';
+import Tab from 'react-bootstrap/Tab';
+import Tabs from 'react-bootstrap/Tabs';
+import Col from 'react-bootstrap/Col';
+import Nav from 'react-bootstrap/Nav';
+import Row from 'react-bootstrap/Row';
 
 export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
   const navigate = useNavigate();
-  const [searchParams, _] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [exercise, setExercise] = useState(null);
-  const [studentQuery, setStudentQuery] = useState('');
-  const [queryAction, setQueryAction] = useState('');
   const [nextExerciseExists, setNextExerciseExists] = useState(false);
   const [nextExerciseID, setNextExerciseID] = useState(null);
   const [nextChapterID, setNextChapterID] = useState(null);
   const [previousExerciseExists, setPreviousExerciseExists] = useState(false);
   const [previousExerciseID, setPreviousExerciseID] = useState(null);
   const [previousChapterID, setPreviousChapterID] = useState(null);
+
+  const [historyInitialized, setHistoryInitialized] = useState(false);
+  const [solutionsInitialized, setSolutionsInitialized] = useState(false);
+  const [selectedKey, setSelectedKey] = useState('hist');
+  const [userQuery, setUserQuery] = useState('');
+  const [action, setAction] = useState('');
+  const [history, setHistory] = useState([]);
+  const [solutions, setSolutions] = useState([]);
+
+  //Result variables:
+  // const [expectedQueryResult, setExpectedQueryResult] = useState([]);
+  // const [userQueryResult, setUserQueryResult] = useState([]);
+  // const [expectedQueryErrorMessage, setExpectedQueryErrorMessage] = useState(null);
+  // const [userQueryErrorMessage, setUserQueryErrorMessage] = useState(null);
+  // const [resultInitialized, setResultInitialized] = useState(false);
 
   const checkNextAvailableExercise = (c_id, e_id, inc) => {
     const c_index = exerciseTree.findIndex((chapter) => chapter.id === c_id);
@@ -53,20 +71,39 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
       setPreviousExerciseID(p_e_id);
     }
 
-    document.getElementById('student_query').value = '';
+    // document.getElementById('user_query').value = '';
     try {
       let exerciseInfo = await services.getExercise(exerciseID);
       setExercise(exerciseInfo);
-      setQueryAction('none');
-      setStudentQuery('');
     } catch (e) {
       console.log('Failed to get exercise.');
       const { message } = await e.response.json();
       console.log(message);
     }
+
+    // setAction('initialize');
+    setHistoryInitialized(false);
+    setSolutionsInitialized(false);
+    setSelectedKey('hist');
+
+    //reset userQuery:
+    setUserQuery('');
+    // setAction('');
+    setHistory([]);
+    setSolutions([]);
+
+    //reset Result variables:
+    // setExpectedQueryResult(exercise?.queryResult);
+    // setUserQueryResult([]);
+    // setExpectedQueryErrorMessage(null);
+    // setUserQueryErrorMessage(null);
+    // setResultInitialized(false);
+
+    // setInitialized(true);
   };
 
   useEffect(() => {
+    // setInitialized(false);
     if (searchParams.get('id') !== null) {
       let [chapterID, exerciseID] = searchParams.get('id').split('-');
       initialize(parseInt(chapterID), parseInt(exerciseID));
@@ -77,140 +114,211 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
 
   const handleTestingQuery = async (e) => {
     e.preventDefault();
-    const _studentQuery = document.getElementById('student_query').value;
-    setStudentQuery(_studentQuery);
-    setQueryAction('test');
+    setAction('test');
     // TODO: treba aktualizovat tabulku s historiou
   };
 
   const handleSubmittingQuery = async (e) => {
     e.preventDefault();
-    const _studentQuery = document.getElementById('student_query').value;
-    setStudentQuery(_studentQuery);
-    setQueryAction('submit');
+    setAction('submit');
     // TODO: ak je spravne query, treba aktualizovat tabulku s TOP solutions, leaderboard ...
   };
 
   const handleNextExercise = async (e) => {
     e.preventDefault();
     navigate(`/home/exercises?id=${nextChapterID}-${nextExerciseID}`);
-    // if (searchParams.get('id') !== null) {
-    //   let [chapterID, exercise_id] = searchParams.get('id').split('-');
-    //   let new_id = Number(exercise_id) + 1;
-    //   // TODO: treba zistit kedy zmenit hodnotu chapterID
-    //   navigate(`/home/exercises?id=${chapterID}-${new_id}`);
-    // }
   };
 
   const handlePreviousExercise = async (e) => {
     e.preventDefault();
     navigate(`/home/exercises?id=${previousChapterID}-${previousExerciseID}`);
-    // if (searchParams.get('id') !== null) {
-    //   let [chapterID, exercise_id] = searchParams.get('id').split('-');
-    //   let new_id = Number(exercise_id) - 1;
-    //   // TODO: treba zistit kedy zmenit hodnotu chapterID
-    //   navigate(`/home/exercises?id=${chapterID}-${new_id}`);
-    // }
+  };
+
+  const handleUserQueryChange = (e) => {
+    e.preventDefault();
+    setUserQuery(e.target.value);
+  };
+
+  const handleSelect = (key) => {
+    setSelectedKey(key);
   };
 
   return searchParams.get('id') === null ? (
     <div></div>
   ) : (
-    <div
-      style={{
-        paddingLeft: '1vw',
-        height: '100%',
-        width: '100%',
-        overflow: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <div className="pt-2" style={{ width: '100%' }}>
-        <h2 dangerouslySetInnerHTML={{ __html: exercise?.name }} />
-      </div>
-      <div className="pt-1" style={{ width: '100%' }}>
-        <p dangerouslySetInnerHTML={{ __html: exercise?.question }} />
-      </div>
-      <div style={{ width: '100%', maxHeight: '35vh' }}>
-        <Schema />
-      </div>
-      <div className="py-2" style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '60vh' }}>
-        <div style={{ width: '50%' }}>
-          <Result
-            table_name={'Expected result:'}
-            action={''}
-            queryResult={exercise?.queryResult}
-            query={exercise?.solution}
-          />
-        </div>
-        <div style={{ width: '50%' }}>
-          <Result
-            table_name={'Your query result:'}
-            action={queryAction}
-            query={studentQuery}
-            solution={exercise?.solution}
-            exerciseId={exercise?.id}
-          />
-        </div>
-      </div>
-      <div className="py-2 px-1" style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '50vh' }}>
-        <div style={{ width: '70%' }}>
-          <Form.Control
-            id="student_query"
-            style={{ resize: 'vertical', minHeight: '100%', maxHeight: '100%' }}
-            as="textarea"
-            placeholder="Write your answer here"
-            defaultValue={studentQuery}
-          />
-        </div>
-        <div className="px-2" style={{ width: '10%', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ width: '100%' }}>
-            <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleGivingHelp}>
-              Help
-            </Button>
+    <div style={{ height: '100%', width: '100%' }}>
+      {exercise ? (
+        <div
+          style={{
+            paddingLeft: '1vw',
+            height: '100%',
+            width: '100%',
+            overflow: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div className="pt-2" style={{ width: '100%' }}>
+            <h2 dangerouslySetInnerHTML={{ __html: exercise.name }} />
           </div>
-          <div className="py-1" style={{ width: '100%' }}>
-            <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleTestingQuery}>
-              Test
-            </Button>
+          <div className="pt-1" style={{ width: '100%' }}>
+            <p dangerouslySetInnerHTML={{ __html: exercise.question }} />
           </div>
-          <div style={{ width: '100%' }}>
-            <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleSubmittingQuery}>
-              Submit
-            </Button>
+          <div style={{ width: '100%', maxHeight: '35vh' }}>
+            <Schema />
           </div>
-        </div>
-      </div>
-      <div className="py-2" style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '40vh' }}>
-        <div style={{ width: '100%' }}>
-          <History query_history={exercise?.history} setStudentQuery={setStudentQuery} />
-        </div>
-        {/* <div style={{ width: '50%', maxHeight: '100%' }}>
-          <Solutions />
-        </div> */}
-      </div>
-      <div className="py-3" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
-        <div className="px-2">
-          <Button
-            style={{ width: '8vw', backgroundColor: '#2666CF' }}
-            disabled={!previousExerciseExists}
-            onClick={handlePreviousExercise}
+          <div className="py-2" style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '60vh' }}>
+            <div style={{ width: '50%' }}>
+              <Result
+                table_name={'Expected result:'}
+                action={'initialize'}
+                setAction={setAction}
+                // initialized={resultInitialized}
+                // setInitialized={setResultInitialized}
+                query={exercise.solution}
+                // queryResult={expectedQueryResult}
+                // setQueryResult={setExpectedQueryResult}
+                // errorMessage={expectedQueryErrorMessage}
+                // setErrorMessage={setExpectedQueryErrorMessage}
+              />
+            </div>
+            <div style={{ width: '50%' }}>
+              <Result
+                table_name={'Your query result:'}
+                action={action}
+                setAction={setAction}
+                query={userQuery}
+                solution={exercise.solution}
+                exerciseId={exercise.id}
+                setHistory={setHistory}
+                setHistoryInitialized={setHistoryInitialized}
+                setSolutions={setSolutions}
+                setSolutionsInitialized={setSolutionsInitialized}
+                // action={action}
+                // query={userQuery}
+                // setAction={setAction}
+                // solution={exercise?.solution}
+                // exerciseId={exercise?.id}
+              />
+            </div>
+          </div>
+          <div
+            className="py-2 px-1"
+            style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '50vh' }}
           >
-            {' '}
-            {'< Previous'}
-          </Button>
+            <div style={{ width: '70%' }}>
+              <Form.Control
+                id="user_query"
+                style={{ resize: 'vertical', minHeight: '100%', maxHeight: '100%' }}
+                as="textarea"
+                placeholder="Write your answer here"
+                value={userQuery}
+                onChange={handleUserQueryChange}
+              />
+            </div>
+            <div className="px-2" style={{ width: '10%', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ width: '100%' }}>
+                <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleGivingHelp}>
+                  Help
+                </Button>
+              </div>
+              <div className="py-1" style={{ width: '100%' }}>
+                <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleTestingQuery}>
+                  Test
+                </Button>
+              </div>
+              <div style={{ width: '100%' }}>
+                <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleSubmittingQuery}>
+                  Submit
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="py-2 px-1" style={{ width: '100%', maxHeight: '40vh' }}>
+            <Tab.Container
+              id="left-tabs-example"
+              defaultActiveKey="hist"
+              // style={{ maxHeight: '100%', overflow: 'auto' }}
+            >
+              <Nav fill variant="tabs" activeKey={selectedKey} onSelect={handleSelect}>
+                <Nav.Item>
+                  <Nav.Link
+                    eventKey="hist"
+                    style={{
+                      opacity: selectedKey === 'hist' ? 1 : 0.55,
+                      backgroundColor: '#2666CF',
+                      color: 'white',
+                    }}
+                  >
+                    History
+                  </Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                  <Nav.Link
+                    eventKey="sol"
+                    style={{
+                      opacity: selectedKey === 'sol' ? 1 : 0.55,
+                      backgroundColor: '#2666CF',
+                      color: 'white',
+                    }}
+                  >
+                    Solutions
+                  </Nav.Link>
+                </Nav.Item>
+              </Nav>
+              <Tab.Content style={{ maxHeight: '80%', overflow: 'auto' }}>
+                <Tab.Pane eventKey="hist" style={{ overflow: 'auto' }}>
+                  <History
+                    exerciseId={exercise.id}
+                    setUserQuery={setUserQuery}
+                    // action={action}
+                    // setAction={setAction}
+                    history={history}
+                    setHistory={setHistory}
+                    historyInitialized={historyInitialized}
+                    setHistoryInitialized={setHistoryInitialized}
+                    exerciseTree={exerciseTree}
+                    setExerciseTree={setExerciseTree}
+                  />
+                </Tab.Pane>
+                <Tab.Pane eventKey="sol">
+                  <Solutions
+                    exerciseId={exercise.id}
+                    setUserQuery={setUserQuery}
+                    solutions={solutions}
+                    setSolutions={setSolutions}
+                    solutionsInitialized={solutionsInitialized}
+                    setSolutionsInitialized={setSolutionsInitialized}
+                  />
+                </Tab.Pane>
+              </Tab.Content>
+            </Tab.Container>
+          </div>
+          <div className="py-3" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
+            <div className="px-2">
+              <Button
+                style={{ width: '8vw', backgroundColor: '#2666CF' }}
+                disabled={!previousExerciseExists}
+                onClick={handlePreviousExercise}
+              >
+                {' '}
+                {'< Previous'}
+              </Button>
+            </div>
+            <div className="px-2">
+              <Button
+                style={{ width: '8vw', backgroundColor: '#2666CF' }}
+                disabled={!nextExerciseExists}
+                onClick={handleNextExercise}
+              >
+                {'Next >'}
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="px-2">
-          <Button
-            style={{ width: '8vw', backgroundColor: '#2666CF' }}
-            disabled={!nextExerciseExists}
-            onClick={handleNextExercise}
-          >
-            {'Next >'}
-          </Button>
-        </div>
-      </div>
+      ) : (
+        <div className="loading-content">Loading exercise ...</div>
+      )}
     </div>
   );
 }

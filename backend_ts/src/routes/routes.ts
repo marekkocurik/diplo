@@ -1,7 +1,10 @@
-import { userLogin, userRegistration, changeUserPassword } from '../controllers/auth/auth';
+import { userLogin, userRegistration, changeUserPassword, getUsername } from '../controllers/auth/auth';
 import {
   getExerciseTree,
   getExercise,
+  getExerciseHistory,
+  getUserExerciseSolutions,
+  getQueryExpectedResult,
   getQueryTestResult,
   getQuerySubmitResult,
 } from '../controllers/exercise/exercise';
@@ -36,8 +39,12 @@ export default async function routes(server: any) {
   server.post('/auth/login', userLogin);
   server.post('/auth/register', userRegistration);
   // server.post('/auth/reset-password');
+  server.get('/home/username', { preHandler: checkJWT }, getUsername);
   server.get('/home/exercise-tree', { preHandler: checkJWT }, getExerciseTree);
   server.get('/home/exercise', { preHandler: checkJWT }, getExercise);
+  server.get('/home/exercise-history', { preHandler: checkJWT }, getExerciseHistory);
+  server.get('/home/exercise-solutions-user', { preHandler: checkJWT }, getUserExerciseSolutions);
+  server.get('/home/query-expected-result', { preHandler: checkJWT }, getQueryExpectedResult);
   server.get('/home/query-test-result', { preHandler: checkJWT }, getQueryTestResult);
   server.get('/home/query-submit-result', { preHandler: checkJWT }, getQuerySubmitResult);
   server.post('/home/profile/change-password', { preHandler: checkJWT }, changeUserPassword);

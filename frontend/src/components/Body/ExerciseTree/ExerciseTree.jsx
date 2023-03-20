@@ -3,14 +3,15 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { services } from '../../../api/services';
 import SimpleBar from 'simplebar-react';
 import { motion } from 'framer-motion';
+import Accordion from 'react-bootstrap/Accordion';
+import { useAccordionButton } from 'react-bootstrap/AccordionButton';
 import _ from 'lodash';
 
 export default function ExerciseTree({ exerciseTree, setExerciseTree, ...props }) {
   const navigate = useNavigate();
 
   const [searchParams] = useSearchParams();
-  const [expandedChapter, setExpandedChapter] = useState(0);
-  let exerciseClick = false;
+  const [expandedChapter, setExpandedChapter] = useState(null);
   let activeTask = searchParams.get('id');
 
   const initialize = async () => {
@@ -22,77 +23,97 @@ export default function ExerciseTree({ exerciseTree, setExerciseTree, ...props }
     }
   };
 
+  const initAccordion = async () => {
+    const c_id = searchParams.get('id').split('-')[0];
+    const chapter = exerciseTree.find((item) => item._id === parseInt(c_id));
+    setExpandedChapter(chapter.id);
+  };
+
   useEffect(() => {
-    if (_.isEqual(exerciseTree, [])) initialize();
     activeTask = searchParams.get('id');
-    if (activeTask !== null) {
-      const ex_c = searchParams.get('id').split('-')[0];
+    if (_.isEqual(exerciseTree, [])) {
+      initialize();
+    } else {
+      if (activeTask)
+        initAccordion();
     }
-  }, [searchParams.get('id')]);
+  }, [searchParams.get('id'), exerciseTree]);
 
-  const handleChapterClick = (chapterId) => {
-    if (!exerciseClick) setExpandedChapter(chapterId === expandedChapter ? null : chapterId);
-    exerciseClick = false;
+  const ChapterMenuElement = ({ children, eventKey, active, chapterSolved, ...props }) => {
+    const updateAccordion = useAccordionButton(eventKey);
+
+    function handleChapterClick() {
+      setExpandedChapter(eventKey === expandedChapter ? null : eventKey);
+      updateAccordion();
+    }
+
+    return (
+      <motion.div
+        className="font-weight-700 py-2 px-3 clickable"
+        onClick={handleChapterClick}
+        initial={false}
+        animate={{ opacity: active ? 1 : 0.55, backgroundColor: chapterSolved ? '#03C988' : 'white' }}
+        whileHover={!active && { opacity: 0.8 }}
+        {...props}
+      >
+        {children}
+      </motion.div>
+    );
   };
 
-  const handleExerciseClick = async (chapterId, exerciseId) => {
-    exerciseClick = true;
-    navigate(`/home/exercises?id=${chapterId}-${exerciseId}`);
+  const ExerciseMenuElement = ({ active, chapterId, exerciseId, exerciseSolved, exerciseStarted, ...props }) => {
+    const exerciseClick = () => {
+      navigate(`/home/exercises?id=${chapterId}-${exerciseId}`);
+    };
+
+    return (
+      <motion.div
+        className="py-2 px-3 font-weight-300 clickable"
+        onClick={exerciseClick}
+        initial={false}
+        animate={{
+          opacity: active ? 1 : 0.55,
+          fontSize: active ? '0.9em' : '0.7em',
+          backgroundColor: exerciseSolved ? '#03C988' : exerciseStarted ? 'yellow' : 'white',
+        }}
+        whileHover={!active && { opacity: 0.8 }}
+        {...props}
+      />
+    );
   };
-
-  const ChapterMenuElement = ({ active, children, ...props }) => (
-    <motion.div
-      initial={false}
-      animate={{ opacity: active ? 1 : 0.55, backgroundColor: props.chapterSolved ? '#03C988' : 'white' }}
-      whileHover={!active && { opacity: 0.8 }}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
-
-  const ExerciseMenuElement = ({ active, children, ...props }) => (
-    <motion.div
-      initial={false}
-      animate={{
-        opacity: active ? 1 : 0.55,
-        fontSize: active ? '0.8em' : '0.7em',
-        backgroundColor: props.exerciseSolved ? '#03C988' : props.exerciseStarted ? 'yellow' : 'white',
-      }}
-      whileHover={!active && { opacity: 0.8 }}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
 
   return (
     <div style={{ boxShadow: '0px 2px 3px 1px #00000020', height: '100%' }}>
       <SimpleBar style={{ overflowY: 'auto', height: '100%' }}>
-        {exerciseTree?.map((chapter) => (
-          <ChapterMenuElement
-            key={'chapter_' + chapter.id}
-            onClick={() => handleChapterClick(chapter.id)}
-            className="font-weight-700 py-2 px-3 clickable"
-            active={chapter.id === expandedChapter}
-            chapterSolved={chapter.solved}
-          >
-            <div>{chapter.name}</div>
-            {chapter.id === expandedChapter &&
-              chapter.exercises?.map((exercise) => (
-                <ExerciseMenuElement
-                  key={'exercise_' + exercise.id}
-                  onClick={() => handleExerciseClick(chapter.id, exercise.id)}
-                  className="py-1 my-1 px-3 font-weight-300 clickable"
-                  active={chapter.id + '-' + exercise.id === activeTask}
-                  exerciseSolved={exercise.solved}
-                  exerciseStarted={exercise.started}
-                >
-                  {exercise._id + '. ' + exercise.name}
-                </ExerciseMenuElement>
-              ))}
-          </ChapterMenuElement>
-        ))}
+        <Accordion activeKey={expandedChapter} flush>
+          {exerciseTree?.map((chapter) => (
+            <div key={'chapter_' + chapter.id}>
+              <ChapterMenuElement
+                eventKey={chapter.id}
+                active={chapter.id === expandedChapter}
+                chapterSolved={chapter.solved}
+              >
+                {chapter.name}
+              </ChapterMenuElement>
+              <Accordion.Collapse eventKey={chapter.id}>
+                <div>
+                  {chapter.exercises?.map((exercise) => (
+                    <ExerciseMenuElement
+                      key={'exercise_' + exercise.id}
+                      active={chapter.id + '-' + exercise.id === activeTask}
+                      chapterId={chapter.id}
+                      exerciseId={exercise.id}
+                      exerciseSolved={exercise.solved}
+                      exerciseStarted={exercise.started}
+                    >
+                      {exercise._id + '. ' + exercise.name}
+                    </ExerciseMenuElement>
+                  ))}
+                </div>
+              </Accordion.Collapse>
+            </div>
+          ))}
+        </Accordion>
       </SimpleBar>
     </div>
   );

@@ -4,6 +4,11 @@ interface GeneralResponse {
   message: string;
 }
 
+interface Username extends GeneralResponse {
+  name: string;
+  surname: string;
+}
+
 interface InsertRecordReturningID extends GeneralResponse {
   id: number;
 }
@@ -22,7 +27,7 @@ interface UserRoleByID extends GeneralResponse {
 }
 
 export default class UserController extends DatabaseController {
-  // public async function_name(x: any): Promise<[Number, Object]> {
+  // public async function_name(x: any): Promise<[number, Object]> {
   //   const client = await this.pool.connect();
   //   if (client === undefined)
   //     return [500, { message: 'Error accessing database.' }];
@@ -46,7 +51,7 @@ export default class UserController extends DatabaseController {
   //   }
   // }
 
-  public async emailExists(email: string): Promise<[Number, GeneralResponse]> {
+  public async emailExists(email: string): Promise<[number, GeneralResponse]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database.' }];
     try {
@@ -75,7 +80,7 @@ export default class UserController extends DatabaseController {
     email: string,
     password: string,
     salt: string
-  ): Promise<[Number, InsertRecordReturningID]> {
+  ): Promise<[number, InsertRecordReturningID]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database.', id: -1 }];
     try {
@@ -109,7 +114,7 @@ export default class UserController extends DatabaseController {
     }
   }
 
-  public async createNewRole(role: string): Promise<[Number, InsertRecordReturningID]> {
+  public async createNewRole(role: string): Promise<[number, InsertRecordReturningID]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database.', id: -1 }];
     try {
@@ -142,7 +147,7 @@ export default class UserController extends DatabaseController {
     }
   }
 
-  public async assignRoleToUserByID(user_id: number, role_id: number): Promise<[Number, GeneralResponse]> {
+  public async assignRoleToUserByID(user_id: number, role_id: number): Promise<[number, GeneralResponse]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database.' }];
     try {
@@ -165,7 +170,7 @@ export default class UserController extends DatabaseController {
     }
   }
 
-  public async getUserCredentialsByEmail(email: string): Promise<[Number, UserCredentialsByEmail]> {
+  public async getUserCredentialsByEmail(email: string): Promise<[number, UserCredentialsByEmail]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database', id: -1, password: '', salt: '' }];
     try {
@@ -197,7 +202,7 @@ export default class UserController extends DatabaseController {
     }
   }
 
-  public async getUserRoleByID(id: number): Promise<[Number, UserRoleByID]> {
+  public async getUserRoleByID(id: number): Promise<[number, UserRoleByID]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database.', role: '' }];
     try {
@@ -229,7 +234,7 @@ export default class UserController extends DatabaseController {
     }
   }
 
-  public async updateLastLoginByID(id: number): Promise<[Number, GeneralResponse]> {
+  public async updateLastLoginByID(id: number): Promise<[number, GeneralResponse]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database.' }];
     try {
@@ -252,7 +257,7 @@ export default class UserController extends DatabaseController {
     }
   }
 
-  public async getUserCredentialsByID(id: number): Promise<[Number, UserCredentialsByID]> {
+  public async getUserCredentialsByID(id: number): Promise<[number, UserCredentialsByID]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database', password: '', salt: '' }];
     try {
@@ -282,7 +287,7 @@ export default class UserController extends DatabaseController {
     }
   }
 
-  public async changeUserPasswordByID(id: number, password: string): Promise<[Number, GeneralResponse]> {
+  public async changeUserPasswordByID(id: number, password: string): Promise<[number, GeneralResponse]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database' }];
     try {
@@ -298,6 +303,36 @@ export default class UserController extends DatabaseController {
       return [200, { message: 'OK' }];
     } catch (e) {
       await client.query('ROLLBACK;');
+      console.log(e);
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getUserNameAndSurname(id: number): Promise<[number, Username]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [500, { message: 'Error accessing database', name: '', surname: '' }];
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query = 'SELECT U.name, U.surname FROM users.users as U WHERE id=$1;';
+      let result = await client.query(query, [id]);
+      if (result.rows[0] === undefined)
+        return [
+          400,
+          {
+            message: 'Failed to obtain username',
+            name: '', 
+            surname: '' 
+          },
+        ];
+      let response = {
+        message: 'OK',
+        name: result.rows[0].name,
+        surname: result.rows[0].surname,
+      };
+      return [200, response];
+    } catch (e) {
       console.log(e);
       throw e;
     } finally {
