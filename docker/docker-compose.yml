@@ -9,3 +9,18 @@ services:
     env_file:
       - ../backend_ts/.env
     restart: on-failure
+    
+  server-frontend:
+    build: ../frontend
+    image: mk-dp/frontend
+    container_name: mk-dp-fe
+    # entrypoint: /bin/sh
+    ports:
+      - 3000:3000
+    # working_dir: /srv/app
+    # volumes:
+    #   - type: bind
+    #     source: ../frontend
+    #     target: /srv/app
+    tty: true
+    restart: on-failure

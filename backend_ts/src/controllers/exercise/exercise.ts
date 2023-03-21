@@ -422,9 +422,9 @@ export const getQueryTestResult = async (request: any, reply: any) => {
 export const getQuerySubmitResult = async (request: any, reply: any) => {
   const { role, id, exerciseId, queryToExecute, solution } = request.query;
   let [code, response] = await testQueries(role, solution, queryToExecute, 'test');
-
+  let solutionSuccess = 'ERROR';
   if (code === 400 || code === 200) {
-    let solutionSuccess = code === 400 ? 'ERROR' : response.queriesMatch ? 'PARTIAL' : 'WRONG';
+    solutionSuccess = code === 400 ? 'ERROR' : response.queriesMatch ? 'PARTIAL' : 'WRONG';
     if (code === 200 && response.queriesMatch) {
       let editedSolutionQuery = editQueryToSecondScheme(solution);
       let editedStudentQuery = editQueryToSecondScheme(queryToExecute);
@@ -465,6 +465,10 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
       return;
     }
   }
-  reply.code(code).send(response);
+  let res = {
+    ...response,
+    solutionSuccess: solutionSuccess
+  }
+  reply.code(code).send(res);
   return;
 };
