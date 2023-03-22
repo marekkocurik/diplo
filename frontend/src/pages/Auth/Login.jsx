@@ -10,7 +10,7 @@ export default function Login({ ...props }) {
   const [title, setTitle] = useOutletContext();
 
   useEffect(() => {
-    setTitle('Welcome');
+    setTitle('Welcome nginx');
   }, []);
 
   const handleLogin = async (e) => {
