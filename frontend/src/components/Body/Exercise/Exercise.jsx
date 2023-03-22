@@ -7,10 +7,7 @@ import Result from './Result';
 import History from './History';
 import Solutions from './Solutions';
 import Tab from 'react-bootstrap/Tab';
-import Tabs from 'react-bootstrap/Tabs';
-import Col from 'react-bootstrap/Col';
 import Nav from 'react-bootstrap/Nav';
-import Row from 'react-bootstrap/Row';
 
 export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
   const navigate = useNavigate();
@@ -25,9 +22,10 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
 
   const [historyInitialized, setHistoryInitialized] = useState(false);
   const [solutionsInitialized, setSolutionsInitialized] = useState(false);
+  const [expectedResultInitialized, setExpectedResultInitialized] = useState('initialize');
   const [selectedKey, setSelectedKey] = useState('hist');
   const [userQuery, setUserQuery] = useState('');
-  const [action, setAction] = useState('');
+  const [action, setAction] = useState('reset');
   const [history, setHistory] = useState([]);
   const [solutions, setSolutions] = useState([]);
 
@@ -36,7 +34,6 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
   // const [userQueryResult, setUserQueryResult] = useState([]);
   // const [expectedQueryErrorMessage, setExpectedQueryErrorMessage] = useState(null);
   // const [userQueryErrorMessage, setUserQueryErrorMessage] = useState(null);
-  // const [resultInitialized, setResultInitialized] = useState(false);
 
   const checkNextAvailableExercise = (c_id, e_id, inc) => {
     const c_index = exerciseTree.findIndex((chapter) => chapter.id === c_id);
@@ -88,7 +85,9 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
 
     //reset userQuery:
     setUserQuery('');
-    // setAction('');
+    setAction('reset');
+    // console.log('restarting values')
+    setExpectedResultInitialized('initialize');
     setHistory([]);
     setSolutions([]);
 
@@ -114,13 +113,15 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
 
   const handleTestingQuery = async (e) => {
     e.preventDefault();
-    setAction('test');
+    if (action === 'test') setAction('test1');
+    else setAction('test');
     // TODO: treba aktualizovat tabulku s historiou
   };
 
   const handleSubmittingQuery = async (e) => {
     e.preventDefault();
-    setAction('submit');
+    if (action === 'submit') setAction('submit1');
+    else setAction('submit');
     // TODO: ak je spravne query, treba aktualizovat tabulku s TOP solutions, leaderboard ...
   };
 
@@ -171,8 +172,8 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
             <div style={{ width: '50%' }}>
               <Result
                 table_name={'Expected result:'}
-                action={'initialize'}
-                setAction={setAction}
+                action={expectedResultInitialized}
+                setAction={setExpectedResultInitialized}
                 // initialized={resultInitialized}
                 // setInitialized={setResultInitialized}
                 query={exercise.solution}

@@ -25,9 +25,9 @@ export default function Result({ table_name, action, setAction, query, ...props 
   const initialize = async () => {
     let result;
     try {
-      if (action === 'test') {
+      if (action === 'test' || action === 'test1') {
         result = await services.getQueryTestResult(query, solution, exerciseId);
-      } else if (action === 'submit') {
+      } else if (action === 'submit' || action === 'submit1') {
         result = await services.getQuerySubmitResult(query, solution, exerciseId);
 
         // TODO: upozornit usera ci je jeho query spravne
@@ -37,7 +37,9 @@ export default function Result({ table_name, action, setAction, query, ...props 
         else ...
         */
       } else if (action === 'initialize') {
+        // console.log('initializing expected result')
         result = await services.getQueryExpectedResult(query);
+        setAction('');
         // if (!initialized) {
         //   setInitialized(true);
         // }
@@ -59,7 +61,7 @@ export default function Result({ table_name, action, setAction, query, ...props 
         };
         setHistoryInitialized(false);
         setHistory((prevHistory) => [h, ...prevHistory]);
-        if (result !== undefined && result.solution_success === 'COMPLETE') {
+        if (result !== undefined && result.solutionSuccess === 'COMPLETE') {
           setSolutionsInitialized(false);
           setSolutions((prevSolutions) => [query, ...prevSolutions]);
         }
@@ -68,9 +70,12 @@ export default function Result({ table_name, action, setAction, query, ...props 
   };
 
   useEffect(() => {
-    if (action !== '') {
+    // console.log('calling use effect for action: ', action);
+    if (action === 'reset') {
+      setQueryResult([]);
+    } else if (action !== '') {
       initialize();
-      setAction('');
+      // setAction('');
     }
   }, [action]);
 

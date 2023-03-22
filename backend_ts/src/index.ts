@@ -8,7 +8,7 @@ fastify.register(require('./routes/routes'));
 fastify.register(require('@fastify/cors'), {
   // methods: ['GET', 'PUT', 'POST', 'DELETE']
   credentials: true,
-  origin: [fe_ip_address, 'https://mk-dp-fe.azurewebsites.net', 'http://mk-dp-fe.azurewebsites.net'],
+  origin: [fe_ip_address, 'http://localhost:80', 'https://mk-dp-fe.azurewebsites.net', 'http://mk-dp-fe.azurewebsites.net'],
 });
 
 // fastify.register(require('@fastify/cors'));
