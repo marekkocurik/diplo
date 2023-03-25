@@ -1,15 +1,15 @@
 const { Pool } = require('pg');
 
-const pool = new Pool();
+// const pool = new Pool();
 
-pool.on('error', (err:any, client:any) => {
-	console.log('Unexpected error on idle client', err);
-	// process.exit(-1);
-});
+// pool.on('error', (err:any, client:any) => {
+// 	console.log('Unexpected error on idle client', err);
+// 	// process.exit(-1);
+// });
 
-pool.on('connect', (client:any) => {
-    console.log("Connected ...");
-});
+// pool.on('connect', (client:any) => {
+//     console.log("Connected ...");
+// });
 
 export default class DatabaseController {
   constructor() {}
