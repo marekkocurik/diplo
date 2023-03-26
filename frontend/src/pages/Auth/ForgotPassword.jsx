@@ -19,34 +19,27 @@ export default function ForgotPassword({ ...props }) {
     e.preventDefault();
     try {
       const response = await services.getHello();
-    } catch (e) {
-
-    }
-  }
+    } catch (e) {}
+  };
 
   return (
-    <>
-      <Form>
-        <Form.Group className="mb-3">
-          <Form.Label>Email</Form.Label>
-          <Form.Control
-            type="email"
-            placeholder="Enter your email"
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </Form.Group>
+    <Form>
+      <Form.Group className="mb-3">
+        <Form.Label>Email</Form.Label>
+        <Form.Control type="email" placeholder="Enter your email" onChange={(e) => setEmail(e.target.value)} />
+      </Form.Group>
 
-        <Button className="w-100 p-2 mt-2" type="submit" onClick={handleSendEmail}>
-          Send email
-        </Button>
+      <Button className="w-100 p-2 mt-2" style={{ backgroundColor: '#2666CF' }} type="submit" onClick={handleSendEmail}>
+        Send email
+      </Button>
 
-        <div className="mt-2" style={{ fontSize: '0.8em', textAlign: 'right'}}>
-          <Form.Text>
-            <Link to="/auth/login">Back to login.</Link>
-          </Form.Text>
-        </div>
-
-      </Form>
-    </>
+      <div className="mt-2" style={{ fontSize: '0.8em', textAlign: 'right' }}>
+        <Form.Text>
+          <Link to="/auth/login" style={{ color: '#2666CF' }}>
+            Back to login.
+          </Link>
+        </Form.Text>
+      </div>
+    </Form>
   );
 }
