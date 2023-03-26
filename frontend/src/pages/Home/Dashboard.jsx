@@ -8,6 +8,10 @@ export default function Dashboard({ ...props }) {
         <div>
           <ol>
             <li>
+              Database <a href="https://www.postgresql.org/docs/14/index.html" target="_blank">PostgreSQL v14.6</a> is used in this
+              project.
+            </li>
+            <li>
               <u>Reset password via email is not possible yet.</u> In case you forget your password, please send me an
               email to{' '}
               <i>
