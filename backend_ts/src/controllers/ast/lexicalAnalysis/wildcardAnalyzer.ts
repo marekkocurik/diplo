@@ -1,9 +1,20 @@
-// import * as pgQueryParser from 'pg-query-parser';
 import TableController from '../../../database/tableController';
 const { Parser } = require('node-sql-parser/build/postgresql');
 
 interface GeneralResponse {
   message: string;
+}
+
+interface TreeBranch {
+  expr: {
+    ast: {} | null | undefined
+  }
+}
+
+interface TableColumns extends GeneralResponse {
+  columns: {
+    column_name: string;
+  }[];
 }
 
 interface TablesAndColumns extends GeneralResponse {
@@ -17,6 +28,39 @@ interface TablesAndColumns extends GeneralResponse {
 const parser = new Parser();
 const opt = { database: 'PostgresQL' };
 const tableController = new TableController();
+
+
+const initialFunction = async (request: any, reply: any) => {
+  
+}
+
+const checkSubqueryInSelectStatement = (ast: any): boolean => {
+  for(let o of ast.columns) {
+    if(o.expr.ast !== undefined) return true;
+  }
+  return false;
+}
+
+const checkSubqueryInFromStatement = (ast: any): boolean => {
+  for(let o of ast.from) {
+    if(o.expr.ast !== undefined) return true;
+  }
+  return false;
+}
+
+const getSubqueryAST = (branch: TreeBranch[]): any => {
+  if (branch !== undefined) {
+    for (let o of branch) if (o.expr.ast) return o.expr.ast;
+  }
+  return null;
+}
+
+const getInnerASTifExists = (ast: any): any => {
+  let subAST;
+  if (getSubqueryAST(ast.columns)) { // subquery in select statement
+    return 
+  } 
+}
 
 function replaceAsteriskWithColumns(sql: string, tac: TablesAndColumns): string {
     // parse the SQL query
@@ -54,9 +98,42 @@ function replaceAsteriskWithColumns(sql: string, tac: TablesAndColumns): string 
     return newSql;
   }
 
-const getTablesAndColumnNames = async (ast: any): Promise<[number, TablesAndColumns]> => {
+const getTableColumns = async (schemaName: string, tableName: string): Promise<[number, TableColumns]> => {
   try {
-    let tac: { table: string; alias: string | null; columns: string[] }[] = [];
+    let [code, result] = await tableController.getTableColumns(schemaName, tableName);
+    if (code !== 200) return [code, { message: result.message, columns: [] }];
+    let response = {
+      message: 'OK',
+      columns: result.columns
+    }
+    return [code, response]
+  } catch (e) {
+    return [500, { message: 'Unknown error occured while trying to obtain columns for table: ' + schemaName + '.' + tableName, columns: [] }];
+  }
+}
+
+const f2 = async (ast: any, clause: string): Promise<[number, {table: string, alias: string|null, columns: string[]}]> => {
+  let tac: {table: string, alias: string|null, columns: string[]} = {};
+  if (clause === 'select') {
+    if (checkSubqueryInFromStatement(ast))
+      tac.tablesAndColumns = await f2(ast.columns, clause);
+  }
+  return [200, tac];
+}
+
+const f1 = (ast: any): Promise<[number, TablesAndColumns] => {
+  let tc: TablesAndColumns;
+  let tac: { table: string; alias: string | null; columns: string[] }[] = [];
+  if (checkSubqueryInSelectStatement(ast)) {
+    let tmpTac = f2(tc.tablesAndColumns, ast, 'select');
+    for (let o of tmpTac) tac.push(o);
+  }
+  if (checkSubqueryInFromStatement(ast)) tac = f2(...)
+}
+
+const getTablesAndColumnNames = async (ast: any): Promise<[number, TablesAndColumns]> => {
+  let tac: { table: string; alias: string | null; columns: string[] }[] = [];
+  try {
     for (let o of ast.from) {
       let [code, response] = await tableController.getTableColumns(o.db, o.table);
       if (code !== 200) return [code, { message: response.message, tablesAndColumns: [] }];
@@ -76,21 +153,23 @@ const getTablesAndColumnNames = async (ast: any): Promise<[number, TablesAndColu
   }
 };
 
-export const getTableColumns = async (request: any, reply: any) => {
+export const getAST = async (request: any, reply: any) => {
   let { query } = request.query;
   if (query[query.length - 1] === ';') query = query.slice(0, -1);
-  console.log('new call')
+  console.log('new call: ', query);
   try {
     const ast = parser.astify(query, opt);
-    
+    console.dir(ast, {depth: null});
     let [code, tablesAndColumns] = await getTablesAndColumnNames(ast);
     if (code !== 200) {
       reply.code(200).send(tablesAndColumns.message);
       return;
     }
+    console.log('Query obsahuje subquery v SELECT clause: ', checkSubqueryInSelectStatement(ast));
+    console.log('Query obsahuje subquery vo FROM clause: ', checkSubqueryInFromStatement(ast));
     // console.dir(tablesAndColumns, { depth: null });
-    const newQuery = replaceAsteriskWithColumns(query, tablesAndColumns);
-    console.log(newQuery);
+    // const newQuery = replaceAsteriskWithColumns(query, tablesAndColumns);
+    // console.log(newQuery);
     reply.code(200).send({ message: 'OK' });
     return;
   } catch (e) {
