@@ -340,8 +340,8 @@ const insertNewAnswer = async (
 };
 
 const editQueryToSecondScheme = (query: string) => {
-  const regex = /\scd\./g;
-  const replacement = ' cd2.';
+  const regex = /\sCD\./g;
+  const replacement = ' CD2.';
   const newQuery = query.replace(regex, replacement);
   return newQuery;
 };
@@ -354,7 +354,7 @@ const checkIfSolutionExist = async (
     let [code, response] = await exerciseController.getAllExerciseSolutionsByExerciseID(exerciseID);
     if (code !== 200) return [code, response];
     for (let solution of response.solutions) {
-      if (potentialSolution.toLowerCase() === (solution.query as string).toLowerCase())
+      if (potentialSolution === solution.query)
         return [200, { message: 'Solution already exists' }];
     }
     return [200, { message: 'Solution does not exist yet' }];
@@ -420,7 +420,9 @@ export const getQueryTestResult = async (request: any, reply: any) => {
 };
 
 export const getQuerySubmitResult = async (request: any, reply: any) => {
-  const { role, id, exerciseId, queryToExecute, solution } = request.query;
+  const { role, id, exerciseId, solution } = request.query;
+  let { queryToExecute } = request.query;
+  queryToExecute = (queryToExecute as string).toUpperCase();
   let [code, response] = await testQueries(role, solution, queryToExecute, 'test');
   let solutionSuccess = 'ERROR';
   if (code === 400 || code === 200) {
