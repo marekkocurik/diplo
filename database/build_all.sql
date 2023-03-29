@@ -8385,7 +8385,6 @@ INSERT INTO users.exercises(chapter_id, name, question, exercise_order) VALUES
 (4, 'Output the facility id that has the highest number of slots booked, again', 'Output the facility id that has the highest number of slots booked. Ensure that in the event of a tie, all tieing results get output.', 1700),
 (4, 'Rank members by (rounded) hours used', 'Produce a list of members (including guests), along with the number of hours they''ve booked in facilities, rounded to the nearest ten hours. Rank them by this rounded figure, producing output of first name, surname, rounded hours, rank. Sort by rank, surname, and first name.', 1800),
 (4, 'Find the top three revenue generating facilities', 'Produce a list of the top three revenue generating facilities (including ties). Output facility name and rank, sorted by rank and facility name. ', 1900),
-(4, 'Classify facilities by value', 'Classify facilities into equally sized groups of high, average, and low based on their revenue. Order by classification and facility name.', 2000),
 (4, 'Calculate the payback time for each facility', 'Based on the 3 complete months of data so far, calculate the amount of time each facility will take to repay its cost of ownership. Remember to take into account ongoing monthly maintenance. Output facility name and payback time in months, order by facility name. Don''t worry about differences in month lengths, we''re only looking for a rough value here!', 2100),
 (4, 'Calculate a rolling average of total revenue', 'For each day in August 2012, calculate a rolling average of total revenue over the previous 15 days. Output should contain date and revenue columns, sorted by the date. Remember to account for the possibility of a day having zero revenue. This one''s a bit tough, so don''t be afraid to check out the hint!', 2200);
 
@@ -8405,7 +8404,6 @@ INSERT INTO users.exercises(chapter_id, name, question, exercise_order) VALUES
 (6, 'Format the names of members', 'Output the names of all members, formatted as ''Surname, Firstname''', 100),
 (6, 'Find facilities by a name prefix', 'Find all facilities whose name begins with ''Tennis''. Retrieve all columns.', 200),
 (6, 'Perform a case-insensitive search', 'Perform a case-insensitive search to find all facilities whose name begins with ''tennis''. Retrieve all columns.', 300),
-(6, 'Find telephone numbers with parentheses', 'You''ve noticed that the club''s member table has telephone numbers with very inconsistent formatting. You''d like to find all the telephone numbers that contain parentheses, returning the member ID and telephone number sorted by member ID.', 400),
 (6, 'Pad zip codes with leading zeroes', 'The zip codes in our example dataset have had leading zeroes removed from them by virtue of being stored as a numeric type. Retrieve all zip codes from the members table, padding any zip codes less than 5 characters long with leading zeroes. Order by the new zip code.', 500),
 (6, 'Count the number of members whose surname starts with each letter of the alphabet', 'You''d like to produce a count of how many members you have whose surname starts with each letter of the alphabet. Sort by the letter, and don''t worry about printing out a letter if the count is 0.', 600),
 (6, 'Clean up telephone numbers', 'The telephone numbers in the database are very inconsistently formatted. You''d like to print a list of member ids and numbers that have had ''-'',''('','')'', and '' '' characters removed. Order by member id.', 700);
@@ -8472,35 +8470,33 @@ INSERT INTO users.solutions(exercise_id, query) VALUES
 (46, 'select facid, total from ( select facid, sum(slots) total, rank() over (order by sum(slots) desc) rank from cd.bookings group by facid ) as ranked where rank = 1;'),
 (47, 'select firstname, surname, ((sum(bks.slots)+10)/20)*10 as hours, rank() over (order by ((sum(bks.slots)+10)/20)*10 desc) as rank from cd.bookings bks inner join cd.members mems on bks.memid = mems.memid group by mems.memid order by rank, surname, firstname;'),
 (48, 'select name, rank from ( select facs.name as name, rank() over (order by sum(case when memid = 0 then slots * facs.guestcost else slots * membercost end) desc) as rank from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid group by facs.name ) as subq where rank <= 3 order by rank;'),
-(49, 'select name, case when class=1 then ''high'' when class=2 then ''average'' else ''low'' end revenue from ( select facs.name as name, ntile(3) over (order by sum(case when memid = 0 then slots * facs.guestcost else slots * membercost end) desc) as class from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid group by facs.name ) as subq order by class, name;'),
-(50, 'select facs.name as name, facs.initialoutlay/((sum(case when memid = 0 then slots * facs.guestcost else slots * membercost end)/3) - facs.monthlymaintenance) as months from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid group by facs.facid order by name;'),
-(51, 'select dategen.date, ( select sum(case when memid = 0 then slots * facs.guestcost else slots * membercost end) as rev from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid where bks.starttime > dategen.date - interval ''14 days'' and bks.starttime < dategen.date + interval ''1 day'' )/15 as revenue from ( select cast(generate_series(timestamp ''2012-08-01'', ''2012-08-31'',''1 day'') as date) as date ) as dategen order by dategen.date;');
+(49, 'select facs.name as name, facs.initialoutlay/((sum(case when memid = 0 then slots * facs.guestcost else slots * membercost end)/3) - facs.monthlymaintenance) as months from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid group by facs.facid order by name;'),
+(50, 'select dategen.date, ( select sum(case when memid = 0 then slots * facs.guestcost else slots * membercost end) as rev from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid where bks.starttime > dategen.date - (interval ''14 days'') and bks.starttime < dategen.date + (interval ''1 day'') )/15 as revenue from ( select cast(generate_series(timestamp ''2012-08-01'', ''2012-08-31'',''1 day'') as date) as date ) as dategen order by dategen.date;');
 
 INSERT INTO users.solutions(exercise_id, query) VALUES
-(52, 'select timestamp ''2012-08-31 01:00:00'';'),
-(53, 'select timestamp ''2012-08-31 01:00:00'' - timestamp ''2012-07-30 01:00:00'' as interval;'),
-(54, 'select generate_series(timestamp ''2012-10-01'', timestamp ''2012-10-31'', interval ''1 day'') as ts;'),
-(55, 'select extract(day from timestamp ''2012-08-31'');'),
-(56, 'select extract(epoch from (timestamp ''2012-09-02 00:00:00'' - ''2012-08-31 01:00:00''));'),
-(57, 'select extract(month from cal.month) as month, (cal.month + interval ''1 month'') - cal.month as length from ( select generate_series(timestamp ''2012-01-01'', timestamp ''2012-12-01'', interval ''1 month'') as month ) cal order by month;'),
-(58, 'select (date_trunc(''month'',ts.testts) + interval ''1 month'') - date_trunc(''day'', ts.testts) as remaining from (select timestamp ''2012-02-11 01:00:00'' as testts) ts;'),
-(59, 'select starttime, starttime + slots*(interval ''30 minutes'') endtime from cd.bookings order by endtime desc, starttime desc limit 10;'),
-(60, 'select date_trunc(''month'', starttime) as month, count(*) from cd.bookings group by month order by month;'),
-(61, 'select name, month, round((100*slots)/ cast( 25*(cast((month + interval ''1 month'') as date) - cast (month as date)) as numeric),1) as utilisation from ( select facs.name as name, date_trunc(''month'', starttime) as month, sum(slots) as slots from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid group by facs.facid, month ) as inn order by name, month;');
+(51, 'select timestamp ''2012-08-31 01:00:00'';'),
+(52, 'select timestamp ''2012-08-31 01:00:00'' - timestamp ''2012-07-30 01:00:00'' as interval;'),
+(53, 'select generate_series(timestamp ''2012-10-01'', timestamp ''2012-10-31'', interval ''1 day'') as ts;'),
+(54, 'select extract(day from timestamp ''2012-08-31'');'),
+(55, 'select extract(epoch from (timestamp ''2012-09-02 00:00:00'' - ''2012-08-31 01:00:00''));'),
+(56, 'select extract(month from cal.month) as month, (cal.month + interval ''1 month'') - cal.month as length from ( select generate_series(timestamp ''2012-01-01'', timestamp ''2012-12-01'', interval ''1 month'') as month ) cal order by month;'),
+(57, 'select (date_trunc(''month'',ts.testts) + interval ''1 month'') - date_trunc(''day'', ts.testts) as remaining from (select timestamp ''2012-02-11 01:00:00'' as testts) ts;'),
+(58, 'select starttime, starttime + slots*(interval ''30 minutes'') endtime from cd.bookings order by endtime desc, starttime desc limit 10;'),
+(59, 'select date_trunc(''month'', starttime) as month, count(*) from cd.bookings group by month order by month;'),
+(60, 'select name, month, round((100*slots)/ cast( 25*(cast((month + interval ''1 month'') as date) - cast (month as date)) as numeric),1) as utilisation from ( select facs.name as name, date_trunc(''month'', starttime) as month, sum(slots) as slots from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid group by facs.facid, month ) as inn order by name, month;');
 
 INSERT INTO users.solutions(exercise_id, query) VALUES
-(62, 'select surname || '', '' || firstname as name from cd.members;'),
-(63, 'select * from cd.facilities where name like ''Tennis%'';'),
-(64, 'select * from cd.facilities where upper(name) like ''TENNIS%'';'),
-(65, 'select memid, telephone from cd.members where telephone ~ ''[()]'';'),
-(66, 'select lpad(cast(zipcode as char(5)),5,''0'') zip from cd.members order by zip;'),
-(67, 'select substr (mems.surname,1,1) as letter, count(*) as count from cd.members mems group by letter order by letter;'),
-(68, 'select memid, translate(telephone, ''-() '', '''') as telephone from cd.members order by memid;');
+(61, 'select surname || '', '' || firstname as name from cd.members;'),
+(62, 'select * from cd.facilities where name like ''Tennis%'';'),
+(63, 'select * from cd.facilities where upper(name) like ''TENNIS%'';'),
+(64, 'select lpad(cast(zipcode as char(5)),5,''0'') zip from cd.members order by zip;'),
+(65, 'select substr (mems.surname,1,1) as letter, count(*) as count from cd.members mems group by letter order by letter;'),
+(66, 'select memid, translate(telephone, ''-() '', '''') as telephone from cd.members order by memid;');
 
 INSERT INTO users.solutions(exercise_id, query) VALUES
-(69, 'with recursive recommenders(recommender) as ( select recommendedby from cd.members where memid = 27 union all select mems.recommendedby from recommenders recs inner join cd.members mems on mems.memid = recs.recommender ) select recs.recommender, mems.firstname, mems.surname from recommenders recs inner join cd.members mems on recs.recommender = mems.memid order by memid desc;'),
-(70, 'with recursive recommendeds(memid) as ( select memid from cd.members where recommendedby = 1 union all select mems.memid from recommendeds recs inner join cd.members mems on mems.recommendedby = recs.memid ) select recs.memid, mems.firstname, mems.surname from recommendeds recs inner join cd.members mems on recs.memid = mems.memid order by memid;'),
-(71, 'with recursive recommenders(recommender, member) as ( select recommendedby, memid from cd.members union all select mems.recommendedby, recs.member from recommenders recs inner join cd.members mems on mems.memid = recs.recommender ) select recs.member member, recs.recommender, mems.firstname, mems.surname from recommenders recs inner join cd.members mems on recs.recommender = mems.memid where recs.member = 22 or recs.member = 12 order by recs.member asc, recs.recommender desc;');
+(67, 'with RECURSIVE recommenders(recommender) as ( select recommendedby from cd.members where memid = 27 union all select mems.recommendedby from recommenders recs inner join cd.members mems on mems.memid = recs.recommender ) select recs.recommender, mems.firstname, mems.surname from recommenders recs inner join cd.members mems on recs.recommender = mems.memid order by memid desc;'),
+(68, 'with RECURSIVE recommendeds(memid) as ( select memid from cd.members where recommendedby = 1 union all select mems.memid from recommendeds recs inner join cd.members mems on mems.recommendedby = recs.memid ) select recs.memid, mems.firstname, mems.surname from recommendeds recs inner join cd.members mems on recs.memid = mems.memid order by memid;'),
+(69, 'with RECURSIVE recommenders(recommender, member) as ( select recommendedby, memid from cd.members union all select mems.recommendedby, recs.member from recommenders recs inner join cd.members mems on mems.memid = recs.recommender ) select recs.member member, recs.recommender, mems.firstname, mems.surname from recommenders recs inner join cd.members mems on recs.recommender = mems.memid where recs.member = 22 or recs.member = 12 order by recs.member asc, recs.recommender desc;');
 
 -- add constraints to exercise tables:
 
