@@ -62,7 +62,7 @@ export default class UserController extends DatabaseController {
         return [
           400,
           {
-            message: 'Failed to assign email - another user with this email address already exist',
+            message: 'User with this email address already exist',
           },
         ];
       return [200, { message: 'OK' }];
