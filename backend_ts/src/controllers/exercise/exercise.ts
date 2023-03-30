@@ -1,5 +1,6 @@
 import { ok } from 'assert';
 import ExerciseController from '../../database/exerciseController';
+import { queryToUpperCase } from '../ast/lexicalAnalysis/analyzer';
 
 interface GeneralResponse {
   message: string;
@@ -422,7 +423,7 @@ export const getQueryTestResult = async (request: any, reply: any) => {
 export const getQuerySubmitResult = async (request: any, reply: any) => {
   const { role, id, exerciseId, solution } = request.query;
   let { queryToExecute } = request.query;
-  queryToExecute = (queryToExecute as string).toUpperCase();
+  queryToExecute = queryToUpperCase(queryToExecute);
   let [code, response] = await testQueries(role, solution, queryToExecute, 'test');
   let solutionSuccess = 'ERROR';
   if (code === 400 || code === 200) {

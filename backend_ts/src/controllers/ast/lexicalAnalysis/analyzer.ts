@@ -18,7 +18,7 @@ interface TableWithAliasAndColumns extends TableWithAlias {
   columns: string[];
 }
 
-interface TACResponse {
+export interface TACResponse {
   message: string;
   tac: TableWithAliasAndColumns[];
 }
@@ -31,10 +31,37 @@ interface Solutions {
   }[];
 }
 
+export const queryToUpperCase = (query: string): string => {
+  let i = 0;
+  let str = false;
+  let newQuery = query;
+  while (i < newQuery.length) {
+    let j = i;
+    while (j < newQuery.length) {
+      if (newQuery.charAt(j) === "'") {
+        str = !str;
+        break;
+      }
+      j++;
+    }
+
+    if (str || j === newQuery.length) {
+      let start = newQuery.substring(0, i);
+      let change = newQuery.substring(i, j).toUpperCase();
+      let end = j === newQuery.length ? '' : newQuery.substring(j);
+      newQuery = start + change + end;
+    }
+    i = j + 1;
+  }
+  return newQuery;
+};
+
 export const updateSolutionToUpperCase = async (id: number, query: string): Promise<[number, Object]> => {
-  try {
-    let [code, result] = await tableController.updateSolutionToUpperCase(id, (query as string).toUpperCase());
+  try { 
+    query = queryToUpperCase(query);
+    let [code, result] = await tableController.updateSolutionToUpperCase(id, query);
     return [code, result];
+    // return [200, { message: 'ok' }];
   } catch (error) {
     return [500, { message: 'Something went wrong while trying to update query_id: ', id }];
   }
@@ -116,15 +143,15 @@ export const replaceAsterixWithTableAndColumns = (query: string, tac: TableWithA
   let spaceAsterixRegex = / \*/g;
   let replacement = '';
   for (let t of tac) {
-    for (let c of t.columns) replacement = replacement + t.table + '.' + c + ', ';
+    for (let c of t.columns) replacement = replacement + t.table + '.' + c.toUpperCase() + ', ';
   }
   replacement = replacement.slice(0, -2);
   result = result.replace(commaAsterixRegex, ',' + replacement);
   result = result.replace(spaceAsterixRegex, ' ' + replacement);
-  for(let t of tac) {
+  for (let t of tac) {
     replacement = '';
     let dotAsterixRegex = new RegExp(`${t.table}\\.\\*`, 'g');
-    for(let c of t.columns) replacement = replacement + t.table + '.' + c + ', ';
+    for (let c of t.columns) replacement = replacement + t.table + '.' + c.toUpperCase() + ', ';
     result = result.replace(dotAsterixRegex, replacement);
   }
   return result;
@@ -132,19 +159,42 @@ export const replaceAsterixWithTableAndColumns = (query: string, tac: TableWithA
 
 export const specifyColumnsWithoutTables = (query: string, tac: TableWithAliasAndColumns[]): string => {
   let result = query;
-  for(let t of tac) {
-    for(let c of t.columns) {
-      let regex = new RegExp(`(?<!\\.)\\b${c}\\b`, 'gi');
+  for (let t of tac) {
+    for (let c of t.columns) {
+      let regex = new RegExp(`(?<!\\.|AS\\s|as\\s)\\b${c}\\b`, 'gi');
+      // let regex = new RegExp(`(?<![${t.table}\\.${c}|AS\\s|as\\s|\\.])\\b${c}\\b`, 'gi');
       result = result.replace(regex, `${t.table}.${c.toUpperCase()}`);
     }
   }
   return result;
-}
+};
 
 export const removeTableAliases = (query: string, tac: TableWithAliasAndColumns[]): string => {
-  return '';
+  let result = query;
+  for (let t of tac) {
+    let regex = new RegExp(`\\b(CD\\.${t.table})\\s+(as\\s+|AS\\s+)?(${t.as})\\b`, 'g');
+    result = result.replace(regex, `CD.${t.table}`);
+  }
+  return result;
+};
+
+export const replaceColumnAliases = (query: string, tac: TableWithAliasAndColumns[]): string => {
+  let result = query;
+  //uloha 15 - ORDER BY MEMSNAME, MEMFNAME... treba pozriet aliasy columnov, vyhladat ich v query a nahradit za hodnotu columnu
+  return result;
 }
+
+export const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns[]): string => {
+  let result = query;
+  for (let t of tac) {
+    for (let c of t.columns) {
+      let regex = new RegExp(`(?<=${t.table}\\.${c}\\s+)(as\\s+|AS\\s+)?(\\w+)(?=.*\\s+FROM)`, 'gi');
+      result = result.replace(regex, ``);
+    }
+  }
+  return result.trim();
+};
 
 export const sortQueryAlphabetically = (query: string): string => {
   return '';
-}
+};

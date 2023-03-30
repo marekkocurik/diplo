@@ -111,7 +111,7 @@ export default class TableController extends DatabaseController {
     if (client === undefined) return [500, { message: 'Error accessing database', solutions: [] }];
     try {
       await client.query('SET ROLE u_executioner;');
-      let query = 'SELECT S.id, S.query FROM users.solutions as S WHERE S.id > 9 AND S.id <= 15;';
+      let query = 'SELECT S.id, S.query FROM users.solutions as S WHERE S.id <= 69 ORDER BY S.id';
       let result = await client.query(query);
       if (result.rows[0] === undefined) return [500, { message: 'Failed to obtain solutions.', solutions: [] }];
       let response = {
