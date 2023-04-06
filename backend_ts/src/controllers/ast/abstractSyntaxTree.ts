@@ -8,7 +8,10 @@ import {
   removeColumnAliases,
   updateSolutionToUpperCase,
   queryToUpperCase,
+  createASTsForNormalizedQueries,
 } from './lexicalAnalysis/analyzer';
+import { sortQueryAlphabetically } from './lexicalAnalysis/sorter';
+import { queries } from './queries';
 
 interface TableWithAliasAndColumns {
   table: string;
@@ -21,7 +24,7 @@ interface queryWithTAC {
   tac: TableWithAliasAndColumns[];
 }
 
-interface queryCompare {
+export interface queryCompare {
   id: number;
   origin: string;
   normalized: string;
@@ -51,8 +54,8 @@ const checkResponse = (response: queryCompare[]): queryCompare[] => {
     {id: 19, query:"SELECT DISTINCT MEMBERS.FIRSTNAME || ' ' || MEMBERS.SURNAME, (SELECT MEMBERS.FIRSTNAME || ' ' || MEMBERS.SURNAME FROM CD.MEMBERS WHERE MEMBERS.MEMID = MEMBERS.RECOMMENDEDBY ) FROM CD.MEMBERS ORDER BY MEMBERS.SURNAME;"},
     //id: 20
     {id: 20, query:"SELECT MEMBERS.SURNAME, FACILITIES.NAME, COST FROM ( SELECT MEMBERS.FIRSTNAME || ' ' || MEMBERS.SURNAME, FACILITIES.NAME, CASE WHEN MEMBERS.MEMID = 0 THEN BOOKINGS.SLOTS*FACILITIES.GUESTCOST ELSE BOOKINGS.SLOTS*FACILITIES.MEMBERCOST END AS COST FROM CD.MEMBERS INNER JOIN CD.BOOKINGS ON MEMBERS.MEMID = BOOKINGS.MEMID INNER JOIN CD.FACILITIES ON BOOKINGS.FACID = FACILITIES.FACID WHERE BOOKINGS.STARTTIME >= '2012-09-14' AND BOOKINGS.STARTTIME < '2012-09-15' ) AS BOOKINGS WHERE COST > 30 ORDER BY COST DESC;"},
-    {id: 21, query:"INSERT INTO CD.FACILITIES (FACILITIES.FACID, FACILITIES.NAME, FACILITIES.MEMBERCOST, FACILITIES.GUESTCOST, FACILITIES.INITIALOUTLAY, FACILITIES.MONTHLYMAINTENANCE) VALUES (9, 'Spa', 20, 30, 100000, 800);"},
-    {id: 22, query:"INSERT INTO CD.FACILITIES (FACILITIES.FACID, FACILITIES.NAME, FACILITIES.MEMBERCOST, FACILITIES.GUESTCOST, FACILITIES.INITIALOUTLAY, FACILITIES.MONTHLYMAINTENANCE) VALUES (9, 'Spa', 20, 30, 100000, 800), (10, 'Squash Court 2', 3.5, 17.5, 5000, 80);"},
+    {id: 21, query:"INSERT INTO CD.FACILITIES (FACID, NAME, MEMBERCOST, GUESTCOST, INITIALOUTLAY, MONTHLYMAINTENANCE) VALUES (9, 'Spa', 20, 30, 100000, 800);"},
+    {id: 22, query:"INSERT INTO CD.FACILITIES (FACID, NAME, MEMBERCOST, GUESTCOST, INITIALOUTLAY, MONTHLYMAINTENANCE) VALUES (9, 'Spa', 20, 30, 100000, 800), (10, 'Squash Court 2', 3.5, 17.5, 5000, 80);"},
     {id: 23, query:"INSERT INTO CD.FACILITIES (FACILITIES.FACID, FACILITIES.NAME, FACILITIES.MEMBERCOST, FACILITIES.GUESTCOST, FACILITIES.INITIALOUTLAY, FACILITIES.MONTHLYMAINTENANCE) SELECT (SELECT MAX(FACILITIES.FACID) FROM CD.FACILITIES)+1, 'Spa', 20, 30, 100000, 800;"},
     {id: 24, query:"UPDATE CD.FACILITIES SET FACILITIES.INITIALOUTLAY = 10000 WHERE FACILITIES.FACID = 1;"},
     {id: 25, query:"UPDATE CD.FACILITIES SET FACILITIES.MEMBERCOST = 6, FACILITIES.GUESTCOST = 30 WHERE FACILITIES.FACID IN (0,1);"},
@@ -159,25 +162,29 @@ const testAll = async (response: queryCompare[]): Promise<[number, Object]> => {
 };
 
 export const getAST = async (request: any, reply: any) => {
-  let { query } = request.query;
-  if (query[query.length - 1] === ';') query = query.slice(0, -1);
+  // let { query } = request.query;
+  // if (query[query.length - 1] === ';') query = query.slice(0, -1);
 
   // let response: queryWithTAC[] = [];
   let response: queryCompare[] = [];
+  // let response = queries;
 
   // await test(response, query);
+  // await test(response, "INSERT INTO CD.FACILITIES (FACID, NAME, MEMBERCOST, GUESTCOST, INITIALOUTLAY, MONTHLYMAINTENANCE) SELECT (SELECT MAX(FACID) FROM CD.FACILITIES)+1, 'Spa', 20, 30, 100000, 800;");
+  // await test(response, "INSERT INTO CD.FACILITIES (FACID, NAME, MEMBERCOST, GUESTCOST, INITIALOUTLAY, MONTHLYMAINTENANCE) VALUES (9, 'Spa', 20, 30, 100000, 800);");
 
-  let [code, res] = await testAll(response);
-  if (code !== 200) {
-    reply.code(code).send(res);
-    return;
-  }
+  // let [code, res] = await testAll(response);
+  // if (code !== 200) {
+  //   reply.code(code).send(res);
+  //   return;
+  // }
   // console.log(response);
-  response = checkResponse(response);
+  // response = checkResponse(response); //check v pripade ze zmenim regexy, aby sa skontrolovalo ci su query upravene spravne
 
-  // TODO: treba otestovat pre vsetky query v solutions
-  // TODO: treba porozmyslat ako odstranit aliasy stlpcov (aktualne m.memid as memid zmeni na MEMBERS.MEMID AS MEMBERS.MEMID)
-  // --------> mozno sa to da spravit cez AST->columns (tam su ulozene aliasy pre columns)
+  // createASTsForNormalizedQueries(response);
+
+  sortQueryAlphabetically("SELECT MEMBERS.FIRSTNAME, MEMBERS.SURNAME, (SELECT FACILITIES.MEMBERCOST, FACILITIES.FACID FROM CD.FACILITIES) as FACID, MEMBERS.MEMID FROM CD.MEMBERS");
+  
 
   reply.code(200).send({ message: 'ok', response });
   return;

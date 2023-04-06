@@ -1,11 +1,12 @@
 import TableController from '../../../database/tableController';
+import { queryCompare } from '../abstractSyntaxTree';
 const { Parser } = require('node-sql-parser/build/postgresql');
 
 const parser = new Parser();
 const opt = { database: 'PostgresQL' };
 const tableController = new TableController();
 
-interface ASTObject {
+export interface ASTObject {
   [key: string]: any;
 }
 
@@ -132,7 +133,15 @@ const getTablesAndAliasesFromAST = (ast: ASTObject): TableWithAlias[] => {
 export const getTableNamesAliasesAndColumnsFromQuery = async (query: string): Promise<[number, TACResponse]> => {
   // console.log('query: ', query);
   const ast = parser.astify(query, opt);
-  // console.dir(ast, { depth: null });
+  console.dir(ast, { depth: null });
+  // console.log((ast[0].type as string).toLowerCase() === 'insert');
+  if(Array.isArray(ast)) {
+    if((ast[0].type as string).toLowerCase() === 'insert')
+      return [200, { message: 'OK', tac: []}]
+  } else {
+    if ((ast.type as string).toLowerCase() === 'insert')
+      return [200, { message: 'OK', tac: []}]
+  }
 
   const tablesWithAliasesAndColumns = getTablesAndAliasesFromAST(ast);
   // console.log('tac table names:');
@@ -177,9 +186,9 @@ export const replaceAsterixWithTableAndColumns = (query: string, tac: TableWithA
   // let spaceAsterixRegex = / \*/g;
 
   let simpleAsterixRegex = new RegExp(`(?<=SELECT\\s)\\s*\\*\\s*(?=\\sFROM)`, 'g');
-  let startingAsterixRegex= new RegExp(`(?<=SELECT\\s)\\s*\\*\\s*(?=,)`, 'g');
-  let endingAsterixRegex= new RegExp(`(?<=,)\\s*\\*\\s*(?=\\sFROM)`, 'g');
-  let betweenAsterixRegex= new RegExp(`(?<=,)\\s*\\*\\s*(?=,)`, 'g');
+  let startingAsterixRegex = new RegExp(`(?<=SELECT\\s)\\s*\\*\\s*(?=,)`, 'g');
+  let endingAsterixRegex = new RegExp(`(?<=,)\\s*\\*\\s*(?=\\sFROM)`, 'g');
+  let betweenAsterixRegex = new RegExp(`(?<=,)\\s*\\*\\s*(?=,)`, 'g');
   /**
    * 1. * je sama -> SELECT * FROM
    * 2. * je na zaciatku -> SELECT *,
@@ -229,12 +238,6 @@ export const removeTableAliases = (query: string, tac: TableWithAliasAndColumns[
 
 const getColumnAliases = (query: string, tac: TableWithAliasAndColumns[]) => {};
 
-export const replaceColumnAliases = (query: string, tac: TableWithAliasAndColumns[]): string => {
-  let result = query;
-  //uloha 15 - ORDER BY MEMSNAME, MEMFNAME... treba pozriet aliasy columnov, vyhladat ich v query a nahradit za hodnotu columnu
-  return result;
-};
-
 export const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns[]): string => {
   let result = query;
   let spaces = new RegExp(`\\s+`, 'g');
@@ -253,7 +256,7 @@ export const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns
         let columnAlias = match[0].replace(spaces, ' ').trim();
         if (columnAlias.includes('as') || columnAlias.includes('AS')) columnAlias = columnAlias.split(' ')[1];
         // console.log(columnAlias);
-        let colRegexp = new RegExp(`[^\\.]\\b${columnAlias}\\b`, 'g')
+        let colRegexp = new RegExp(`[^\\.]\\b${columnAlias}\\b`, 'g');
         result = result.replace(colRegexp, ` ${t.table}.${c.toUpperCase()}`);
       }
     }
@@ -265,6 +268,16 @@ export const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns
   return result.trim();
 };
 
-export const sortQueryAlphabetically = (query: string): string => {
-  return '';
+export const createASTsForNormalizedQueries = (response: queryCompare[]) => {
+  for (let o of response) {
+    // console.log('creating AST for: ', o.id, ': ', o.normalized);
+    try {
+      let ast = parser.astify(o.normalized, opt);
+      // console.log(o.id, ': success');
+    } catch (e) {
+      console.log(o.id, ': failed');
+      let ast = parser.astify(o.origin, opt);
+      console.dir(ast, { depth: null });
+    }
+  }
 };
