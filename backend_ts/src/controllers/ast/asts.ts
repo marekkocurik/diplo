@@ -691,4 +691,330 @@ export const trees = [
       window: null,
     },
   },
+  {
+    query: "SELECT DISTINCT MEMBERS.FIRSTNAME || ' ' || MEMBERS.SURNAME, FACILITIES.NAME FROM CD.MEMBERS INNER JOIN CD.BOOKINGS ON MEMBERS.MEMID = BOOKINGS.MEMID INNER JOIN CD.FACILITIES ON BOOKINGS.FACID = FACILITIES.FACID WHERE FACILITIES.NAME IN ('Tennis Court 2','Tennis Court 1') ORDER BY MEMBERS.SURNAME, FACILITIES.NAME;",
+    ast: {
+      with: null,
+      type: 'select',
+      options: null,
+      distinct: { type: 'DISTINCT' },
+      columns: [
+        {
+          type: 'expr',
+          expr: {
+            type: 'binary_expr',
+            operator: '||',
+            left: {
+              type: 'binary_expr',
+              operator: '||',
+              left: { type: 'column_ref', table: 'MEMBERS', column: 'FIRSTNAME' },
+              right: { type: 'single_quote_string', value: ' ' }
+            },
+            right: { type: 'column_ref', table: 'MEMBERS', column: 'SURNAME' }    
+          },
+          as: null
+        },
+        {
+          type: 'expr',
+          expr: { type: 'column_ref', table: 'FACILITIES', column: 'NAME' },
+          as: null
+        }
+      ],
+      into: { position: null },
+      from: [
+        { db: 'CD', table: 'MEMBERS', as: null },
+        {
+          db: 'CD',
+          table: 'BOOKINGS',
+          as: null,
+          join: 'INNER JOIN',
+          on: {
+            type: 'binary_expr',
+            operator: '=',
+            left: { type: 'column_ref', table: 'MEMBERS', column: 'MEMID' },
+            right: { type: 'column_ref', table: 'BOOKINGS', column: 'MEMID' }
+          }
+        },
+        {
+          db: 'CD',
+          table: 'FACILITIES',
+          as: null,
+          join: 'INNER JOIN',
+          on: {
+            type: 'binary_expr',
+            operator: '=',
+            left: { type: 'column_ref', table: 'BOOKINGS', column: 'FACID' },
+            right: { type: 'column_ref', table: 'FACILITIES', column: 'FACID' }
+          }
+        }
+      ],
+      where: {
+        type: 'binary_expr',
+        operator: 'IN',
+        left: { type: 'column_ref', table: 'FACILITIES', column: 'NAME' },
+        right: {
+          type: 'expr_list',
+          value: [
+            { type: 'single_quote_string', value: 'Tennis Court 2' },
+            { type: 'single_quote_string', value: 'Tennis Court 1' }
+          ]
+        }
+      },
+      groupby: null,
+      having: null,
+      orderby: [
+        {
+          expr: { type: 'column_ref', table: 'MEMBERS', column: 'SURNAME' },
+          type: 'ASC',
+          nulls: null
+        },
+        {
+          expr: { type: 'column_ref', table: 'FACILITIES', column: 'NAME' },
+          type: 'ASC',
+          nulls: null
+        }
+      ],
+      limit: { seperator: '', value: [] },
+      window: null
+    }
+  },
+  {
+    query: "SELECT MEMBERS.SURNAME, FACILITIES.NAME, COST FROM ( SELECT MEMBERS.FIRSTNAME || ' ' || MEMBERS.SURNAME, FACILITIES.NAME, CASE WHEN MEMBERS.MEMID = 0 THEN BOOKINGS.SLOTS*FACILITIES.GUESTCOST ELSE BOOKINGS.SLOTS*FACILITIES.MEMBERCOST END AS COST FROM CD.MEMBERS INNER JOIN CD.BOOKINGS ON MEMBERS.MEMID = BOOKINGS.MEMID INNER JOIN CD.FACILITIES ON BOOKINGS.FACID = FACILITIES.FACID WHERE BOOKINGS.STARTTIME >= '2012-09-14' AND BOOKINGS.STARTTIME < '2012-09-15' ) AS BOOKINGS WHERE COST > 30 ORDER BY COST DESC;",
+    ast: {
+      with: null,
+      type: 'select',
+      options: null,
+      distinct: { type: null },
+      columns: [
+        {
+          type: 'expr',
+          expr: { type: 'column_ref', table: 'MEMBERS', column: 'SURNAME' },
+          as: null
+        },
+        {
+          type: 'expr',
+          expr: { type: 'column_ref', table: 'FACILITIES', column: 'NAME' },
+          as: null
+        },
+        {
+          type: 'expr',
+          expr: { type: 'column_ref', table: null, column: 'COST' },        
+          as: null
+        }
+      ],
+      into: { position: null },
+      from: [
+        {
+          prefix: null,
+          expr: {
+            tableList: [
+              'select::CD::MEMBERS',
+              'select::CD::BOOKINGS',
+              'select::CD::FACILITIES'
+            ],
+            columnList: [
+              'select::MEMBERS::SURNAME',
+              'select::FACILITIES::NAME',
+              'select::null::COST',
+              'select::MEMBERS::FIRSTNAME',
+              'select::MEMBERS::MEMID',
+              'select::BOOKINGS::SLOTS',
+              'select::FACILITIES::GUESTCOST',
+              'select::FACILITIES::MEMBERCOST',
+              'select::BOOKINGS::MEMID',
+              'select::BOOKINGS::FACID',
+              'select::FACILITIES::FACID',
+              'select::BOOKINGS::STARTTIME'
+            ],
+            ast: {
+              with: null,
+              type: 'select',
+              options: null,
+              distinct: { type: null },
+              columns: [
+                {
+                  type: 'expr',
+                  expr: {
+                    type: 'binary_expr',
+                    operator: '||',
+                    left: {
+                      type: 'binary_expr',
+                      operator: '||',
+                      left: {
+                        type: 'column_ref',
+                        table: 'MEMBERS',
+                        column: 'FIRSTNAME'
+                      },
+                      right: { type: 'single_quote_string', value: ' ' }
+                    },
+                    right: {
+                      type: 'column_ref',
+                      table: 'MEMBERS',
+                      column: 'SURNAME'
+                    }
+                  },
+                  as: null
+                },
+                {
+                  type: 'expr',
+                  expr: {
+                    type: 'column_ref',
+                    table: 'FACILITIES',
+                    column: 'NAME'
+                  },
+                  as: null
+                },
+                {
+                  type: 'expr',
+                  expr: {
+                    type: 'case',
+                    expr: null,
+                    args: [
+                      {
+                        type: 'when',
+                        cond: {
+                          type: 'binary_expr',
+                          operator: '=',
+                          left: {
+                            type: 'column_ref',
+                            table: 'MEMBERS',
+                            column: 'MEMID'
+                          },
+                          right: { type: 'number', value: 0 }
+                        },
+                        result: {
+                          type: 'binary_expr',
+                          operator: '*',
+                          left: {
+                            type: 'column_ref',
+                            table: 'BOOKINGS',
+                            column: 'SLOTS'
+                          },
+                          right: {
+                            type: 'column_ref',
+                            table: 'FACILITIES',
+                            column: 'GUESTCOST'
+                          }
+                        }
+                      },
+                      {
+                        type: 'else',
+                        result: {
+                          type: 'binary_expr',
+                          operator: '*',
+                          left: {
+                            type: 'column_ref',
+                            table: 'BOOKINGS',
+                            column: 'SLOTS'
+                          },
+                          right: {
+                            type: 'column_ref',
+                            table: 'FACILITIES',
+                            column: 'MEMBERCOST'
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  as: 'COST'
+                }
+              ],
+              into: { position: null },
+              from: [
+                { db: 'CD', table: 'MEMBERS', as: null },
+                {
+                  db: 'CD',
+                  table: 'BOOKINGS',
+                  as: null,
+                  join: 'INNER JOIN',
+                  on: {
+                    type: 'binary_expr',
+                    operator: '=',
+                    left: {
+                      type: 'column_ref',
+                      table: 'MEMBERS',
+                      column: 'MEMID'
+                    },
+                    right: {
+                      type: 'column_ref',
+                      table: 'BOOKINGS',
+                      column: 'MEMID'
+                    }
+                  }
+                },
+                {
+                  db: 'CD',
+                  table: 'FACILITIES',
+                  as: null,
+                  join: 'INNER JOIN',
+                  on: {
+                    type: 'binary_expr',
+                    operator: '=',
+                    left: {
+                      type: 'column_ref',
+                      table: 'BOOKINGS',
+                      column: 'FACID'
+                    },
+                    right: {
+                      type: 'column_ref',
+                      table: 'FACILITIES',
+                      column: 'FACID'
+                    }
+                  }
+                }
+              ],
+              where: {
+                type: 'binary_expr',
+                operator: 'AND',
+                left: {
+                  type: 'binary_expr',
+                  operator: '>=',
+                  left: {
+                    type: 'column_ref',
+                    table: 'BOOKINGS',
+                    column: 'STARTTIME'
+                  },
+                  right: { type: 'single_quote_string', value: '2012-09-14' }
+                },
+                right: {
+                  type: 'binary_expr',
+                  operator: '<',
+                  left: {
+                    type: 'column_ref',
+                    table: 'BOOKINGS',
+                    column: 'STARTTIME'
+                  },
+                  right: { type: 'single_quote_string', value: '2012-09-15' }
+                }
+              },
+              groupby: null,
+              having: null,
+              orderby: null,
+              limit: { seperator: '', value: [] },
+              window: null
+            },
+            parentheses: true
+          },
+          as: 'BOOKINGS'
+        }
+      ],
+      where: {
+        type: 'binary_expr',
+        operator: '>',
+        left: { type: 'column_ref', table: null, column: 'COST' },
+        right: { type: 'number', value: 30 }
+      },
+      groupby: null,
+      having: null,
+      orderby: [
+        {
+          expr: { type: 'column_ref', table: null, column: 'COST' },
+          type: 'DESC',
+          nulls: null
+        }
+      ],
+      limit: { seperator: '', value: [] },
+      window: null
+    }
+  },
 ];

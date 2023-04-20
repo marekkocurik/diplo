@@ -1,15 +1,14 @@
-import { AST } from 'node-sql-parser/build/postgresql';
+import { AST, Select, Insert_Replace } from 'node-sql-parser/build/postgresql';
 import { ASTObject } from './analyzer';
 const { Parser } = require('node-sql-parser/build/postgresql');
 
 const parser = new Parser();
 const opt = { database: 'PostgresQL' };
 
-const sortIfSelectOrInsert = (ast: AST) => {
+const sortSelectClause = (ast: Select) => {
   let arr: string[] = [];
   let cols: any[] = [];
-  if (ast.type === 'select' && ast.columns !== null) {
-    console.log('changing select.columns');
+  if (ast.columns !== null) {
     for (let o of ast.columns) {
       if (o.expr.type === 'column_ref') {
         if (o.expr.table === null || o.expr.table === undefined || o.expr.table === '') arr.push(o.expr.column);
@@ -39,23 +38,87 @@ const sortIfSelectOrInsert = (ast: AST) => {
     for (let o of ast.columns) {
       if (!cols.find((obj) => obj.expr.table === o.expr.table && obj.expr.column === o.expr.column)) cols.push(o);
     }
-    // console.log(ast.columns);
-    // console.log('...');
-    // console.log(cols);
     ast.columns = cols;
-  } else if (ast.type === 'insert' && ast.columns !== null) {
-    console.log('changing insert.columns');
+  }
+};
+
+const sortFromClause = (ast: Select) => {
+  /**
+   * 1. FROM
+   * 2. FROM JOIN JOIN
+   * 3. FROM SELECT JOIN JOIN
+   * 4. FROM JOIN SELECT JOIN
+   */
+
+  let arr: String[] = [];
+  let tmp: any[] = [];
+  if (ast.from !== null) {
+    if (ast.from.length > 1) {
+      for (let o of ast.from) if (!isSubAst(o)) arr.push(o.table); // sortnem len to co nie je AST
+      arr = arr.sort();
+      for (let a of arr) {
+        // sortnem tie veci co su v arr
+        let occurencies = 1;
+        for (let o of ast.from) if (!isSubAst(o) && o.table === a) occurencies++;
+        if (occurencies === 1) {
+          tmp.push(ast.from.find((obj) => obj.table === a));
+        } else {
+          let i = 0;
+          for (let o of ast.from) {
+            if (i === occurencies) break;
+
+          }
+        }
+      }
+
+      for (let o of tmp) { // usporiadanie left a right vetvy v pripade join
+        // let o = ast.from.find((obj) => obj.table === a);
+        //   if (o !== null) {
+        //     if (o.join === null) {
+        //       tmp.push(o);
+        //     } else {
+        //       let arr2 = [o.on.left.table, o.on.right.table].sort();
+        //       let tmp2: {} = o.on.left.table === arr2[0] ? o.on.left : o.on.right;
+        //     }
+        //   }
+      }
+
+      for (let o of ast.from) if (isSubAst(o)) tmp.push(o);
+      ast.from = tmp;
+    }
+  }
+};
+
+const sortWhereClause = (ast: Select) => {
+  if (ast.where !== null) {
+
+  }
+}
+
+const sortInsertClause = (ast: Insert_Replace) => {
+  if (ast.columns !== null) {
     ast.columns = ast.columns.sort();
   }
 };
 
-const isSubAst = (value: any): value is AST => {
-  return typeof value === 'object' && 'ast' in value;
+const sortAST = (ast: AST) => {
+  if (ast.type === 'select') {
+    sortSelectClause(ast);
+    // sortFromClause(ast);
+    // sortWhereClause(ast);
+    // sortGroupByClause(ast);
+    // sortHavingClause(ast);
+    // sortOrderByClause(ast);
+  } else if (ast.type === 'insert') {
+    sortInsertClause(ast);
+  } else if (ast.type === 'delete') {
+  } else if (ast.type === 'update') {
+  }
+  // findSubAST(ast);
 };
 
-const sortAST = (ast: AST) => {
-  sortIfSelectOrInsert(ast);
-  // findSubAST(ast);
+const isSubAst = (value: any): value is AST => {
+  return typeof value === 'object' && 'ast' in value;
 };
 
 const findSubAST = (obj: ASTObject) => {
