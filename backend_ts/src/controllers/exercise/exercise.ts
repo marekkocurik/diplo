@@ -1,6 +1,7 @@
 import { ok } from 'assert';
 import ExerciseController from '../../database/exerciseController';
 import { queryToUpperCase } from '../ast/lexicalAnalysis/analyzer';
+import { createASTForNormalizedQuery, normalizeQuery } from '../ast/abstractSyntaxTree';
 
 interface GeneralResponse {
   message: string;
@@ -125,117 +126,6 @@ export const getExerciseTree = async (request: any, reply: any) => {
   }
 };
 
-// const compareQueries = async (
-//   reply: any,
-//   role: string,
-//   solution: string,
-//   queryToExecute: string,
-//   user_id: number,
-//   exercise_id: number,
-//   action: string
-// ): Promise<[Number, QueryCompareResponse]> => {
-//   try {
-//     let response = {
-//       queryResult: {},
-//       execution_time: 0,
-//       solution_success: '',
-//       message: 'OK',
-//     };
-//     let [query_expected_code, query_expected_response] = await exerciseController.getQueryResult(role, solution);
-//     if (query_expected_code !== 200) {
-//       reply.code(query_expected_code).send(query_expected_response);
-//       return [-1, response];
-//     }
-//     let reply_code: Number = 200,
-//       reply_message: string = '';
-//     try {
-//       let [query_code, query_response] = await exerciseController.getQueryResult(role, queryToExecute);
-//       if (query_code !== 200) {
-//         reply.code(query_code).send(query_response);
-//         return [-1, response];
-//       }
-//       response.queryResult = query_response.queryResult;
-//       response.execution_time = query_response.execution_time;
-//     } catch (e) {
-//       response.solution_success = 'ERROR';
-//       reply_code = 500;
-//       if (e instanceof Error) reply_message = e.message;
-//       else reply_message = 'Unknown error occured while trying to ' + action + ' user query';
-//     }
-//     if (response.solution_success !== 'ERROR') {
-//       if (queryResultsMatch(query_expected_response.queryResult, response.queryResult)) {
-//         response.solution_success = 'COMPLETE'; // TODO: solution_success = action = 'test'? 'PARTIAL' : 'COMPLETE'
-//       } else {
-//         response.solution_success = 'WRONG'; // TODO: solution_success = action 'test'? 'WRONG' : 'PARTIAL'
-//       }
-//     }
-//     let [insert_code, insert_response] = await exerciseController.insertNewAnswer(
-//       user_id,
-//       exercise_id,
-//       queryToExecute,
-//       response.solution_success,
-//       response.execution_time,
-//       action === 'test' ? false : true
-//     );
-//     if (insert_code !== 200) {
-//       reply.code(insert_code).send(insert_response);
-//       return [-1, response];
-//     }
-//     if (reply_code === 500) {
-//       reply.code(reply_code).send({ message: reply_message });
-//       return [-1, response];
-//     }
-//     return [1, response];
-//   } catch (e) {
-//     reply.code(500).send({ message: 'Unknown error occured while trying to ' + action + ' user query' });
-//     return [-1, { queryResult: {}, solution_success: '', execution_time: 0 }];
-//   }
-// };
-
-// export const getQueryTestResult = async (request: any, reply: any) => {
-//   const { role, id, exerciseId, queryToExecute, solution } = request.query;
-//   let [status, response] = await compareQueries(reply, role, solution, queryToExecute, id, exerciseId, 'test');
-//   if (status === 1) reply.code(200).send(response);
-//   return;
-// };
-
-// export const getQuerySubmitResult = async (request: any, reply: any) => {
-//   const { role, id, exerciseId, queryToExecute, solution } = request.query;
-//   let [status, response] = await compareQueries(reply, role, solution, queryToExecute, id, exerciseId, 'submit');
-
-//   try {
-//     if (status === 1) {
-//       if (response.solution_success === 'COMPLETE') {
-//         let [sol_code, sol_response] = await exerciseController.getExerciseSolutionsByExerciseID(exerciseId);
-//         if (sol_code !== 200) {
-//           reply.code(sol_code).send(sol_response);
-//           return;
-//         }
-// let new_solution: string = queryToExecute as string;
-// if (new_solution.charAt(new_solution.length - 1) !== ';') new_solution += ';';
-// for (let s of sol_response.solutions) {
-//   if (new_solution.toLowerCase() === (s.query as string).toLowerCase()) {
-//     reply.code(200).send(response);
-//     return;
-//   }
-// }
-//         let [save_code, save_response] = await exerciseController.insertNewSolution(exerciseId, new_solution, response.execution_time);
-//         if (save_code !== 200) {
-//           reply.code(save_code).send(save_response);
-//           return;
-//         }
-//         reply.code(200).send(response);
-//       } else {
-//         reply.code(200).send(response); // TODO: 200?
-//       }
-//     }
-//     return;
-//   } catch (e) {
-//     reply.code(500).send({ message: 'Unknown error occured while trying to insert new solution' });
-//     return;
-//   }
-// };
-
 export const getExerciseHistory = async (request: any, reply: any) => {
   const { id, exerciseId } = request.query;
   try {
@@ -307,10 +197,12 @@ const testQueries = async (
 const insertNewSolution = async (
   exerciseID: number,
   solution: string,
-  executionTime: number
+  normalized: string,
+  executionTime: number,
+  ast: string
 ): Promise<[number, GeneralResponse]> => {
   try {
-    let [code, response] = await exerciseController.insertNewSolution(exerciseID, solution, executionTime);
+    let [code, response] = await exerciseController.insertNewSolution(exerciseID, solution, normalized, executionTime, ast);
     return [code, response];
   } catch (e) {
     return [500, { message: 'Unknown error occured while trying to insert new solution' }];
@@ -349,15 +241,18 @@ const editQueryToSecondScheme = (query: string) => {
 
 const checkIfSolutionExist = async (
   exerciseID: number,
-  potentialSolution: string
+  normalizedPotentialSolution: string
 ): Promise<[number, GeneralResponse]> => {
   try {
-    let [code, response] = await exerciseController.getAllExerciseSolutionsByExerciseID(exerciseID);
+    let [code, response] = await exerciseController.getAllExerciseNormalizedSolutionsByExerciseID(exerciseID);
     if (code !== 200) return [code, response];
     for (let solution of response.solutions) {
-      if (potentialSolution === solution.query)
+      if (normalizedPotentialSolution === solution.query) {
+        console.log('solution already exists: ', solution.query);
         return [200, { message: 'Solution already exists' }];
+      }
     }
+    console.log('solution does not exist yet');
     return [200, { message: 'Solution does not exist yet' }];
   } catch (e) {
     return [500, { message: 'Unknown error occured while trying to get exercise solutions' }];
@@ -375,9 +270,19 @@ const proccessNewSolution = async (
   executionTime: number
 ): Promise<[number, GeneralResponse]> => {
   potentialSolution = editSolutionBeforeSaving(potentialSolution);
-  let [code, response] = await checkIfSolutionExist(exerciseID, potentialSolution);
+
+  let [normCode, normResult] = await normalizeQuery(potentialSolution);
+  if (normCode !== 200) return [normCode, { message: normResult.message}];
+  console.log('normalized query: ', normResult.normalizedQuery);
+
+  let [astCode, astResult] = await createASTForNormalizedQuery(normResult.normalizedQuery);
+  if (astCode !== 200) return [astCode, { message: astResult.message }];
+  console.log('ast: ');
+  console.dir(astResult.ast, {depth:null});
+
+  let [code, response] = await checkIfSolutionExist(exerciseID, normResult.normalizedQuery);
   if (code === 200 && response.message === 'Solution does not exist yet') {
-    [code, response] = await insertNewSolution(exerciseID, potentialSolution, executionTime);
+    [code, response] = await insertNewSolution(exerciseID, potentialSolution, normResult.normalizedQuery, executionTime, astResult.ast);
   }
   return [code, response];
 };
@@ -437,13 +342,14 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
         return;
       } else if (code === 200) {
         solutionSuccess = 'COMPLETE';
+        console.log('processing new solution');
         let [processSolutionCode, processSolutionResponse] = await proccessNewSolution(
           exerciseId,
           queryToExecute,
           response.executionTime
         );
         if (processSolutionCode !== 200) {
-          // TODO: solution je spravne, ale nejde ulozit - co s tym chcem spravit? Mozem vytvorit nejaky proces, ktory raz za cas prebehne answers a porovna, ci vsetky success = 'COMPLETE' su aj v users.solutions
+          // TODO: user case: solution je spravne, ale nejde ulozit - co s tym chcem spravit? Mozem vytvorit nejaky proces, ktory raz za cas prebehne answers a porovna, ci vsetky success = 'COMPLETE' su aj v users.solutions
           let res = {
             message: 'Solution is correct, but it could not be saved.',
           };

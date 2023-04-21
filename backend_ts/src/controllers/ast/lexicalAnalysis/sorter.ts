@@ -134,23 +134,17 @@ const findSubAST = (obj: ASTObject) => {
   }
 };
 
-export const sortQueryAlphabetically = (query: string): string => {
-  let ast = parser.astify(query, opt);
-  let ast2 = parser.astify(query, opt);
+export const sortASTAlphabetically = (ast: AST) => {
+  // let ast2 = parser.astify(query, opt);
   if (Array.isArray(ast)) ast = ast[0];
-  if (Array.isArray(ast2)) ast2 = ast2[0];
-  //   console.dir(ast, { depth: null });
+  // if (Array.isArray(ast2)) ast2 = ast2[0];
+    // console.dir(ast, { depth: null });
   sortAST(ast);
   findSubAST(ast);
-  //   console.dir(ast.columns, { depth: null });
-  //   ast[0].columns = [{type:'expr', expr: {type:'column_ref', table:'table', column:'column'}}]
-  //   console.dir(ast, {depth:null});
-  //   sortIfSelectOrInsert(ast);
-  //   console.dir(ast.columns, { depth: null });
-  if (JSON.stringify(ast) === JSON.stringify(ast2)) console.log(true);
-  else {
-    console.dir(ast2, { depth: null });
-    console.dir(ast, { depth: null });
-  }
-  return query;
+  // if (JSON.stringify(ast) === JSON.stringify(ast2)) console.log(true);
+  // else {
+  //   console.dir(ast2, { depth: null });
+  //   console.dir(ast, { depth: null });
+  // }
+  // return ast;
 };

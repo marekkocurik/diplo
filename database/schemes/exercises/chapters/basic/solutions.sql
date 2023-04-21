@@ -1,4 +1,4 @@
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (1, 'select * from cd.facilities;'),
 (2, 'select name, membercost from cd.facilities;'),
 (3, 'select * from cd.facilities where membercost > 0;'),

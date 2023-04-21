@@ -1,4 +1,4 @@
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (51, 'select timestamp ''2012-08-31 01:00:00'';'),
 (52, 'select timestamp ''2012-08-31 01:00:00'' - timestamp ''2012-07-30 01:00:00'' as interval;'),
 (53, 'select generate_series(timestamp ''2012-10-01'', timestamp ''2012-10-31'', interval ''1 day'') as ts;'),

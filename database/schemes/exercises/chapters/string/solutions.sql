@@ -1,4 +1,4 @@
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (61, 'select surname || '', '' || firstname as name from cd.members;'),
 (62, 'select * from cd.facilities where name like ''Tennis%'';'),
 (63, 'select * from cd.facilities where upper(name) like ''TENNIS%'';'),

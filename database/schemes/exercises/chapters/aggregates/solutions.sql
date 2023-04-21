@@ -1,4 +1,4 @@
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (30, 'select count(*) from cd.facilities;'),
 (31, 'select count(*) from cd.facilities where guestcost >= 10;'),
 (32, 'select recommendedby, count(*) from cd.members where recommendedby is not null group by recommendedby order by recommendedby;'),

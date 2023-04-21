@@ -1,4 +1,4 @@
-import { getAST } from '../controllers/ast/abstractSyntaxTree';
+import { updateDatabase, testAST } from '../controllers/ast/abstractSyntaxTree';
 import { userLogin, userRegistration, changeUserPassword, getUsername } from '../controllers/auth/auth';
 import {
   getExerciseTree,
@@ -36,7 +36,8 @@ export default async function routes(server: any) {
     reply.code(200).send({ message: 'Ya man LETS GOO' });
   };
 
-  server.get('/get-ast', getAST);
+  // server.get('/database-update', updateDatabase);
+  server.get('/test-ast', testAST);
   server.get('/hello', sayHello);
   server.post('/auth/login', userLogin);
   server.post('/auth/register', userRegistration);

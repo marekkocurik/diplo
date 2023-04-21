@@ -123,9 +123,10 @@ export default class ExerciseController extends DatabaseController {
     if (client === undefined) return [500, { message: 'Error accessing database.', query: '', id: -1 }];
     try {
       await client.query('SET ROLE u_executioner;');
-      let query = 'SELECT S.id, S.query FROM users.solutions S WHERE S.exercise_id = $1 LIMIT 1;';
+      let query = 'SELECT S.id, S.original_query AS query FROM users.solutions S WHERE S.exercise_id = $1 LIMIT 1;';
       let result = await client.query(query, [exercise_id]);
-      if (result.rows[0] === undefined) return [500, { message: 'Failed to obtain exercise solution', query: '', id: -1 }];
+      if (result.rows[0] === undefined)
+        return [500, { message: 'Failed to obtain exercise solution', query: '', id: -1 }];
       let response = {
         message: 'OK',
         id: result.rows[0].id,
@@ -140,12 +141,12 @@ export default class ExerciseController extends DatabaseController {
     }
   }
 
-  public async getAllExerciseSolutionsByExerciseID(exercise_id: number): Promise<[number, Solutions]> {
+  public async getAllExerciseNormalizedSolutionsByExerciseID(exercise_id: number): Promise<[number, Solutions]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database.', solutions: [] }];
     try {
       await client.query('SET ROLE u_executioner;');
-      let query = 'SELECT S.query FROM users.solutions S WHERE S.exercise_id = $1;';
+      let query = 'SELECT S.normalized_query AS query FROM users.solutions S WHERE S.exercise_id = $1;';
       let result = await client.query(query, [exercise_id]);
       if (result.rows[0] === undefined) return [500, { message: 'Failed to obtain exercise solutions', solutions: [] }];
       let response = {
@@ -329,16 +330,20 @@ export default class ExerciseController extends DatabaseController {
 
   public async insertNewSolution(
     exercise_id: number,
-    query: string,
-    execution_time: number
+    original_query: string,
+    normalized_query: string,
+    execution_time: number,
+    abstract_syntax_tree: string
   ): Promise<[number, GeneralResponse]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database.' }];
     try {
       await client.query('SET ROLE u_executioner;');
       await client.query('BEGIN;');
-      let insert = 'INSERT INTO users.solutions(exercise_id, query, execution_time) ' + 'VALUES ($1, $2, $3);';
-      let result = await client.query(insert, [exercise_id, query, execution_time]);
+      let insert =
+        'INSERT INTO users.solutions(exercise_id, original_query, normalized_query, execution_time, abstract_syntax_tree) ' +
+        'VALUES ($1, $2, $3, $4, $5);';
+      let result = await client.query(insert, [exercise_id, original_query, normalized_query, execution_time, abstract_syntax_tree]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
         return [500, { message: 'Failed to insert new exercise solution' }];

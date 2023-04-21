@@ -4,10 +4,10 @@ interface GeneralResponse {
   message: string;
 }
 
-interface Solutions extends GeneralResponse {
+export interface Solutions extends GeneralResponse {
   solutions: {
     id: number;
-    query: string;
+    original_query: string;
   }[];
 }
 
@@ -64,7 +64,7 @@ export default class TableController extends DatabaseController {
     try {
       await client.query('BEGIN;');
       console.log('updating id: ', id, ' , query: ', query);
-      let update = 'UPDATE users.solutions SET query = $1 WHERE id = $2';
+      let update = 'UPDATE users.solutions SET original_query = $1 WHERE id = $2';
       let result = await client.query(update, [query, id]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
@@ -106,12 +106,12 @@ export default class TableController extends DatabaseController {
     }
   }
 
-  public async getAllSolutions(): Promise<[number, Solutions]> {
+  public async getAllOriginalSolutions(): Promise<[number, Solutions]> {
     const client = await this.pool.connect();
     if (client === undefined) return [500, { message: 'Error accessing database', solutions: [] }];
     try {
       await client.query('SET ROLE u_executioner;');
-      let query = 'SELECT S.id, S.query FROM users.solutions as S WHERE S.id <= 69 ORDER BY S.id';
+      let query = 'SELECT S.id, S.original_query FROM users.solutions as S WHERE S.id <= 69 ORDER BY S.id';
       let result = await client.query(query);
       if (result.rows[0] === undefined) return [500, { message: 'Failed to obtain solutions.', solutions: [] }];
       let response = {
@@ -120,6 +120,52 @@ export default class TableController extends DatabaseController {
       };
       return [200, response];
     } catch (e) {
+      console.log(e);
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async updateSolutionNormalizedQueryById(id: number, query: string): Promise<[number, Object]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [500, { message: 'Error accessing database' }];
+    try {
+      await client.query('BEGIN;');
+      // console.log('inserting id: ', id, ' , query: ', query);
+      let update = 'UPDATE users.solutions SET normalized_query = $1 WHERE id = $2';
+      let result = await client.query(update, [query, id]);
+      if (result.rowCount !== 1) {
+        await client.query('ROLLBACK;');
+        return [500, { message: 'Failed to update normalized query for solution with id: ' + id }];
+      }
+      await client.query('COMMIT;');
+      return [200, { message: 'OK' }];
+    } catch (e) {
+      await client.query('ROLLBACK;');
+      console.log(e);
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async updateSolutionASTById(id: number, ast: string): Promise<[number, Object]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [500, { message: 'Error accessing database' }];
+    try {
+      await client.query('BEGIN;');
+      // console.log('inserting id: ', id);
+      let update = 'UPDATE users.solutions SET abstract_syntax_tree = $1 WHERE id = $2';
+      let result = await client.query(update, [ast, id]);
+      if (result.rowCount !== 1) {
+        await client.query('ROLLBACK;');
+        return [500, { message: 'Failed to update AST for solution with id: ' + id }];
+      }
+      await client.query('COMMIT;');
+      return [200, { message: 'OK' }];
+    } catch (e) {
+      await client.query('ROLLBACK;');
       console.log(e);
       throw e;
     } finally {

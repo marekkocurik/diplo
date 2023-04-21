@@ -1,4 +1,4 @@
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (21, 'insert into cd.facilities (facid, name, membercost, guestcost, initialoutlay, monthlymaintenance) values (9, ''Spa'', 20, 30, 100000, 800);'),
 (22, 'insert into cd.facilities (facid, name, membercost, guestcost, initialoutlay, monthlymaintenance) values (9, ''Spa'', 20, 30, 100000, 800), (10, ''Squash Court 2'', 3.5, 17.5, 5000, 80);'),
 (23, 'insert into cd.facilities (facid, name, membercost, guestcost, initialoutlay, monthlymaintenance) select (select max(facid) from cd.facilities)+1, ''Spa'', 20, 30, 100000, 800;'),

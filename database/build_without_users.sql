@@ -75,11 +75,13 @@ CREATE TABLE users.answers (
 CREATE TABLE users.solutions (
     id SERIAL PRIMARY KEY,
     exercise_id INT NOT NULL,
-    query VARCHAR(1000),
+    original_query VARCHAR(1000),
+    normalized_query VARCHAR(1500),
     execution_time DECIMAL,
     abstract_syntax_tree VARCHAR(10000),
     FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
+
 
 -- Create tables in schema 'cd':
 
@@ -8415,7 +8417,7 @@ INSERT INTO users.exercises(chapter_id, name, question, exercise_order) VALUES
 
 -- Insert solutions under the created user;
 
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (1, 'select * from cd.facilities;'),
 (2, 'select name, membercost from cd.facilities;'),
 (3, 'select * from cd.facilities where membercost > 0;'),
@@ -8429,7 +8431,7 @@ INSERT INTO users.solutions(exercise_id, query) VALUES
 (11, 'select max(joindate) as latest from cd.members;'),
 (12, 'select firstname, surname, joindate from cd.members where joindate = (select max(joindate) from cd.members);');
 
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (13, 'select bks.starttime from cd.bookings bks inner join cd.members mems on mems.memid = bks.memid where mems.firstname=''David'' and mems.surname=''Farrell'';'),
 (14, 'select bks.starttime as start, facs.name as name from cd.facilities facs inner join cd.bookings bks on facs.facid = bks.facid where facs.name in (''Tennis Court 2'',''Tennis Court 1'') and bks.starttime >= ''2012-09-21'' and bks.starttime < ''2012-09-22'' order by bks.starttime;'),
 (15, 'select distinct recs.firstname as firstname, recs.surname as surname from cd.members mems inner join cd.members recs on recs.memid = mems.recommendedby order by surname, firstname;'),
@@ -8439,7 +8441,7 @@ INSERT INTO users.solutions(exercise_id, query) VALUES
 (19, 'select distinct mems.firstname || '' '' || mems.surname as member, (select recs.firstname || '' '' || recs.surname as recommender from cd.members recs where recs.memid = mems.recommendedby ) from cd.members mems order by member;'),
 (20, 'select member, facility, cost from ( select mems.firstname || '' '' || mems.surname as member, facs.name as facility, case when mems.memid = 0 then bks.slots*facs.guestcost else bks.slots*facs.membercost end as cost from cd.members mems inner join cd.bookings bks on mems.memid = bks.memid inner join cd.facilities facs on bks.facid = facs.facid where bks.starttime >= ''2012-09-14'' and bks.starttime < ''2012-09-15'' ) as bookings where cost > 30 order by cost desc;');
 
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (21, 'insert into cd.facilities (facid, name, membercost, guestcost, initialoutlay, monthlymaintenance) values (9, ''Spa'', 20, 30, 100000, 800);'),
 (22, 'insert into cd.facilities (facid, name, membercost, guestcost, initialoutlay, monthlymaintenance) values (9, ''Spa'', 20, 30, 100000, 800), (10, ''Squash Court 2'', 3.5, 17.5, 5000, 80);'),
 (23, 'insert into cd.facilities (facid, name, membercost, guestcost, initialoutlay, monthlymaintenance) select (select max(facid) from cd.facilities)+1, ''Spa'', 20, 30, 100000, 800;'),
@@ -8450,7 +8452,7 @@ INSERT INTO users.solutions(exercise_id, query) VALUES
 (28, 'delete from cd.members where memid = 37;'),
 (29, 'delete from cd.members where memid not in (select memid from cd.bookings);');
 
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (30, 'select count(*) from cd.facilities;'),
 (31, 'select count(*) from cd.facilities where guestcost >= 10;'),
 (32, 'select recommendedby, count(*) from cd.members where recommendedby is not null group by recommendedby order by recommendedby;'),
@@ -8473,7 +8475,7 @@ INSERT INTO users.solutions(exercise_id, query) VALUES
 (49, 'select facs.name as name, facs.initialoutlay/((sum(case when memid = 0 then slots * facs.guestcost else slots * membercost end)/3) - facs.monthlymaintenance) as months from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid group by facs.facid order by name;'),
 (50, 'select dategen.date, ( select sum(case when memid = 0 then slots * facs.guestcost else slots * membercost end) as rev from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid where bks.starttime > dategen.date - (interval ''14 days'') and bks.starttime < dategen.date + (interval ''1 day'') )/15 as revenue from ( select cast(generate_series(timestamp ''2012-08-01'', ''2012-08-31'',''1 day'') as date) as date ) as dategen order by dategen.date;');
 
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (51, 'select timestamp ''2012-08-31 01:00:00'';'),
 (52, 'select timestamp ''2012-08-31 01:00:00'' - timestamp ''2012-07-30 01:00:00'' as interval;'),
 (53, 'select generate_series(timestamp ''2012-10-01'', timestamp ''2012-10-31'', interval ''1 day'') as ts;'),
@@ -8485,7 +8487,7 @@ INSERT INTO users.solutions(exercise_id, query) VALUES
 (59, 'select date_trunc(''month'', starttime) as month, count(*) from cd.bookings group by month order by month;'),
 (60, 'select name, month, round((100*slots)/ cast( 25*(cast((month + interval ''1 month'') as date) - cast (month as date)) as numeric),1) as utilisation from ( select facs.name as name, date_trunc(''month'', starttime) as month, sum(slots) as slots from cd.bookings bks inner join cd.facilities facs on bks.facid = facs.facid group by facs.facid, month ) as inn order by name, month;');
 
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (61, 'select surname || '', '' || firstname as name from cd.members;'),
 (62, 'select * from cd.facilities where name like ''Tennis%'';'),
 (63, 'select * from cd.facilities where upper(name) like ''TENNIS%'';'),
@@ -8493,7 +8495,7 @@ INSERT INTO users.solutions(exercise_id, query) VALUES
 (65, 'select substr (mems.surname,1,1) as letter, count(*) as count from cd.members mems group by letter order by letter;'),
 (66, 'select memid, translate(telephone, ''-() '', '''') as telephone from cd.members order by memid;');
 
-INSERT INTO users.solutions(exercise_id, query) VALUES
+INSERT INTO users.solutions(exercise_id, original_query) VALUES
 (67, 'with RECURSIVE recommenders(recommender) as ( select recommendedby from cd.members where memid = 27 union all select mems.recommendedby from recommenders recs inner join cd.members mems on mems.memid = recs.recommender ) select recs.recommender, mems.firstname, mems.surname from recommenders recs inner join cd.members mems on recs.recommender = mems.memid order by memid desc;'),
 (68, 'with RECURSIVE recommendeds(memid) as ( select memid from cd.members where recommendedby = 1 union all select mems.memid from recommendeds recs inner join cd.members mems on mems.recommendedby = recs.memid ) select recs.memid, mems.firstname, mems.surname from recommendeds recs inner join cd.members mems on recs.memid = mems.memid order by memid;'),
 (69, 'with RECURSIVE recommenders(recommender, member) as ( select recommendedby, memid from cd.members union all select mems.recommendedby, recs.member from recommenders recs inner join cd.members mems on mems.memid = recs.recommender ) select recs.member member, recs.recommender, mems.firstname, mems.surname from recommenders recs inner join cd.members mems on recs.recommender = mems.memid where recs.member = 22 or recs.member = 12 order by recs.member asc, recs.recommender desc;');

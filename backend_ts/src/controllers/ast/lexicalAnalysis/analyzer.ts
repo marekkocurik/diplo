@@ -1,5 +1,7 @@
-import TableController from '../../../database/tableController';
-import { queryCompare } from '../abstractSyntaxTree';
+import { table } from 'console';
+import TableController, { Solutions } from '../../../database/tableController';
+import { QueryCompare } from '../abstractSyntaxTree';
+import { sortASTAlphabetically } from './sorter';
 const { Parser } = require('node-sql-parser/build/postgresql');
 
 const parser = new Parser();
@@ -8,6 +10,11 @@ const tableController = new TableController();
 
 export interface ASTObject {
   [key: string]: any;
+}
+
+interface UppercaseSolutionResponse {
+  message: string;
+  query: string;
 }
 
 interface TableWithAlias {
@@ -25,14 +32,6 @@ interface TableWithAliasAndColumns {
 export interface TACResponse {
   message: string;
   tac: TableWithAliasAndColumns[];
-}
-
-interface Solutions {
-  message: string;
-  solutions: {
-    id: number;
-    query: string;
-  }[];
 }
 
 export const queryToUpperCase = (query: string): string => {
@@ -60,19 +59,44 @@ export const queryToUpperCase = (query: string): string => {
   return newQuery;
 };
 
-export const updateSolutionToUpperCase = async (id: number, query: string): Promise<[number, Object]> => {
+export const updateSolutionToUpperCase = async (
+  id: number,
+  query: string
+): Promise<[number, UppercaseSolutionResponse]> => {
   try {
     query = queryToUpperCase(query);
-    let [code, result] = await tableController.updateSolutionToUpperCase(id, query);
-    return [code, result];
-    // return [200, { message: 'ok' }];
+    const [code, result] = await tableController.updateSolutionToUpperCase(id, query);
+    return [code, { message: 'OK', query }];
   } catch (error) {
-    return [500, { message: 'Something went wrong while trying to update query_id: ', id }];
+    return [
+      500,
+      { message: 'Something went wrong while trying to update query to upper case. Query id: ' + id, query },
+    ];
   }
 };
 
-export const getSolutions = async (): Promise<[number, Solutions]> => {
-  let [code, response] = await tableController.getAllSolutions();
+export const updateSolutionNormalizedQuery = async (id: number, query: string): Promise<[number, Object]> => {
+  try {
+    const [code, result] = await tableController.updateSolutionNormalizedQueryById(id, query);
+    return [code, result];
+  } catch (error) {
+    return [500, { message: 'Something went wrong while trying to insert normalized query: ', id }];
+  }
+};
+
+export const updateSolutionAST = async (id: number, normalizedQuery: string): Promise<[number, Object]> => {
+  try {
+    let ast = parser.astify(normalizedQuery, opt);
+    sortASTAlphabetically(ast);
+    const [code, result] = await tableController.updateSolutionASTById(id, JSON.stringify(ast));
+    return [code, result];
+  } catch (error) {
+    return [500, { message: 'Something went wrong while trying to insert ast for solution id: ' + id, normalizedQuery }];
+  }
+};
+
+export const getOriginalSolutions = async (): Promise<[number, Solutions]> => {
+  const [code, response] = await tableController.getAllOriginalSolutions();
   return [code, response];
 };
 
@@ -133,14 +157,12 @@ const getTablesAndAliasesFromAST = (ast: ASTObject): TableWithAlias[] => {
 export const getTableNamesAliasesAndColumnsFromQuery = async (query: string): Promise<[number, TACResponse]> => {
   // console.log('query: ', query);
   const ast = parser.astify(query, opt);
-  console.dir(ast, { depth: null });
+  // console.dir(ast, { depth: null });
   // console.log((ast[0].type as string).toLowerCase() === 'insert');
-  if(Array.isArray(ast)) {
-    if((ast[0].type as string).toLowerCase() === 'insert')
-      return [200, { message: 'OK', tac: []}]
+  if (Array.isArray(ast)) {
+    if ((ast[0].type as string).toLowerCase() === 'insert') return [200, { message: 'OK', tac: [] }];
   } else {
-    if ((ast.type as string).toLowerCase() === 'insert')
-      return [200, { message: 'OK', tac: []}]
+    if ((ast.type as string).toLowerCase() === 'insert') return [200, { message: 'OK', tac: [] }];
   }
 
   const tablesWithAliasesAndColumns = getTablesAndAliasesFromAST(ast);
@@ -268,15 +290,16 @@ export const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns
   return result.trim();
 };
 
-export const createASTsForNormalizedQueries = (response: queryCompare[]) => {
+export const testCreateASTsForNormalizedQueries = (response: QueryCompare[]) => {
   for (let o of response) {
     // console.log('creating AST for: ', o.id, ': ', o.normalized);
     try {
       let ast = parser.astify(o.normalized, opt);
       // console.log(o.id, ': success');
+      console.log(JSON.stringify(ast).length);
     } catch (e) {
       console.log(o.id, ': failed');
-      let ast = parser.astify(o.origin, opt);
+      let ast = parser.astify(o.original, opt);
       console.dir(ast, { depth: null });
     }
   }
