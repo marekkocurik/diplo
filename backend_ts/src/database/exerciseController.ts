@@ -171,7 +171,8 @@ export default class ExerciseController extends DatabaseController {
     try {
       await client.query('SET ROLE u_executioner;');
       let query =
-        "SELECT A.id, A.query FROM users.answers as A WHERE A.exercise_id = $1 AND A.user_id = $2 AND A.solution_success = 'COMPLETE' ORDER BY A.id DESC;";
+        'SELECT A.id, A.query FROM users.answers as A ' +
+        "WHERE A.exercise_id = $1 AND A.user_id = $2 AND A.solution_success = 'COMPLETE' ORDER BY A.id DESC;";
       let result = await client.query(query, [exercise_id, user_id]);
       if (result.rows === undefined)
         return [500, { message: "Failed to obtain user's exercise solutions", solutions: [] }];
@@ -343,7 +344,13 @@ export default class ExerciseController extends DatabaseController {
       let insert =
         'INSERT INTO users.solutions(exercise_id, original_query, normalized_query, execution_time, abstract_syntax_tree) ' +
         'VALUES ($1, $2, $3, $4, $5);';
-      let result = await client.query(insert, [exercise_id, original_query, normalized_query, execution_time, abstract_syntax_tree]);
+      let result = await client.query(insert, [
+        exercise_id,
+        original_query,
+        normalized_query,
+        execution_time,
+        abstract_syntax_tree,
+      ]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
         return [500, { message: 'Failed to insert new exercise solution' }];

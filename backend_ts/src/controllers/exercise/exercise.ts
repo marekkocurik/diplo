@@ -150,7 +150,7 @@ export const getUserExerciseSolutions = async (request: any, reply: any) => {
   }
 };
 
-const executeQuery = async (
+export const executeQuery = async (
   role: string,
   query: string,
   action: string,
@@ -273,12 +273,12 @@ const proccessNewSolution = async (
 
   let [normCode, normResult] = await normalizeQuery(potentialSolution);
   if (normCode !== 200) return [normCode, { message: normResult.message}];
-  console.log('normalized query: ', normResult.normalizedQuery);
+  // console.log('normalized query: ', normResult.normalizedQuery);
 
   let [astCode, astResult] = await createASTForNormalizedQuery(normResult.normalizedQuery);
   if (astCode !== 200) return [astCode, { message: astResult.message }];
-  console.log('ast: ');
-  console.dir(astResult.ast, {depth:null});
+  // console.log('ast: ');
+  // console.dir(astResult.ast, {depth:null});
 
   let [code, response] = await checkIfSolutionExist(exerciseID, normResult.normalizedQuery);
   if (code === 200 && response.message === 'Solution does not exist yet') {

@@ -4,6 +4,17 @@ interface GeneralResponse {
   message: string;
 }
 
+export interface SolutionQueriesAndAST {
+  id: number;
+  original_query: string;
+  normalized_query: string;
+  ast: string;
+}
+
+export interface SolutionQueriesAndASTResponse extends GeneralResponse {
+  solutions: SolutionQueriesAndAST[];
+}
+
 export interface Solutions extends GeneralResponse {
   solutions: {
     id: number;
@@ -96,6 +107,31 @@ export default class TableController extends DatabaseController {
       let response = {
         message: 'OK',
         columns: result.rows,
+      };
+      return [200, response];
+    } catch (e) {
+      console.log(e);
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getAllExerciseSolutionsByExerciseId(
+    exercise_id: number
+  ): Promise<[number, SolutionQueriesAndASTResponse]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [500, { message: 'Error accessing database', solutions: [] }];
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query =
+        'SELECT S.id, S.original_query, S.normalized_query, S.abstract_syntax_tree as ast ' +
+        'FROM users.solutions as S WHERE S.exercise_id = $1 ORDER BY S.id';
+      let result = await client.query(query, [exercise_id]);
+      if (result.rows[0] === undefined) return [500, { message: 'Failed to obtain solutions.', solutions: [] }];
+      let response = {
+        message: 'OK',
+        solutions: result.rows,
       };
       return [200, response];
     } catch (e) {

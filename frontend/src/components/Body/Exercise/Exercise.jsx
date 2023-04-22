@@ -2,6 +2,7 @@ import { React, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { services } from '../../../api/services';
 import { Button, Form } from 'react-bootstrap';
+import Modal from 'react-bootstrap/Modal';
 import Schema from './Schema';
 import Result from './Result';
 import History from './History';
@@ -28,6 +29,9 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
   const [action, setAction] = useState('reset');
   const [history, setHistory] = useState([]);
   const [solutions, setSolutions] = useState([]);
+
+  const [showModal, setShowModal] = useState(false);
+  const [modalErrorMessage, setModalErrorMessage] = useState('');
 
   //Result variables:
   // const [expectedQueryResult, setExpectedQueryResult] = useState([]);
@@ -105,11 +109,24 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
     // setInitialized(false);
     if (searchParams.get('id') !== null) {
       let [chapterID, exerciseID] = searchParams.get('id').split('-');
+      setShowModal(false);
+      setModalErrorMessage('');
       initialize(parseInt(chapterID), parseInt(exerciseID));
     }
   }, [searchParams.get('id')]);
 
-  const handleGivingHelp = async (e) => {};
+  const handleGivingHelp = async (e) => {
+    e.preventDefault();
+    try {
+      let result = await services.getHelp(userQuery, exercise.id);
+    } catch (error) {
+      const { message } = await error.response.json();
+      setModalErrorMessage('Please fix the following errors first:\n'+message);
+      setShowModal(true);
+    }
+  };
+
+  const handleCloseModal = () => setShowModal(false);
 
   const handleTestingQuery = async (e) => {
     e.preventDefault();
@@ -320,6 +337,10 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
       ) : (
         <div className="loading-content">Loading exercise ...</div>
       )}
+
+      <Modal show={showModal} onHide={handleCloseModal}>
+        <Modal.Body>{modalErrorMessage}</Modal.Body>
+      </Modal>
     </div>
   );
 }

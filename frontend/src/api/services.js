@@ -47,6 +47,8 @@ export const services = {
     client.get('home/query-test-result', { ...getOptions({queryToExecute, solution, exerciseId}), retry: 0 }).json(),
   getQuerySubmitResult: (queryToExecute, solution, exerciseId) => //get vysledku studentovho query
     client.get('home/query-submit-result', { ...getOptions({queryToExecute, solution, exerciseId}), retry: 0 }).json(),
+  getHelp: (queryToExecute, exerciseId) =>
+    client.get('home/get-help', { ...getOptions({queryToExecute, exerciseId}), retry: 0 }).json(),
 
   getHello: () =>
     client.get('hello'),

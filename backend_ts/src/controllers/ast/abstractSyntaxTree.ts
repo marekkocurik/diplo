@@ -392,7 +392,9 @@ export const normalizeQuery = async (query: string): Promise<[number, Normalized
     let [code, result] = await getTableNamesAliasesAndColumnsFromQuery(newQuery);
     if (code !== 200) return [code, { message: 'Failed to obtain TAC for query: ' + newQuery, normalizedQuery: '' }];
     newQuery = replaceTableAliasesWithTableName(newQuery, result.tac);
+    // console.log('changed table aliases with names: ', newQuery, '\n');
     newQuery = replaceAsterixWithTableAndColumns(newQuery, result.tac);
+    // console.log('replaced asterix: ', newQuery, '\n');
     newQuery = specifyColumnsWithoutTables(newQuery, result.tac);
     newQuery = removeTableAliases(newQuery, result.tac);
     newQuery = removeColumnAliases(newQuery, result.tac);
@@ -437,7 +439,10 @@ export const updateDatabase = async (request: any, reply: any) => {
 };
 
 export const testAST = async (request: any, reply: any) => {
-  let query = 'SELECT * FROM CD.FACILITIES;';
+  // let query = 'SELECT A.*, F.MONTHLYMAINTENANCE '+
+  let query = 'SELECT A.FACID, A.name, A.membercost, A.guestcost, A.initialoutlay, F.MONTHLYMAINTENANCE '+
+  'FROM (SELECT FACID, NAME, MEMBERCOST, GUESTCOST, INITIALOUTLAY FROM CD.FACILITIES) AS A '+
+  'JOIN CD.FACILITIES F ON F.FACID = A.FACID;';
   let [code, res] = await normalizeQuery(query);
   console.log(res);
   // let ast = parser.astify(query, opt);

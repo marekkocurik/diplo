@@ -9,6 +9,7 @@ import {
   getQueryTestResult,
   getQuerySubmitResult,
 } from '../controllers/exercise/exercise';
+import { getHelp } from '../controllers/help/helper';
 import { jwt_secret, fe_ip_address } from '../env-config';
 const jwt = require('jsonwebtoken');
 
@@ -51,4 +52,5 @@ export default async function routes(server: any) {
   server.get('/home/query-test-result', { preHandler: checkJWT }, getQueryTestResult);
   server.get('/home/query-submit-result', { preHandler: checkJWT }, getQuerySubmitResult);
   server.post('/home/profile/change-password', { preHandler: checkJWT }, changeUserPassword);
+  server.get('/home/get-help', { preHandler: checkJWT }, getHelp);
 }
