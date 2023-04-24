@@ -58,20 +58,6 @@ CREATE TABLE users.exercises (
 	FOREIGN KEY (chapter_id) REFERENCES users.chapters(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
-CREATE TABLE users.answers (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    exercise_id INT NOT NULL,
-    query VARCHAR(1000),
-    solution_success VARCHAR(10),
-    submit_attempt BOOLEAN NOT NULL,
-    execution_time DECIMAL,
-    similarity DECIMAL,
-    date TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
 CREATE TABLE users.solutions (
     id SERIAL PRIMARY KEY,
     exercise_id INT NOT NULL,
@@ -80,6 +66,28 @@ CREATE TABLE users.solutions (
     execution_time DECIMAL,
     abstract_syntax_tree VARCHAR(10000),
     FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE TABLE users.users_to_exercises (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    exercise_id INT NOT NULL,
+    solved BOOLEAN DEFAULT false,
+    finished BOOLEAN DEFAULT false,
+    FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE TABLE users.answers (
+    id SERIAL PRIMARY KEY,
+    users_to_exercises_id INT NOT NULL,
+    query VARCHAR(1000),
+    solution_success VARCHAR(10),
+    submit_attempt BOOLEAN NOT NULL,
+    execution_time DECIMAL,
+    similarity DECIMAL,
+    date TIMESTAMP,
+    FOREIGN KEY (users_to_exercises_id) REFERENCES users.users_to_exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 -- Create tables in schema 'cd':
@@ -8562,6 +8570,10 @@ CREATE ROLE r_chapters_select WITH NOINHERIT;
 
 CREATE ROLE r_exercises_select WITH NOINHERIT;
 
+CREATE ROLE r_users_to_exercises_select WITH NOINHERIT;
+CREATE ROLE r_users_to_exercises_insert WITH NOINHERIT;
+CREATE ROLE r_users_to_exercises_update WITH NOINHERIT;
+
 CREATE ROLE r_answers_select WITH NOINHERIT;
 CREATE ROLE r_answers_insert WITH NOINHERIT;
 
@@ -8601,6 +8613,10 @@ GRANT USAGE ON SCHEMA users TO r_chapters_select;
 
 GRANT USAGE ON SCHEMA users TO r_exercises_select;
 
+GRANT USAGE ON SCHEMA users TO r_users_to_exercises_select;
+GRANT USAGE ON SCHEMA users TO r_users_to_exercises_insert;
+GRANT USAGE ON SCHEMA users TO r_users_to_exercises_update;
+
 GRANT USAGE ON SCHEMA users TO r_answers_select;
 GRANT USAGE ON SCHEMA users TO r_answers_insert;
 
@@ -8626,6 +8642,7 @@ GRANT USAGE ON SEQUENCE users.ratings_id_seq TO r_ratings_insert;
 GRANT USAGE ON SEQUENCE users.users_id_seq TO r_users_insert;
 GRANT USAGE ON SEQUENCE users.users_to_roles_id_seq TO r_users_to_roles_insert;
 GRANT USAGE ON SEQUENCE users.roles_id_seq TO r_roles_insert;
+GRANT USAGE ON SEQUENCE users.users_to_exercises_id_seq TO r_users_to_exercises_insert;
 GRANT USAGE ON SEQUENCE users.answers_id_seq TO r_answers_insert;
 GRANT USAGE ON SEQUENCE users.solutions_id_seq TO r_solutions_insert;
 
@@ -8646,6 +8663,10 @@ GRANT INSERT ON users.roles TO r_roles_insert;
 GRANT SELECT ON users.chapters TO r_chapters_select;
 
 GRANT SELECT ON users.exercises TO r_exercises_select;
+
+GRANT SELECT ON users.users_to_exercises TO r_users_to_exercises_select;
+GRANT INSERT ON users.users_to_exercises TO r_users_to_exercises_insert;
+GRANT UPDATE ON users.users_to_exercises TO r_users_to_exercises_update;
 
 GRANT SELECT ON users.answers TO r_answers_select;
 GRANT INSERT ON users.answers TO r_answers_insert;
@@ -8693,6 +8714,9 @@ r_roles_select,
 r_roles_insert,
 r_chapters_select,
 r_exercises_select,
+r_users_to_exercises_select,
+r_users_to_exercises_insert,
+r_users_to_exercises_update,
 r_answers_select,
 r_answers_insert,
 r_solutions_select,

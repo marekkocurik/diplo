@@ -6,18 +6,24 @@ import { motion } from 'framer-motion';
 import Accordion from 'react-bootstrap/Accordion';
 import { useAccordionButton } from 'react-bootstrap/AccordionButton';
 import _ from 'lodash';
+import { useDispatch, useSelector } from 'react-redux';
+import { treeLoaded } from '../../../store/slices/exerciseSlice';
 
-export default function ExerciseTree({ exerciseTree, setExerciseTree, ...props }) {
+export default function ExerciseTree({ ...props }) {
   const navigate = useNavigate();
 
   const [searchParams] = useSearchParams();
   const [expandedChapter, setExpandedChapter] = useState(null);
   let activeTask = searchParams.get('id');
+  const dispatch = useDispatch();
+
+  const exerciseTree = useSelector((state) => state.exercise.tree);
 
   const initialize = async () => {
     try {
-      let treeStructure = await services.getExerciseTree();
-      setExerciseTree(treeStructure);
+      const tree = await services.getExerciseTree();
+      console.log(tree.chapters);
+      dispatch(treeLoaded({ tree: tree.chapters }));
     } catch (e) {
       console.log('Failed to get exercise tree.');
     }
@@ -34,8 +40,7 @@ export default function ExerciseTree({ exerciseTree, setExerciseTree, ...props }
     if (_.isEqual(exerciseTree, [])) {
       initialize();
     } else {
-      if (activeTask)
-        initAccordion();
+      if (activeTask) initAccordion();
     }
   }, [searchParams.get('id'), exerciseTree]);
 

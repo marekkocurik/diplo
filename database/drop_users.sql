@@ -13,6 +13,9 @@ r_roles_select,
 r_roles_insert,
 r_chapters_select,
 r_exercises_select,
+r_users_to_exercises_select,
+r_users_to_exercises_insert,
+r_users_to_exercises_update,
 r_answers_select,
 r_answers_insert,
 r_solutions_select,
@@ -71,40 +74,44 @@ r_ratings_insert,
 r_users_insert,
 r_users_to_roles_insert,
 r_roles_insert,
+r_users_to_exercises_insert,
 r_answers_insert,
 r_solutions_insert;
 
 REVOKE ALL ON ALL TABLES IN SCHEMA users FROM
- r_ratings_select,
- r_ratings_insert,
- r_ratings_update,
- r_users_select,
- r_users_insert,
- r_users_update,
- r_users_to_roles_select,
- r_users_to_roles_insert,
- r_roles_select,
- r_roles_insert,
- r_chapters_select,
- r_exercises_select,
- r_answers_select,
- r_answers_insert,
- r_solutions_select,
- r_solutions_insert;
+r_ratings_select,
+r_ratings_insert,
+r_ratings_update,
+r_users_select,
+r_users_insert,
+r_users_update,
+r_users_to_roles_select,
+r_users_to_roles_insert,
+r_roles_select,
+r_roles_insert,
+r_chapters_select,
+r_exercises_select,
+r_users_to_exercises_select,
+r_users_to_exercises_insert,
+r_users_to_exercises_update,
+r_answers_select,
+r_answers_insert,
+r_solutions_select,
+r_solutions_insert;
 
- REVOKE ALL ON ALL TABLES IN SCHEMA cd, cd2 FROM
- r_members_select,
- r_members_insert,
- r_members_update,
- r_members_delete,
- r_bookings_select,
- r_bookings_insert,
- r_bookings_update,
- r_bookings_delete,
- r_facilities_select,
- r_facilities_insert,
- r_facilities_update,
- r_facilities_delete;
+REVOKE ALL ON ALL TABLES IN SCHEMA cd, cd2 FROM
+r_members_select,
+r_members_insert,
+r_members_update,
+r_members_delete,
+r_bookings_select,
+r_bookings_insert,
+r_bookings_update,
+r_bookings_delete,
+r_facilities_select,
+r_facilities_insert,
+r_facilities_update,
+r_facilities_delete;
 
 REVOKE ALL ON SCHEMA users FROM
 r_ratings_select,
@@ -119,6 +126,9 @@ r_roles_select,
 r_roles_insert,
 r_chapters_select,
 r_exercises_select,
+r_users_to_exercises_select,
+r_users_to_exercises_insert,
+r_users_to_exercises_update,
 r_answers_select,
 r_answers_insert,
 r_solutions_select,
@@ -156,6 +166,9 @@ DROP ROLE IF EXISTS r_roles_select;
 DROP ROLE IF EXISTS r_roles_insert;
 DROP ROLE IF EXISTS r_chapters_select;
 DROP ROLE IF EXISTS r_exercises_select;
+DROP ROLE IF EXISTS r_users_to_exercises_select;
+DROP ROLE IF EXISTS r_users_to_exercises_insert;
+DROP ROLE IF EXISTS r_users_to_exercises_update;
 DROP ROLE IF EXISTS r_answers_select;
 DROP ROLE IF EXISTS r_answers_insert;
 DROP ROLE IF EXISTS r_solutions_select;

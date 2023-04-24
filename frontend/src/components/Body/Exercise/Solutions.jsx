@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Table } from 'react-bootstrap';
-import { useSearchParams } from 'react-router-dom';
 import { services } from '../../../api/services';
+import { useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
+import { solutionsInitialized } from '../../../store/slices/exerciseSlice';
 
-export default function Solutions({ exerciseId, setUserQuery, solutions, setSolutions, ...props }) {
+export default function Solutions({ setUserQuery, exerciseId, ...props }) {
   const [errorMessage, setErrorMessage] = useState(null);
-  const [searchParams] = useSearchParams();
-  const { solutionsInitialized, setSolutionsInitialized } = props;
+  const dispatch = useDispatch();
+  const solutions = useSelector((state) => state.exercise.solutions);
 
   const initialize = async () => {
     try {
-      let result = await services.getUserExerciseSolutions(exerciseId);
-      setSolutions(result.solutions);
-      setErrorMessage(null);
+      let { solutions } = await services.getUserExerciseSolutions(exerciseId);
+      dispatch(solutionsInitialized({ solutions }));
+      setErrorMessage('');
     } catch (e) {
       console.log('Failed to obtain exercise solutions: ', e);
       setErrorMessage('Failed to obtain exercise solutions');
@@ -21,17 +22,13 @@ export default function Solutions({ exerciseId, setUserQuery, solutions, setSolu
   };
 
   useEffect(() => {
-    if (!solutionsInitialized && _.isEqual(solutions, [])) {
-      initialize();
-      setSolutionsInitialized(true);
-    }
-  }, [solutions]);
+    initialize();
+  }, [exerciseId]);
 
   return (
     <div
       style={{
         width: '100%',
-        // maxHeight: '90%',
         overflow: 'auto',
       }}
     >
@@ -50,11 +47,11 @@ export default function Solutions({ exerciseId, setUserQuery, solutions, setSolu
             {solutions.map((item, i) => (
               <tr
                 className="clickable"
-                key={item.id + '_tr'}
+                key={i + 'solutions_tr'}
                 onClick={() => setUserQuery(item.query)}
                 style={{ backgroundColor: '#03C988' }}
               >
-                <td key={item.id + '_query'}>{item.query}</td>
+                <td>{item.query}</td>
               </tr>
             ))}
           </tbody>

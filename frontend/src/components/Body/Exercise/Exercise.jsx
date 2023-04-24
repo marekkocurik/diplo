@@ -1,108 +1,69 @@
 import { React, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { services } from '../../../api/services';
-import { Button, Form } from 'react-bootstrap';
-import Modal from 'react-bootstrap/Modal';
+import { Button, Form, Modal } from 'react-bootstrap';
 import Schema from './Schema';
 import Result from './Result';
 import History from './History';
 import Solutions from './Solutions';
 import Tab from 'react-bootstrap/Tab';
 import Nav from 'react-bootstrap/Nav';
+import { useDispatch, useSelector } from 'react-redux';
+import { exerciseSelected, historyUpdated, solutionsUpdated } from '../../../store/slices/exerciseSlice';
+import {
+  selectActiveExercise,
+  selectNextExerciseUrlString,
+  selectPreviousExerciseUrlString,
+} from '../../../store/selectors';
 
-export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
+export default function Exercise({ ...props }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [exercise, setExercise] = useState(null);
-  const [nextExerciseExists, setNextExerciseExists] = useState(false);
-  const [nextExerciseID, setNextExerciseID] = useState(null);
-  const [nextChapterID, setNextChapterID] = useState(null);
-  const [previousExerciseExists, setPreviousExerciseExists] = useState(false);
-  const [previousExerciseID, setPreviousExerciseID] = useState(null);
-  const [previousChapterID, setPreviousChapterID] = useState(null);
+  const nextExerciseUrlString = useSelector(selectNextExerciseUrlString);
+  const previousExerciseUrlString = useSelector(selectPreviousExerciseUrlString);
+  const exercise = useSelector(selectActiveExercise);
 
-  const [historyInitialized, setHistoryInitialized] = useState(false);
-  const [solutionsInitialized, setSolutionsInitialized] = useState(false);
-  const [expectedResultInitialized, setExpectedResultInitialized] = useState('initialize');
   const [selectedKey, setSelectedKey] = useState('hist');
   const [userQuery, setUserQuery] = useState('');
-  const [action, setAction] = useState('reset');
-  const [history, setHistory] = useState([]);
-  const [solutions, setSolutions] = useState([]);
+
+  const dispatch = useDispatch();
+
+  const [userQueryResult, setUserQueryResult] = useState(null);
+  const [expectedQueryResult, setExpectedQueryResult] = useState(null);
+  const [userQueryErrorMsg, setUserQueryErrorMsg] = useState(null);
+  const [expectedQueryErrorMsg, setExpectedQueryErrorMsg] = useState(null);
 
   const [showModal, setShowModal] = useState(false);
   const [modalErrorMessage, setModalErrorMessage] = useState('');
 
-  //Result variables:
-  // const [expectedQueryResult, setExpectedQueryResult] = useState([]);
-  // const [userQueryResult, setUserQueryResult] = useState([]);
-  // const [expectedQueryErrorMessage, setExpectedQueryErrorMessage] = useState(null);
-  // const [userQueryErrorMessage, setUserQueryErrorMessage] = useState(null);
-
-  const checkNextAvailableExercise = (c_id, e_id, inc) => {
-    const c_index = exerciseTree.findIndex((chapter) => chapter.id === c_id);
-    if (c_index !== undefined) {
-      const exercises = exerciseTree[c_index].exercises;
-      const e_index = exercises.findIndex((e) => e.id === e_id);
-
-      const next_e_index = e_index + inc;
-      if (next_e_index >= exercises.length || next_e_index < 0) {
-        const next_c_index = c_index + inc;
-        if (next_c_index >= exerciseTree.length || next_c_index < 0) return [-1, -1];
-        if (inc === 1) return [exerciseTree[next_c_index].id, exerciseTree[next_c_index].exercises[0].id];
-        const len = exerciseTree[next_c_index].exercises.length;
-        return [exerciseTree[next_c_index].id, exerciseTree[next_c_index].exercises[len - 1].id];
-      }
-      return [c_id, exercises[next_e_index].id];
-    }
-    return [-1, -1];
-  };
-
   const initialize = async (chapterID, exerciseID) => {
-    let [n_c_id, n_e_id] = checkNextAvailableExercise(chapterID, exerciseID, 1);
-    let [p_c_id, p_e_id] = checkNextAvailableExercise(chapterID, exerciseID, -1);
-    if (n_c_id !== -1) {
-      setNextExerciseExists(true);
-      setNextChapterID(n_c_id);
-      setNextExerciseID(n_e_id);
-    }
-    if (p_c_id !== -1) {
-      setPreviousExerciseExists(true);
-      setPreviousChapterID(p_c_id);
-      setPreviousExerciseID(p_e_id);
-    }
-
-    // document.getElementById('user_query').value = '';
+    let exerciseInfo;
     try {
-      let exerciseInfo = await services.getExercise(exerciseID);
-      setExercise(exerciseInfo);
+      exerciseInfo = await services.getExercise(exerciseID);
+
+      dispatch(
+        exerciseSelected({
+          exercise: exerciseInfo,
+          chapter: chapterID,
+        })
+      );
+
+      try {
+        const { queryResult } = await services.getQueryExpectedResult(exerciseInfo.solution);
+        setExpectedQueryResult(queryResult);
+        setExpectedQueryErrorMsg('');
+      } catch (e) {
+        const { message } = await e.response.json();
+        setExpectedQueryErrorMsg(message);
+      }
     } catch (e) {
       console.log('Failed to get exercise.');
       const { message } = await e.response.json();
       console.log(message);
     }
 
-    // setAction('initialize');
-    setHistoryInitialized(false);
-    setSolutionsInitialized(false);
     setSelectedKey('hist');
-
-    //reset userQuery:
     setUserQuery('');
-    setAction('reset');
-    // console.log('restarting values')
-    setExpectedResultInitialized('initialize');
-    setHistory([]);
-    setSolutions([]);
-
-    //reset Result variables:
-    // setExpectedQueryResult(exercise?.queryResult);
-    // setUserQueryResult([]);
-    // setExpectedQueryErrorMessage(null);
-    // setUserQueryErrorMessage(null);
-    // setResultInitialized(false);
-
-    // setInitialized(true);
   };
 
   useEffect(() => {
@@ -111,6 +72,8 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
       let [chapterID, exerciseID] = searchParams.get('id').split('-');
       setShowModal(false);
       setModalErrorMessage('');
+      setUserQueryResult(null);
+      setUserQueryErrorMsg(null);
       initialize(parseInt(chapterID), parseInt(exerciseID));
     }
   }, [searchParams.get('id')]);
@@ -121,35 +84,55 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
       let result = await services.getHelp(userQuery, exercise.id);
     } catch (error) {
       const { message } = await error.response.json();
-      setModalErrorMessage('Please fix the following errors first:\n'+message);
+      setModalErrorMessage('Please fix the following errors first:\n' + message);
       setShowModal(true);
     }
   };
 
   const handleCloseModal = () => setShowModal(false);
 
-  const handleTestingQuery = async (e) => {
-    e.preventDefault();
-    if (action === 'test') setAction('test1');
-    else setAction('test');
-    // TODO: treba aktualizovat tabulku s historiou
-  };
+  const handleExecuteQuery =
+    ({ test = false }) =>
+    async (e) => {
+      e.preventDefault();
 
-  const handleSubmittingQuery = async (e) => {
-    e.preventDefault();
-    if (action === 'submit') setAction('submit1');
-    else setAction('submit');
-    // TODO: ak je spravne query, treba aktualizovat tabulku s TOP solutions, leaderboard ...
-  };
+      let apiCall = test ? services.getQueryTestResult : services.getQuerySubmitResult;
+      let result;
+
+      try {
+        result = await apiCall(userQuery, exercise.solution, exercise.id);
+        setUserQueryResult(result.queryResult);
+        setUserQueryErrorMsg('');
+      } catch (err) {
+        const { message } = await err.response.json();
+        setUserQueryErrorMsg(message);
+      }
+
+      dispatch(
+        historyUpdated({
+          id: result === undefined ? -1 : result.id,
+          submit_attempt: !test,
+          query: userQuery,
+          solution_success: result === undefined ? 'ERROR' : result.solutionSuccess,
+          date: Date.now(),
+        })
+      );
+      result.solutionSuccess === 'COMPLETE' &&
+        dispatch(
+          solutionsUpdated({
+            query: userQuery,
+          })
+        );
+    };
 
   const handleNextExercise = async (e) => {
     e.preventDefault();
-    navigate(`/home/exercises?id=${nextChapterID}-${nextExerciseID}`);
+    navigate(`/home/exercises?id=${nextExerciseUrlString}`);
   };
 
   const handlePreviousExercise = async (e) => {
     e.preventDefault();
-    navigate(`/home/exercises?id=${previousChapterID}-${previousExerciseID}`);
+    navigate(`/home/exercises?id=${previousExerciseUrlString}`);
   };
 
   const handleUserQueryChange = (e) => {
@@ -185,38 +168,19 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
           <div style={{ width: '100%', maxHeight: '35vh' }}>
             <Schema />
           </div>
-          <div className="py-2" style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '60vh' }}>
-            <div style={{ width: '50%' }}>
+          <div className="py-2" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', width: '100%' }}>
+            <div style={{ flex: 1 }}>
               <Result
                 table_name={'Expected result:'}
-                action={expectedResultInitialized}
-                setAction={setExpectedResultInitialized}
-                // initialized={resultInitialized}
-                // setInitialized={setResultInitialized}
-                query={exercise.solution}
-                // queryResult={expectedQueryResult}
-                // setQueryResult={setExpectedQueryResult}
-                // errorMessage={expectedQueryErrorMessage}
-                // setErrorMessage={setExpectedQueryErrorMessage}
+                queryResult={expectedQueryResult}
+                errorMessage={expectedQueryErrorMsg}
               />
             </div>
-            <div style={{ width: '50%' }}>
+            <div style={{ flex: 1 }}>
               <Result
                 table_name={'Your query result:'}
-                action={action}
-                setAction={setAction}
-                query={userQuery}
-                solution={exercise.solution}
-                exerciseId={exercise.id}
-                setHistory={setHistory}
-                setHistoryInitialized={setHistoryInitialized}
-                setSolutions={setSolutions}
-                setSolutionsInitialized={setSolutionsInitialized}
-                // action={action}
-                // query={userQuery}
-                // setAction={setAction}
-                // solution={exercise?.solution}
-                // exerciseId={exercise?.id}
+                queryResult={userQueryResult}
+                errorMessage={userQueryErrorMsg}
               />
             </div>
           </div>
@@ -241,12 +205,15 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
                 </Button>
               </div>
               <div className="py-1" style={{ width: '100%' }}>
-                <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleTestingQuery}>
+                <Button
+                  style={{ width: '8vw', backgroundColor: '#2666CF' }}
+                  onClick={handleExecuteQuery({ test: true })}
+                >
                   Test
                 </Button>
               </div>
               <div style={{ width: '100%' }}>
-                <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleSubmittingQuery}>
+                <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleExecuteQuery({})}>
                   Submit
                 </Button>
               </div>
@@ -286,28 +253,10 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
               </Nav>
               <Tab.Content style={{ maxHeight: '80%', overflow: 'auto' }}>
                 <Tab.Pane eventKey="hist" style={{ overflow: 'auto' }}>
-                  <History
-                    exerciseId={exercise.id}
-                    setUserQuery={setUserQuery}
-                    // action={action}
-                    // setAction={setAction}
-                    history={history}
-                    setHistory={setHistory}
-                    historyInitialized={historyInitialized}
-                    setHistoryInitialized={setHistoryInitialized}
-                    exerciseTree={exerciseTree}
-                    setExerciseTree={setExerciseTree}
-                  />
+                  <History exerciseId={exercise.id} setUserQuery={setUserQuery} />
                 </Tab.Pane>
                 <Tab.Pane eventKey="sol">
-                  <Solutions
-                    exerciseId={exercise.id}
-                    setUserQuery={setUserQuery}
-                    solutions={solutions}
-                    setSolutions={setSolutions}
-                    solutionsInitialized={solutionsInitialized}
-                    setSolutionsInitialized={setSolutionsInitialized}
-                  />
+                  <Solutions exerciseId={exercise.id} setUserQuery={setUserQuery} />
                 </Tab.Pane>
               </Tab.Content>
             </Tab.Container>
@@ -316,7 +265,7 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
             <div className="px-2">
               <Button
                 style={{ width: '8vw', backgroundColor: '#2666CF' }}
-                disabled={!previousExerciseExists}
+                disabled={!previousExerciseUrlString}
                 onClick={handlePreviousExercise}
               >
                 {' '}
@@ -326,7 +275,7 @@ export default function Exercise({ exerciseTree, setExerciseTree, ...props }) {
             <div className="px-2">
               <Button
                 style={{ width: '8vw', backgroundColor: '#2666CF' }}
-                disabled={!nextExerciseExists}
+                disabled={!nextExerciseUrlString}
                 onClick={handleNextExercise}
               >
                 {'Next >'}

@@ -1,17 +1,7 @@
-import {
-  getOriginalSolutions,
-  getTableNamesAliasesAndColumnsFromQuery,
-  replaceAsterixWithTableAndColumns,
-  replaceTableAliasesWithTableName,
-  specifyColumnsWithoutTables,
-  removeTableAliases,
-  removeColumnAliases,
-  updateSolutionToUpperCase,
-  queryToUpperCase,
-  testCreateASTsForNormalizedQueries,
-  updateSolutionNormalizedQuery,
-  updateSolutionAST,
-} from './lexicalAnalysis/analyzer';
+import { AST } from 'node-sql-parser/build/postgresql';
+import { GeneralResponse } from '../../database/databaseController';
+import SolutionController from '../../database/solutionsController';
+import { normalizeQuery, queryToUpperCase } from './lexicalAnalysis/analyzer';
 import { sortASTAlphabetically } from './lexicalAnalysis/sorter';
 import { queries } from './queries';
 
@@ -19,26 +9,12 @@ const { Parser } = require('node-sql-parser/build/postgresql');
 
 const parser = new Parser();
 const opt = { database: 'PostgresQL' };
+const solutionController = new SolutionController();
 
 export interface QueryCompare {
   id: number;
   original: string;
   normalized: string;
-}
-
-interface QueryCompareResponse {
-  message: string;
-  queries: QueryCompare[];
-}
-
-interface NormalizedQueryResponse {
-  message: string;
-  normalizedQuery: string;
-}
-
-interface CreateASTResponse {
-  message: string;
-  ast: string;
 }
 
 const checkResponse = (response: QueryCompare[]): QueryCompare[] => {
@@ -328,121 +304,55 @@ const checkResponse = (response: QueryCompare[]): QueryCompare[] => {
   return _new;
 };
 
-const test = async (response: QueryCompare[], query: string) => {
-  let newQuery = queryToUpperCase(query);
-  let [code, resp] = await getTableNamesAliasesAndColumnsFromQuery(newQuery);
-  console.log(newQuery, '\n');
-  newQuery = replaceTableAliasesWithTableName(newQuery, resp.tac);
-  console.log('replaced table aliases with table names: ');
-  console.log(newQuery, '\n');
-  newQuery = replaceAsterixWithTableAndColumns(newQuery, resp.tac);
-  console.log('replaced asterix with table and columns: ');
-  console.log(newQuery, '\n');
-  newQuery = specifyColumnsWithoutTables(newQuery, resp.tac);
-  console.log('specified columns without tables: ');
-  console.log(newQuery, '\n');
-  newQuery = removeTableAliases(newQuery, resp.tac);
-  console.log('removed table aliases: ');
-  console.log(newQuery, '\n');
-  newQuery = removeColumnAliases(newQuery, resp.tac);
-  console.log('removed columns aliases: ');
-  console.log(newQuery, '\n');
-  response.push({ id: 0, original: query, normalized: newQuery });
+const testOne = async (query: string): Promise<QueryCompare> => {
+  let resp = await normalizeQuery(query);
+  if (resp[0].code === 200) return { id: 0, original: query, normalized: resp[1] };
+  else return { id: -1, original: query, normalized: '' };
 };
 
-const testAll = async (response: QueryCompare[]): Promise<[number, Object]> => {
-  let [solCode, solResult] = await getOriginalSolutions();
-  // console.log('received solutions: ', solResult.solutions);
-  if (solCode !== 200) return [solCode, solResult];
-  for (let s of solResult.solutions) {
-    // updateSolutionToUpperCase(s.id, s.original_query);
-    // console.log('query: ', s.query);
-    let [TACCode, TACResult] = await getTableNamesAliasesAndColumnsFromQuery(s.original_query);
-    if (TACCode !== 200) return [TACCode, { message: 'Failed to obtain TAC for query: ' + s.original_query }];
-    // console.log('TAC finished');
-    // console.log('TACResult: query: ' + s.query, '; TAC:', TACResult.tac);
-    let updated = replaceTableAliasesWithTableName(s.original_query, TACResult.tac);
-    // console.log('Replaced table aliases with names');
-    updated = replaceAsterixWithTableAndColumns(updated, TACResult.tac);
-    // console.log('replaced asterix with tables and columns');
-    updated = specifyColumnsWithoutTables(updated, TACResult.tac);
-    // console.log('specified columns');
-    updated = removeTableAliases(updated, TACResult.tac);
-    updated = removeColumnAliases(updated, TACResult.tac);
-    // response.push({ query: s.query, tac: TACResult.tac });
-    response.push({ id: s.id, original: s.original_query, normalized: updated });
+const testAll = async (): Promise<[GeneralResponse, QueryCompare[]]> => {
+  let qc: QueryCompare[] = [];
+  let response = await solutionController.getAllOriginalSolutionsOriginalQuery();
+  if (response[0].code !== 200) return [response[0], []];
+  for (let s of response[1]) {
+    let resp = await normalizeQuery(s.original_query);
+    if (resp[0].code !== 200)
+      return [{ code: resp[0].code, message: 'Failed to normalize query: ' + s.original_query }, qc];
+    qc.push({ id: s.id, original: s.original_query, normalized: resp[1] });
   }
-  // console.log(result.tac);
-  // console.log(solResult.solutions);
-  return [200, {}];
+  return [{ code: 200, message: 'OK' }, qc];
 };
 
-export const createASTForNormalizedQuery = async (query: string): Promise<[number, CreateASTResponse]> => {
+export const createASTForQuery = (query: string): [GeneralResponse, AST | null] => {
   try {
     let ast = parser.astify(query, opt);
-    return [200, { message: 'OK', ast: JSON.stringify(ast)}];
+    return [{code:200, message: 'OK'}, ast];
   } catch (error) {
-    return [500, { message: 'Failed to create AST for normalized query: ' + query, ast: '' }];
-  }
-}
-
-export const normalizeQuery = async (query: string): Promise<[number, NormalizedQueryResponse]> => {
-  let newQuery = queryToUpperCase(query);
-  try {
-    let [code, result] = await getTableNamesAliasesAndColumnsFromQuery(newQuery);
-    if (code !== 200) return [code, { message: 'Failed to obtain TAC for query: ' + newQuery, normalizedQuery: '' }];
-    newQuery = replaceTableAliasesWithTableName(newQuery, result.tac);
-    // console.log('changed table aliases with names: ', newQuery, '\n');
-    newQuery = replaceAsterixWithTableAndColumns(newQuery, result.tac);
-    // console.log('replaced asterix: ', newQuery, '\n');
-    newQuery = specifyColumnsWithoutTables(newQuery, result.tac);
-    newQuery = removeTableAliases(newQuery, result.tac);
-    newQuery = removeColumnAliases(newQuery, result.tac);
-    // newQuery = sortQueryAlphabetically(newQuery);
-    return [200, { message: 'OK', normalizedQuery: newQuery }];
-  } catch (error) {
-    return [500, { message: 'Something went wrong while trying to normalize query', normalizedQuery: '' }];
+    return [{code:500, message: 'Failed to create AST for query: ' + query}, null];
   }
 };
 
-export const updateDatabase = async (request: any, reply: any) => {
-  let [solCode, solResult] = await getOriginalSolutions();
-  if (solCode !== 200) {
-    reply.code(solCode).send({ message: 'Failed to obtain original solutions' });
-    return;
-  }
-  for (let s of solResult.solutions) {
-    let [code, result] = await updateSolutionToUpperCase(s.id, s.original_query);
-    if (code !== 200) {
-      reply.code(code).send(result);
-      return;
-    }
-    // let [normCode, normRes] = await normalizeQuery(s.original_query);
-    let [normCode, normRes] = await normalizeQuery(result.query);
-    if (normCode !== 200) {
-      reply.code(normCode).send(normRes);
-      return;
-    }
-    let [uNormCode, uNormRes] = await updateSolutionNormalizedQuery(s.id, normRes.normalizedQuery);
-    if (uNormCode !== 200) {
-      reply.code(uNormCode).send(uNormRes);
-      return;
-    }
-    let [uASTCode, uASTRes] = await updateSolutionAST(s.id, normRes.normalizedQuery);
-    if (uASTCode !== 200) {
-      reply.code(uASTCode).send(uASTRes);
-      return;
+export const testCreateASTsForNormalizedQueries = (response: QueryCompare[]) => {
+  for (let o of response) {
+    // console.log('creating AST for: ', o.id, ': ', o.normalized);
+    try {
+      let ast = parser.astify(o.normalized, opt);
+      // console.log(o.id, ': success');
+      console.log(JSON.stringify(ast).length);
+    } catch (e) {
+      console.log(o.id, ': failed');
+      let ast = parser.astify(o.original, opt);
+      console.dir(ast, { depth: null });
     }
   }
-  reply.code(200).send({ message: 'Database updated successfully' });
-  return;
 };
 
 export const testAST = async (request: any, reply: any) => {
   // let query = 'SELECT A.*, F.MONTHLYMAINTENANCE '+
-  let query = 'SELECT A.FACID, A.name, A.membercost, A.guestcost, A.initialoutlay, F.MONTHLYMAINTENANCE '+
-  'FROM (SELECT FACID, NAME, MEMBERCOST, GUESTCOST, INITIALOUTLAY FROM CD.FACILITIES) AS A '+
-  'JOIN CD.FACILITIES F ON F.FACID = A.FACID;';
+  let query =
+    'SELECT A.FACID, A.name, A.membercost, A.guestcost, A.initialoutlay, F.MONTHLYMAINTENANCE ' +
+    'FROM (SELECT FACID, NAME, MEMBERCOST, GUESTCOST, INITIALOUTLAY FROM CD.FACILITIES) AS A ' +
+    'JOIN CD.FACILITIES F ON F.FACID = A.FACID;';
   let [code, res] = await normalizeQuery(query);
   console.log(res);
   // let ast = parser.astify(query, opt);

@@ -16,6 +16,10 @@ CREATE ROLE r_chapters_select WITH NOINHERIT;
 
 CREATE ROLE r_exercises_select WITH NOINHERIT;
 
+CREATE ROLE r_users_to_exercises_select WITH NOINHERIT;
+CREATE ROLE r_users_to_exercises_insert WITH NOINHERIT;
+CREATE ROLE r_users_to_exercises_update WITH NOINHERIT;
+
 CREATE ROLE r_answers_select WITH NOINHERIT;
 CREATE ROLE r_answers_insert WITH NOINHERIT;
 
@@ -55,6 +59,10 @@ GRANT USAGE ON SCHEMA users TO r_chapters_select;
 
 GRANT USAGE ON SCHEMA users TO r_exercises_select;
 
+GRANT USAGE ON SCHEMA users TO r_users_to_exercises_select;
+GRANT USAGE ON SCHEMA users TO r_users_to_exercises_insert;
+GRANT USAGE ON SCHEMA users TO r_users_to_exercises_update;
+
 GRANT USAGE ON SCHEMA users TO r_answers_select;
 GRANT USAGE ON SCHEMA users TO r_answers_insert;
 
@@ -80,6 +88,7 @@ GRANT USAGE ON SEQUENCE users.ratings_id_seq TO r_ratings_insert;
 GRANT USAGE ON SEQUENCE users.users_id_seq TO r_users_insert;
 GRANT USAGE ON SEQUENCE users.users_to_roles_id_seq TO r_users_to_roles_insert;
 GRANT USAGE ON SEQUENCE users.roles_id_seq TO r_roles_insert;
+GRANT USAGE ON SEQUENCE users.users_to_exercises_id_seq TO r_users_to_exercises_insert;
 GRANT USAGE ON SEQUENCE users.answers_id_seq TO r_answers_insert;
 GRANT USAGE ON SEQUENCE users.solutions_id_seq TO r_solutions_insert;
 
@@ -100,6 +109,10 @@ GRANT INSERT ON users.roles TO r_roles_insert;
 GRANT SELECT ON users.chapters TO r_chapters_select;
 
 GRANT SELECT ON users.exercises TO r_exercises_select;
+
+GRANT SELECT ON users.users_to_exercises TO r_users_to_exercises_select;
+GRANT INSERT ON users.users_to_exercises TO r_users_to_exercises_insert;
+GRANT UPDATE ON users.users_to_exercises TO r_users_to_exercises_update;
 
 GRANT SELECT ON users.answers TO r_answers_select;
 GRANT INSERT ON users.answers TO r_answers_insert;
@@ -147,6 +160,9 @@ r_roles_select,
 r_roles_insert,
 r_chapters_select,
 r_exercises_select,
+r_users_to_exercises_select,
+r_users_to_exercises_insert,
+r_users_to_exercises_update,
 r_answers_select,
 r_answers_insert,
 r_solutions_select,

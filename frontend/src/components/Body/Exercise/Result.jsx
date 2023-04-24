@@ -3,92 +3,35 @@ import { services } from '../../../api/services';
 import _ from 'lodash';
 import { Table } from 'react-bootstrap';
 
-export default function Result({ table_name, action, setAction, query, ...props }) {
-  const {
-    solution,
-    exerciseId,
-    setHistory,
-    setHistoryInitialized,
-    setSolutions,
-    setSolutionsInitialized,
-    // initialized,
-    // setInitialized,
-    // queryResult,
-    // setQueryResult,
-    // errorMessage,
-    // setErrorMessage,
-  } = props;
+// finally {
+//   if (action === 'test' || action === 'submit') {
+//     let h = {
+//       id: result === undefined ? -1 : result.id,
+//       submit_attempt: action === 'test' ? false : true,
+//       query: query,
+//       solution_success: result === undefined ? 'ERROR' : result.solutionSuccess,
+//       date: Date.now(),
+//     };
+//     setHistoryInitialized(false);
+//     setHistory((prevHistory) => [h, ...prevHistory]);
+//     if (result !== undefined && result.solutionSuccess === 'COMPLETE') {
+//       setSolutionsInitialized(false);
+//       setSolutions((prevSolutions) => [query, ...prevSolutions]);
+//     }
+//   }
 
-  const [queryResult, setQueryResult] = useState([]);
-  const [errorMessage, setErrorMessage] = useState(null);
-
-  const initialize = async () => {
-    let result;
-    try {
-      if (action === 'test' || action === 'test1') {
-        result = await services.getQueryTestResult(query, solution, exerciseId);
-      } else if (action === 'submit' || action === 'submit1') {
-        result = await services.getQuerySubmitResult(query, solution, exerciseId);
-
-        // TODO: upozornit usera ci je jeho query spravne
-        /*
-        let result = await ..
-        if (result.solution_success = ...)
-        else ...
-        */
-      } else if (action === 'initialize') {
-        // console.log('initializing expected result')
-        result = await services.getQueryExpectedResult(query);
-        setAction('');
-        // if (!initialized) {
-        //   setInitialized(true);
-        // }
-      }
-      setQueryResult(result.queryResult);
-      setErrorMessage(null);
-    } catch (e) {
-      console.log('Failed to get query result. Action: ' + (action === '' ? 'expected result' : action));
-      const { message } = await e.response.json();
-      setErrorMessage(message);
-    } finally {
-      if (action === 'test' || action === 'submit') {
-        let h = {
-          id: result === undefined ? -1 : result.id,
-          submit_attempt: action === 'test' ? false : true,
-          query: query,
-          solution_success: result === undefined? 'ERROR' : result.solutionSuccess,
-          date: Date.now(),
-        };
-        setHistoryInitialized(false);
-        setHistory((prevHistory) => [h, ...prevHistory]);
-        if (result !== undefined && result.solutionSuccess === 'COMPLETE') {
-          setSolutionsInitialized(false);
-          setSolutions((prevSolutions) => [query, ...prevSolutions]);
-        }
-      }
-    }
-  };
-
-  useEffect(() => {
-    // console.log('calling use effect for action: ', action);
-    if (action === 'reset') {
-      setQueryResult([]);
-    } else if (action !== '') {
-      initialize();
-      // setAction('');
-    }
-  }, [action]);
-
+export default function Result({ table_name, queryResult, errorMessage, ...props }) {
   return (
-    <div id="query_result" className="px-1" style={{ width: '100%', height: '100%' }}>
+    <div id="query_result" className="p-3" style={{ width: '100%' }}>
       <div className="py-2">
         <b>{table_name}</b>
       </div>
       <div
         style={{
           width: '100%',
-          maxHeight: '90%',
-          overflow: 'auto',
+          height: '40vh',
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
         }}
       >
         {errorMessage ? (
@@ -118,7 +61,12 @@ export default function Result({ table_name, action, setAction, query, ...props 
             </tbody>
           </Table>
         ) : (
-          <div className="loading-content">Loading query result ... </div>
+          <div
+            style={{ color: '#aaa' }}
+            className="loading-content w-100 h-100 d-flex justify-content-center align-items-center"
+          >
+            No solution.
+          </div>
         )}
       </div>
     </div>

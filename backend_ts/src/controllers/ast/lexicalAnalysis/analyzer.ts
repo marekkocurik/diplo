@@ -1,7 +1,6 @@
-import { table } from 'console';
-import TableController, { Solutions } from '../../../database/tableController';
-import { QueryCompare } from '../abstractSyntaxTree';
+import TableController, { Solution } from '../../../database/solutionsController';
 import { sortASTAlphabetically } from './sorter';
+import { GeneralResponse } from '../../../database/databaseController';
 const { Parser } = require('node-sql-parser/build/postgresql');
 
 const parser = new Parser();
@@ -10,11 +9,6 @@ const tableController = new TableController();
 
 export interface ASTObject {
   [key: string]: any;
-}
-
-interface UppercaseSolutionResponse {
-  message: string;
-  query: string;
 }
 
 interface TableWithAlias {
@@ -27,11 +21,6 @@ interface TableWithAliasAndColumns {
   table: string;
   as: string | null;
   columns: string[];
-}
-
-export interface TACResponse {
-  message: string;
-  tac: TableWithAliasAndColumns[];
 }
 
 export const queryToUpperCase = (query: string): string => {
@@ -59,47 +48,6 @@ export const queryToUpperCase = (query: string): string => {
   return newQuery;
 };
 
-export const updateSolutionToUpperCase = async (
-  id: number,
-  query: string
-): Promise<[number, UppercaseSolutionResponse]> => {
-  try {
-    query = queryToUpperCase(query);
-    const [code, result] = await tableController.updateSolutionToUpperCase(id, query);
-    return [code, { message: 'OK', query }];
-  } catch (error) {
-    return [
-      500,
-      { message: 'Something went wrong while trying to update query to upper case. Query id: ' + id, query },
-    ];
-  }
-};
-
-export const updateSolutionNormalizedQuery = async (id: number, query: string): Promise<[number, Object]> => {
-  try {
-    const [code, result] = await tableController.updateSolutionNormalizedQueryById(id, query);
-    return [code, result];
-  } catch (error) {
-    return [500, { message: 'Something went wrong while trying to insert normalized query: ', id }];
-  }
-};
-
-export const updateSolutionAST = async (id: number, normalizedQuery: string): Promise<[number, Object]> => {
-  try {
-    let ast = parser.astify(normalizedQuery, opt);
-    sortASTAlphabetically(ast);
-    const [code, result] = await tableController.updateSolutionASTById(id, JSON.stringify(ast));
-    return [code, result];
-  } catch (error) {
-    return [500, { message: 'Something went wrong while trying to insert ast for solution id: ' + id, normalizedQuery }];
-  }
-};
-
-export const getOriginalSolutions = async (): Promise<[number, Solutions]> => {
-  const [code, response] = await tableController.getAllOriginalSolutions();
-  return [code, response];
-};
-
 const getTablesAndAliasesFromASTObject = (obj: ASTObject): TableWithAlias[] => {
   let results: TableWithAlias[] = [];
   for (let key in obj) {
@@ -117,83 +65,46 @@ const getTablesAndAliasesFromASTObject = (obj: ASTObject): TableWithAlias[] => {
   return results;
 };
 
-//const getTablesAndAliasesFromAST = (ast: ASTObject): TableWithAliasAndColumns[] => {
 const getTablesAndAliasesFromAST = (ast: ASTObject): TableWithAlias[] => {
-  // let tac: TableWithAliasAndColumns[] = [];
   let twa: TableWithAlias[] = [];
   let tmp: TableWithAlias[] = [];
   for (let o in ast) twa = [...twa, ...getTablesAndAliasesFromASTObject(ast[o])];
-  // console.log('twa table names:');
-  // console.dir(twa, { depth: null });
   for (let o of twa)
     if (o.table !== null && !tmp.find((objA) => objA.table === o.table && objA.as === o.as && objA.column === o.column))
       tmp.push(o);
-  // console.log('tmp table names:');
-  // console.dir(tmp, { depth: null });
   twa = [];
   for (let o of tmp) if (!tmp.find((objA) => objA.as === o.table)) twa.push(o);
-  // for (let obj1 of tmp) {
-  //   if (tmp.find((objA) => objA.as === obj1.table)) continue;
-  //   let cols: string[] = [];
-  //   if (!(obj1.as === undefined || obj1.as === null)) {
-  //     for (let obj2 of tmp) {
-  //       if (JSON.stringify(obj1) === JSON.stringify(obj2)) continue;
-  //       else if (obj2.table === obj1.as && !(obj2.column === undefined || obj2.column === null)) {
-  //         cols.push(obj2.column);
-  //       }
-  //     }
-  //   }
-  //   let x = {
-  //     table: obj1.table,
-  //     as: obj1.as,
-  //     columns: cols,
-  //   };
-  //   tac.push(x);
-  // }
-  // return tac;
   return twa;
 };
 
-export const getTableNamesAliasesAndColumnsFromQuery = async (query: string): Promise<[number, TACResponse]> => {
-  // console.log('query: ', query);
+const getTableNamesAliasesAndColumnsFromQuery = async (query: string): Promise<[GeneralResponse, TableWithAliasAndColumns[]]> => {
   const ast = parser.astify(query, opt);
-  // console.dir(ast, { depth: null });
-  // console.log((ast[0].type as string).toLowerCase() === 'insert');
   if (Array.isArray(ast)) {
-    if ((ast[0].type as string).toLowerCase() === 'insert') return [200, { message: 'OK', tac: [] }];
+    if ((ast[0].type as string).toLowerCase() === 'insert') return [{code:200, message: 'OK'}, [] ];
   } else {
-    if ((ast.type as string).toLowerCase() === 'insert') return [200, { message: 'OK', tac: [] }];
+    if ((ast.type as string).toLowerCase() === 'insert') return [{code:200, message: 'OK'}, [] ];
   }
 
   const tablesWithAliasesAndColumns = getTablesAndAliasesFromAST(ast);
-  // console.log('tac table names:');
-  // console.dir(tablesWithAliasesAndColumns, { depth: null });
-  // teraz by som mal odstranit aliasy a nasledne zistit nazvy stlpcov
-  // treba nahradit vsetky aliasy okrem pripadu kedy FROM obsahuje subquery!
   let tac: TableWithAliasAndColumns[] = [];
   try {
     for (let obj of tablesWithAliasesAndColumns) {
-      let [code, result] = await tableController.getTableColumns('cd', obj.table.toLocaleLowerCase());
-      if (code !== 200) return [500, { message: 'Failed to obtain columns for table: ' + obj.table, tac: [] }];
-      // let cols: string[] = result.columns.map((column: { column_name: string }) => column.column_name);
-      // for (let c of obj.columns) if (!cols.find((name) => name.toLowerCase() === c.toLowerCase())) cols.push(c.toLowerCase());
+      let [response, result] = await tableController.getTableColumns('cd', obj.table.toLocaleLowerCase());
+      if (response.code !== 200) return [{ code:response.code, message: response.message}, []];
       let tmptac = {
         table: obj.table,
         as: obj.as,
-        columns: result.columns.map((column: { column_name: string }) => column.column_name),
+        columns: result.map(x => x.columnName),
       };
       tac.push(tmptac);
     }
-  } catch (e) {
-    return [500, { message: 'Failed', tac: [] }];
+  } catch (error) {
+    return [{code:500, message: 'Failed'}, []];
   }
-  // console.log('final table names:');
-  // console.dir(tac, { depth: null });
-  return [200, { message: 'OK', tac }];
-  // return names;
+  return [{code: 200, message: 'OK'}, tac];
 };
 
-export const replaceTableAliasesWithTableName = (query: string, tac: TableWithAliasAndColumns[]): string => {
+const replaceTableAliasesWithTableName = (query: string, tac: TableWithAliasAndColumns[]): string => {
   let result = query;
   for (let t of tac) {
     let regex = new RegExp(`(${t.as}\\.)`, 'g');
@@ -202,21 +113,13 @@ export const replaceTableAliasesWithTableName = (query: string, tac: TableWithAl
   return result;
 };
 
-export const replaceAsterixWithTableAndColumns = (query: string, tac: TableWithAliasAndColumns[]): string => {
+const replaceAsterixWithTableAndColumns = (query: string, tac: TableWithAliasAndColumns[]): string => {
   let result = query;
-  // let commaAsterixRegex = /,\*/g;
-  // let spaceAsterixRegex = / \*/g;
-
   let simpleAsterixRegex = new RegExp(`(?<=SELECT\\s)\\s*\\*\\s*(?=\\sFROM)`, 'g');
   let startingAsterixRegex = new RegExp(`(?<=SELECT\\s)\\s*\\*\\s*(?=,)`, 'g');
   let endingAsterixRegex = new RegExp(`(?<=,)\\s*\\*\\s*(?=\\sFROM)`, 'g');
   let betweenAsterixRegex = new RegExp(`(?<=,)\\s*\\*\\s*(?=,)`, 'g');
-  /**
-   * 1. * je sama -> SELECT * FROM
-   * 2. * je na zaciatku -> SELECT *,
-   * 3. * je na konci -> , * FROM
-   * 4. * je uprostred -> , *,
-   */
+
   let replacement = '';
   for (let t of tac) {
     for (let c of t.columns) replacement = replacement + t.table + '.' + c.toUpperCase() + ', ';
@@ -235,19 +138,18 @@ export const replaceAsterixWithTableAndColumns = (query: string, tac: TableWithA
   return result;
 };
 
-export const specifyColumnsWithoutTables = (query: string, tac: TableWithAliasAndColumns[]): string => {
+const specifyColumnsWithoutTables = (query: string, tac: TableWithAliasAndColumns[]): string => {
   let result = query;
   for (let t of tac) {
     for (let c of t.columns) {
       let regex = new RegExp(`(?<!\\.|AS\\s|as\\s)\\b${c}\\b`, 'gi');
-      // let regex = new RegExp(`(?<![${t.table}\\.${c}|AS\\s|as\\s|\\.])\\b${c}\\b`, 'gi');
       result = result.replace(regex, `${t.table}.${c.toUpperCase()}`);
     }
   }
   return result;
 };
 
-export const removeTableAliases = (query: string, tac: TableWithAliasAndColumns[]): string => {
+const removeTableAliases = (query: string, tac: TableWithAliasAndColumns[]): string => {
   let result = query;
   for (let t of tac) {
     let regex = new RegExp(`\\b(CD\\.${t.table})\\s+(as\\s+|AS\\s+)?(${t.as})\\b`, 'g');
@@ -258,26 +160,20 @@ export const removeTableAliases = (query: string, tac: TableWithAliasAndColumns[
   return result;
 };
 
-const getColumnAliases = (query: string, tac: TableWithAliasAndColumns[]) => {};
-
-export const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns[]): string => {
+const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns[]): string => {
   let result = query;
   let spaces = new RegExp(`\\s+`, 'g');
   for (let t of tac) {
     for (let c of t.columns) {
-      // console.log('matching: ' + t.table + '.' + c + ', alias: ' + t.as);
       let regex = new RegExp(
         `(?<=SELECT\\s+(.*)?${t.table}\\.${c}\\s+)(?:as\\s+|AS\\s+)?(\\w+)(?=\\s*(?:,|FROM))`,
         'gi'
       );
-      //(?<=SELECT\s+)(\w+\.)*RECOMMENDERS\.MEMBER\s+(?:as\s+|AS\s+)?(\w+)(?=\s*(?:,|FROM))
-      //(?<=SELECT\s+)(\w+\.)*RECOMMENDERS\.MEMBER\s+(?:as\s+|AS\s+)?(\w+)(?=\s*(?:,|FROM|\)))
       let matches = result.matchAll(regex);
       result = result.replace(regex, ``);
       for (let match of matches) {
         let columnAlias = match[0].replace(spaces, ' ').trim();
         if (columnAlias.includes('as') || columnAlias.includes('AS')) columnAlias = columnAlias.split(' ')[1];
-        // console.log(columnAlias);
         let colRegexp = new RegExp(`[^\\.]\\b${columnAlias}\\b`, 'g');
         result = result.replace(colRegexp, ` ${t.table}.${c.toUpperCase()}`);
       }
@@ -290,17 +186,19 @@ export const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns
   return result.trim();
 };
 
-export const testCreateASTsForNormalizedQueries = (response: QueryCompare[]) => {
-  for (let o of response) {
-    // console.log('creating AST for: ', o.id, ': ', o.normalized);
-    try {
-      let ast = parser.astify(o.normalized, opt);
-      // console.log(o.id, ': success');
-      console.log(JSON.stringify(ast).length);
-    } catch (e) {
-      console.log(o.id, ': failed');
-      let ast = parser.astify(o.original, opt);
-      console.dir(ast, { depth: null });
-    }
+export const normalizeQuery = async (query: string): Promise<[GeneralResponse, string]> => {
+  let newQuery = queryToUpperCase(query);
+  try {
+    let [response, tablesAliasesAndColumns] = await getTableNamesAliasesAndColumnsFromQuery(newQuery);
+    if (response.code !== 200) return [{ code: response.code, message: response.message}, '' ];
+    newQuery = replaceTableAliasesWithTableName(newQuery, tablesAliasesAndColumns);
+    newQuery = replaceAsterixWithTableAndColumns(newQuery, tablesAliasesAndColumns);
+    newQuery = specifyColumnsWithoutTables(newQuery, tablesAliasesAndColumns);
+    newQuery = removeTableAliases(newQuery, tablesAliasesAndColumns);
+    newQuery = removeColumnAliases(newQuery, tablesAliasesAndColumns);
+    // newQuery = sortQueryAlphabetically(newQuery);
+    return [{code: 200, message: 'OK'}, newQuery];
+  } catch (error) {
+    return [{code:500, message: 'Something went wrong while trying to normalize query'}, ''];
   }
 };

@@ -58,20 +58,6 @@ CREATE TABLE users.exercises (
 	FOREIGN KEY (chapter_id) REFERENCES users.chapters(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
-CREATE TABLE users.answers (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    exercise_id INT NOT NULL,
-    query VARCHAR(1000),
-    solution_success VARCHAR(10),
-    submit_attempt BOOLEAN NOT NULL,
-    execution_time DECIMAL,
-    similarity DECIMAL,
-    date TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
 CREATE TABLE users.solutions (
     id SERIAL PRIMARY KEY,
     exercise_id INT NOT NULL,
@@ -82,6 +68,27 @@ CREATE TABLE users.solutions (
     FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
+CREATE TABLE users.users_to_exercises (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    exercise_id INT NOT NULL,
+    solved BOOLEAN DEFAULT false,
+    finished BOOLEAN DEFAULT false,
+    FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE TABLE users.answers (
+    id SERIAL PRIMARY KEY,
+    users_to_exercises_id INT NOT NULL,
+    query VARCHAR(1000),
+    solution_success VARCHAR(10),
+    submit_attempt BOOLEAN NOT NULL,
+    execution_time DECIMAL,
+    similarity DECIMAL,
+    date TIMESTAMP,
+    FOREIGN KEY (users_to_exercises_id) REFERENCES users.users_to_exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
 
 -- Create tables in schema 'cd':
 
