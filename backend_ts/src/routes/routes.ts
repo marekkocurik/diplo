@@ -39,7 +39,7 @@ export default async function routes(server: any) {
   };
 
   // server.get('/maintenance/database-update', updateDatabase);
-  server.get('/test-ast', testAST);
+  // server.get('/test-ast', testAST);
   server.get('/hello', sayHello);
   server.post('/auth/login', userLogin);
   server.post('/auth/register', userRegistration);
