@@ -1,7 +1,7 @@
 // import { AST } from 'node-sql-parser/build/postgresql';
 // import { executeQuery } from '../exercise/exercise';
-// import TableController from '../../database/solutionsController';
-// import { GeneralResponse } from '../../database/databaseController';
+// import TableController from '../../databaseControllers/solutionsController';
+// import { GeneralResponse } from '../../databaseControllers/databaseController';
 
 // interface SolutionAttempt {
 //   original_query: string;

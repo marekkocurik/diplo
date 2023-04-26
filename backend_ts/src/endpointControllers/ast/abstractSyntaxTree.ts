@@ -1,6 +1,6 @@
 import { AST } from 'node-sql-parser/build/postgresql';
-import { GeneralResponse } from '../../database/databaseController';
-import SolutionController from '../../database/solutionsController';
+import { GeneralResponse } from '../../databaseControllers/databaseController';
+import SolutionController from '../../databaseControllers/solutionsController';
 import { normalizeQuery, queryToUpperCase } from './lexicalAnalysis/analyzer';
 import { sortASTAlphabetically } from './lexicalAnalysis/sorter';
 import { queries } from './queries';

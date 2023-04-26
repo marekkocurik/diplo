@@ -28,7 +28,7 @@ export default class SolutionController extends DatabaseController {
         'FROM users.solutions as S WHERE S.exercise_id = $1 ORDER BY S.id';
       let result = await client.query(query, [exercise_id]);
       if (result.rows[0] === undefined)
-        return [{ code: 500, message: 'Failed to obtain Solutions for Exercise id: ' + exercise_id }, []];
+        return [{ code: 500, message: 'Failed to obtain solutions for exercise_id: ' + exercise_id }, []];
       let response = {
         code: 200,
         message: 'OK',
@@ -49,7 +49,7 @@ export default class SolutionController extends DatabaseController {
       let query = 'SELECT S.id, S.original_query FROM users.solutions as S WHERE S.id <= 69 ORDER BY S.id';
       let result = await client.query(query);
       if (result.rows[0] === undefined)
-        return [{ code: 500, message: 'Failed to get all Solutions original_query' }, []];
+        return [{ code: 500, message: 'Failed to get all original solutions original_query' }, []];
       let response = {
         code: 200,
         message: 'OK',
@@ -64,9 +64,13 @@ export default class SolutionController extends DatabaseController {
 
   public async getExerciseExpectedSolutionOriginalQueryByExerciseId(
     exercise_id: number
-  ): Promise<[GeneralResponse, Solution_ID_OriginalQuery[]]> {
+  ): Promise<[GeneralResponse, Solution_ID_OriginalQuery]> {
     const client = await this.pool.connect();
-    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
+    if (client === undefined)
+      return [
+        { code: 500, message: 'Error accessing database' },
+        { id: -1, original_query: '' },
+      ];
     try {
       await client.query('SET ROLE u_executioner;');
       let query =
@@ -74,14 +78,14 @@ export default class SolutionController extends DatabaseController {
       let result = await client.query(query, [exercise_id]);
       if (result.rows[0] === undefined)
         return [
-          { code: 500, message: 'Failed to obtain Solutions original_query for Exercise id: ' + exercise_id },
-          [],
+          { code: 500, message: 'Failed to obtain solutions original_query for exercise_id: ' + exercise_id },
+          { id: -1, original_query: '' },
         ];
       let response = {
         code: 200,
         message: 'OK',
       };
-      return [response, result.rows];
+      return [response, result.rows[0]];
     } catch (e) {
       throw e;
     } finally {
@@ -100,7 +104,7 @@ export default class SolutionController extends DatabaseController {
       let result = await client.query(query, [exercise_id]);
       if (result.rows[0] === undefined)
         return [
-          { code: 500, message: 'Failed to obtain all Solutions normalized_query for Exercise id: ' + exercise_id },
+          { code: 500, message: 'Failed to obtain all solutions normalized_query for exercise_id: ' + exercise_id },
           [],
         ];
       let response = {
@@ -115,7 +119,7 @@ export default class SolutionController extends DatabaseController {
     }
   }
 
-  public async insertNewSolution(
+  public async insert(
     exercise_id: number,
     original_query: string,
     normalized_query: string,
@@ -129,15 +133,10 @@ export default class SolutionController extends DatabaseController {
       let insert =
         'INSERT INTO users.solutions(exercise_id, original_query, normalized_query, abstract_syntax_tree) ' +
         'VALUES ($1, $2, $3, $4);';
-      let result = await client.query(insert, [
-        exercise_id,
-        original_query,
-        normalized_query,
-        abstract_syntax_tree,
-      ]);
+      let result = await client.query(insert, [exercise_id, original_query, normalized_query, abstract_syntax_tree]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
-        return { code: 500, message: 'Failed to insert new exercise solution' };
+        return { code: 500, message: 'Failed to insert new solution for exercise_id: ' + exercise_id };
       }
       await client.query('COMMIT;');
       return { code: 200, message: 'OK' };

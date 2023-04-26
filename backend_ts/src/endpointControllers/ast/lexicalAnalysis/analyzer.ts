@@ -1,6 +1,6 @@
-import TableController, { Solution } from '../../../database/solutionsController';
+import TableController, { Solution } from '../../../databaseControllers/solutionsController';
 import { sortASTAlphabetically } from './sorter';
-import { GeneralResponse } from '../../../database/databaseController';
+import { GeneralResponse } from '../../../databaseControllers/databaseController';
 const { Parser } = require('node-sql-parser/build/postgresql');
 
 const parser = new Parser();
@@ -89,12 +89,12 @@ const getTableNamesAliasesAndColumnsFromQuery = async (query: string): Promise<[
   let tac: TableWithAliasAndColumns[] = [];
   try {
     for (let obj of tablesWithAliasesAndColumns) {
-      let [response, result] = await tableController.getTableColumns('cd', obj.table.toLocaleLowerCase());
+      let [response, result] = await tableController.getAllTableColumns('cd', obj.table.toLocaleLowerCase());
       if (response.code !== 200) return [{ code:response.code, message: response.message}, []];
       let tmptac = {
         table: obj.table,
         as: obj.as,
-        columns: result.map(x => x.columnName),
+        columns: result.map(x => x.column_name),
       };
       tac.push(tmptac);
     }
@@ -192,6 +192,8 @@ export const normalizeQuery = async (query: string): Promise<[GeneralResponse, s
     let [response, tablesAliasesAndColumns] = await getTableNamesAliasesAndColumnsFromQuery(newQuery);
     if (response.code !== 200) return [{ code: response.code, message: response.message}, '' ];
     newQuery = replaceTableAliasesWithTableName(newQuery, tablesAliasesAndColumns);
+    //TODO: odstranit useless aliasy (SELECT * FROM cd.facilities as F)
+    // console.log(newQuery);
     newQuery = replaceAsterixWithTableAndColumns(newQuery, tablesAliasesAndColumns);
     newQuery = specifyColumnsWithoutTables(newQuery, tablesAliasesAndColumns);
     newQuery = removeTableAliases(newQuery, tablesAliasesAndColumns);

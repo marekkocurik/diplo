@@ -21,9 +21,8 @@ export default function ExerciseTree({ ...props }) {
 
   const initialize = async () => {
     try {
-      const tree = await services.getExerciseTree();
-      console.log(tree.chapters);
-      dispatch(treeLoaded({ tree: tree.chapters }));
+      const response = await services.getExerciseTree();
+      dispatch(treeLoaded({ tree: response.tree }));
     } catch (e) {
       console.log('Failed to get exercise tree.');
     }

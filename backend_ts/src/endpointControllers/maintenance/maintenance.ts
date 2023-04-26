@@ -1,6 +1,6 @@
-import { GeneralResponse } from '../../database/databaseController';
-import MaintenanceController from '../../database/maintenanceController';
-import { Solution_ID_OriginalQuery } from '../../database/solutionsController';
+import { GeneralResponse } from '../../databaseControllers/databaseController';
+import MaintenanceController from '../../databaseControllers/maintenanceController';
+import { Solution_ID_OriginalQuery } from '../../databaseControllers/solutionsController';
 import { normalizeQuery, queryToUpperCase } from '../ast/lexicalAnalysis/analyzer';
 import { sortASTAlphabetically } from '../ast/lexicalAnalysis/sorter';
 const { Parser } = require('node-sql-parser/build/postgresql');

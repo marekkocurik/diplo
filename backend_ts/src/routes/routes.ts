@@ -1,15 +1,15 @@
-import { testAST } from '../controllers/ast/abstractSyntaxTree';
-import { updateDatabase } from '../controllers/maintenance/maintenance';
-import { userLogin, userRegistration, changeUserPassword, getUsername } from '../controllers/auth/auth';
+import { testAST } from '../endpointControllers/ast/abstractSyntaxTree';
+import { updateDatabase } from '../endpointControllers/maintenance/maintenance';
+import { userLogin, userRegistration, changeUserPassword, getUsername } from '../endpointControllers/auth/auth';
 import {
   getExerciseTree,
-  // getExercise,
+  getExercise,
   getExerciseHistory,
   getUserExerciseSolutions,
-  // getQueryExpectedResult,
-  // getQueryTestResult,
-  // getQuerySubmitResult,
-} from '../controllers/exercise/exercise';
+  getQueryExpectedResult,
+  getQueryTestResult,
+  getQuerySubmitResult,
+} from '../endpointControllers/exercise/exercise';
 // import { getHelp } from '../controllers/help/helper';
 import { jwt_secret, fe_ip_address } from '../env-config';
 const jwt = require('jsonwebtoken');
@@ -38,7 +38,7 @@ export default async function routes(server: any) {
     reply.code(200).send({ message: 'Ya man LETS GOO' });
   };
 
-  server.get('/maintenance/database-update', updateDatabase);
+  // server.get('/maintenance/database-update', updateDatabase);
   server.get('/test-ast', testAST);
   server.get('/hello', sayHello);
   server.post('/auth/login', userLogin);
@@ -46,12 +46,12 @@ export default async function routes(server: any) {
   // server.post('/auth/reset-password');
   server.get('/home/username', { preHandler: checkJWT }, getUsername);
   server.get('/home/exercise-tree', { preHandler: checkJWT }, getExerciseTree);
-  // server.get('/home/exercise', { preHandler: checkJWT }, getExercise);
+  server.get('/home/exercise', { preHandler: checkJWT }, getExercise);
   server.get('/home/exercise-history', { preHandler: checkJWT }, getExerciseHistory);
   server.get('/home/exercise-solutions-user', { preHandler: checkJWT }, getUserExerciseSolutions);
-  // server.get('/home/query-expected-result', { preHandler: checkJWT }, getQueryExpectedResult);
-  // server.get('/home/query-test-result', { preHandler: checkJWT }, getQueryTestResult);
-  // server.get('/home/query-submit-result', { preHandler: checkJWT }, getQuerySubmitResult);
+  server.get('/home/query-expected-result', { preHandler: checkJWT }, getQueryExpectedResult);
+  server.get('/home/query-test-result', { preHandler: checkJWT }, getQueryTestResult);
+  server.get('/home/query-submit-result', { preHandler: checkJWT }, getQuerySubmitResult);
   server.post('/home/profile/change-password', { preHandler: checkJWT }, changeUserPassword);
   // server.get('/home/get-help', { preHandler: checkJWT }, getHelp);
 }

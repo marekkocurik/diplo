@@ -37,20 +37,19 @@ export default function Exercise({ ...props }) {
   const [modalErrorMessage, setModalErrorMessage] = useState('');
 
   const initialize = async (chapterID, exerciseID) => {
-    let exerciseInfo;
     try {
-      exerciseInfo = await services.getExercise(exerciseID);
+      let response = await services.getExercise(exerciseID);
 
       dispatch(
         exerciseSelected({
-          exercise: exerciseInfo,
+          exercise: response.exercise,
           chapter: chapterID,
         })
       );
 
       try {
-        const { queryResult } = await services.getQueryExpectedResult(exerciseInfo.solution);
-        setExpectedQueryResult(queryResult);
+        const queryResultResponse = await services.getQueryExpectedResult(response.exercise.solution);
+        setExpectedQueryResult(queryResultResponse.queryResultInfo.queryResult);
         setExpectedQueryErrorMsg('');
       } catch (e) {
         const { message } = await e.response.json();
@@ -101,23 +100,27 @@ export default function Exercise({ ...props }) {
 
       try {
         result = await apiCall(userQuery, exercise.solution, exercise.id);
-        setUserQueryResult(result.queryResult);
+        console.log('result for: ', userQuery);
+        console.log(result.queryResultInfo);
+        setUserQueryResult(result.queryResultInfo.queryResult);
         setUserQueryErrorMsg('');
       } catch (err) {
+        console.log('Error caught')
         const { message } = await err.response.json();
+        console.log('setting error message to: ', message);
         setUserQueryErrorMsg(message);
       }
 
-      dispatch(
+      !(userQuery.trim().length === 0) && dispatch(
         historyUpdated({
-          id: result === undefined ? -1 : result.id,
+          id: result === undefined ? -1 : result.queryResultInfo.id,
           submit_attempt: !test,
           query: userQuery,
-          solution_success: result === undefined ? 'ERROR' : result.solutionSuccess,
+          solution_success: result === undefined ? 'ERROR' : result.queryResultInfo.solutionSuccess,
           date: Date.now(),
         })
       );
-      result.solutionSuccess === 'COMPLETE' &&
+      result?.queryResultInfo.solutionSuccess === 'COMPLETE' &&
         dispatch(
           solutionsUpdated({
             query: userQuery,

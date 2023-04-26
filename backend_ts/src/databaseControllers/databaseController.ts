@@ -6,10 +6,10 @@ export interface GeneralResponse {
 }
 
 interface TableColumn {
-  columnName: string;
+  column_name: string;
 }
 
-interface QueryResult {
+export interface QueryResult {
   queryResult: object;
   executionTime: number;
 }
@@ -18,7 +18,7 @@ export default class DatabaseController {
   constructor() {}
   public pool = new Pool();
 
-  public async getTableColumns(schema_name: string, table_name: string): Promise<[GeneralResponse, TableColumn[]]> {
+  public async getAllTableColumns(schema_name: string, table_name: string): Promise<[GeneralResponse, TableColumn[]]> {
     const client = await this.pool.connect();
     if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
     try {

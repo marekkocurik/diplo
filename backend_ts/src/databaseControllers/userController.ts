@@ -1,88 +1,51 @@
-import DatabaseController from './databaseController';
+import DatabaseController, { GeneralResponse } from './databaseController';
 
-interface GeneralResponse {
-  message: string;
-}
-
-interface Username extends GeneralResponse {
+export interface Username {
   name: string;
   surname: string;
 }
 
-interface InsertRecordReturningID extends GeneralResponse {
-  id: number;
-}
-
-interface UserCredentialsByID extends GeneralResponse {
+export interface User_Password_Salt {
   password: string;
   salt: string;
 }
 
-interface UserCredentialsByEmail extends UserCredentialsByID {
+export interface User_ID_Password_Salt extends User_Password_Salt {
   id: number;
 }
 
-interface UserRoleByID extends GeneralResponse {
-  role: string;
-}
-
 export default class UserController extends DatabaseController {
-  // public async function_name(x: any): Promise<[number, Object]> {
-  //   const client = await this.pool.connect();
-  //   if (client === undefined)
-  //     return [500, { message: 'Error accessing database.' }];
-  //   try {
-  //     await client.query('SET ROLE u_executioner;');
-  //     await client.query('BEGIN;');
-  //     let query = '';
-  //     let result = await client.query(query);
-  //     if (result.rows[0] === undefined) alebo result.rowCount !== 1 alebo result.rows === undefined {
-  //       await client.query('ROLLBACK;');
-  //       return [500, { message: 'User with this ID does not have any role.' }];
-  //     }
-  //     await client.query('COMMIT;');
-  //     return [200, { message: 'OK' }];
-  //   } catch (e) {
-  //     await client.query('ROLLBACK;');
-  //     console.log(e);
-  //     throw e;
-  //   } finally {
-  //     client.release();
-  //   }
-  // }
-
-  public async emailExists(email: string): Promise<[number, GeneralResponse]> {
+  public async userEmailExists(email: string): Promise<[GeneralResponse, boolean]> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database.' }];
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, false];
     try {
       await client.query('SET ROLE u_executioner;');
       let query = 'SELECT email FROM users.users WHERE email ILIKE $1;';
       let result = await client.query(query, [email]);
+      if (result.rows === undefined) return [{ code: 500, message: 'Failed to obtain email result' }, false];
       if (result.rows[0] !== undefined)
-        return [
-          400,
-          {
-            message: 'User with this email address already exist',
-          },
-        ];
-      return [200, { message: 'OK' }];
+        return [{ code: 400, message: 'User with this email address already exist' }, true];
+      let response = {
+        code: 200,
+        message: 'OK',
+      };
+      return [response, false];
     } catch (e) {
-      console.log(e);
       throw e;
     } finally {
       client.release();
     }
   }
 
-  public async createNewUser(
+  public async insertNewUserReturningId(
     name: string,
     surname: string,
     email: string,
     password: string,
     salt: string
-  ): Promise<[number, InsertRecordReturningID]> {
+  ): Promise<[GeneralResponse, number]> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database.', id: -1 }];
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, -1];
     try {
       await client.query('SET ROLE u_executioner;');
       await client.query('BEGIN;');
@@ -91,32 +54,25 @@ export default class UserController extends DatabaseController {
       let result = await client.query(insert, [name, surname, email, password, salt]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
-        return [
-          500,
-          {
-            message: 'Registration failed - could not create new user',
-            id: -1,
-          },
-        ];
+        return [{ code: 500, message: 'Registration failed - could not create new user' }, -1];
       }
       let response = {
+        code: 200,
         message: 'OK',
-        id: result.rows[0].id,
       };
       await client.query('COMMIT;');
-      return [200, response];
+      return [response, result.rows[0].id];
     } catch (e) {
       await client.query('ROLLBACK;');
-      console.log(e);
       throw e;
     } finally {
       client.release();
     }
   }
 
-  public async createNewRole(role: string): Promise<[number, InsertRecordReturningID]> {
+  public async insertNewRoleReturningId(role: string): Promise<[GeneralResponse, number]> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database.', id: -1 }];
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, -1];
     try {
       await client.query('SET ROLE u_executioner;');
       await client.query('BEGIN;');
@@ -124,32 +80,25 @@ export default class UserController extends DatabaseController {
       let result = await client.query(insert, [role]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
-        return [
-          500,
-          {
-            message: 'Registration failed - could not create new role',
-            id: -1,
-          },
-        ];
+        return [{ code: 500, message: 'Registration failed - could not create new role' }, -1];
       }
       let response = {
+        code: 200,
         message: 'OK',
-        id: result.rows[0].id,
       };
       await client.query('COMMIT;');
-      return [200, response];
+      return [response, result.rows[0].id];
     } catch (e) {
       await client.query('ROLLBACK;');
-      console.log(e);
       throw e;
     } finally {
       client.release();
     }
   }
 
-  public async assignRoleToUserByID(user_id: number, role_id: number): Promise<[number, GeneralResponse]> {
+  public async insertNewUsersToRolesByUserIdAndRoleId(user_id: number, role_id: number): Promise<GeneralResponse> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database.' }];
+    if (client === undefined) return { code: 500, message: 'Error accessing database' };
     try {
       await client.query('SET ROLE u_executioner;');
       await client.query('BEGIN;');
@@ -157,54 +106,54 @@ export default class UserController extends DatabaseController {
       let result = await client.query(insert, [user_id, role_id]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
-        return [500, { message: 'Registration failed - could not assign role to user' }];
+        return { code: 500, message: 'Registration failed - could not assign role to user' };
       }
       await client.query('COMMIT;');
-      return [200, { message: 'OK' }];
+      return { code: 200, message: 'OK' };
     } catch (e) {
       await client.query('ROLLBACK;');
-      console.log(e);
       throw e;
     } finally {
       client.release();
     }
   }
 
-  public async getUserCredentialsByEmail(email: string): Promise<[number, UserCredentialsByEmail]> {
+  public async getUserCredentialsByEmail(email: string): Promise<[GeneralResponse, User_ID_Password_Salt]> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database', id: -1, password: '', salt: '' }];
+    if (client === undefined)
+      return [
+        { code: 500, message: 'Error accessing database' },
+        { id: -1, password: '', salt: '' },
+      ];
     try {
       await client.query('SET ROLE u_executioner;');
       let query = 'SELECT id, password, salt FROM users.users WHERE email ILIKE $1;';
       let result = await client.query(query, [email]);
       if (result.rows[0] === undefined)
         return [
-          400,
+          { code: 400, message: 'Failed to verify user credentials - user with this email does not exist' },
           {
-            message: 'Failed to verify user credentials - user with this email does not exist',
             id: -1,
             password: '',
             salt: '',
           },
         ];
       let response = {
+        code: 200,
         message: 'OK',
-        id: result.rows[0].id,
-        password: result.rows[0].password,
-        salt: result.rows[0].salt,
       };
-      return [200, response];
+      let { id, password, salt } = result.rows[0];
+      return [response, { id, password, salt }];
     } catch (e) {
-      console.log(e);
       throw e;
     } finally {
       client.release();
     }
   }
 
-  public async getUserRoleByID(id: number): Promise<[number, UserRoleByID]> {
+  public async getUserRoleById(id: number): Promise<[GeneralResponse, string]> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database.', role: '' }];
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, ''];
     try {
       await client.query('SET ROLE u_executioner;');
       let query =
@@ -215,28 +164,24 @@ export default class UserController extends DatabaseController {
       let result = await client.query(query, [id]);
       if (result.rows[0] === undefined)
         return [
-          500,
-          {
-            message: 'Failed to verify user role - user with this ID does not have any role assigned',
-            role: '',
-          },
+          { code: 500, message: 'Failed to verify user role - user with this ID does not have any role assigned' },
+          '',
         ];
       let response = {
+        code: 200,
         message: 'OK',
-        role: result.rows[0].name,
       };
-      return [200, response];
+      return [response, result.rows[0].name];
     } catch (e) {
-      console.log(e);
       throw e;
     } finally {
       client.release();
     }
   }
 
-  public async updateLastLoginByID(id: number): Promise<[number, GeneralResponse]> {
+  public async updateLastLoginById(id: number): Promise<GeneralResponse> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database.' }];
+    if (client === undefined) return { code: 500, message: 'Error accessing database' };
     try {
       await client.query('SET ROLE u_executioner;');
       await client.query('BEGIN;');
@@ -244,52 +189,53 @@ export default class UserController extends DatabaseController {
       let result = await client.query(query, [id]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
-        return [500, { message: 'Failed to update last login' }];
+        return { code: 500, message: 'Failed to update last login' };
       }
       await client.query('COMMIT;');
-      return [200, { message: 'OK' }];
+      return { code: 200, message: 'OK' };
     } catch (e) {
       await client.query('ROLLBACK;');
-      console.log(e);
       throw e;
     } finally {
       client.release();
     }
   }
 
-  public async getUserCredentialsByID(id: number): Promise<[number, UserCredentialsByID]> {
+  public async getUserCredentialsByID(id: number): Promise<[GeneralResponse, User_Password_Salt]> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database', password: '', salt: '' }];
+    if (client === undefined)
+      return [
+        { code: 500, message: 'Error accessing database' },
+        { password: '', salt: '' },
+      ];
     try {
       await client.query('SET ROLE u_executioner;');
       let query = 'SELECT password, salt FROM users.users WHERE id=$1;';
       let result = await client.query(query, [id]);
       if (result.rows[0] === undefined)
         return [
-          400,
+          { code: 400, message: 'Failed to verify user credentials - user with this ID does not exist' },
           {
-            message: 'Failed to verify user credentials - user with this ID does not exist',
             password: '',
             salt: '',
           },
         ];
       let response = {
+        code: 200,
         message: 'OK',
-        password: result.rows[0].password,
-        salt: result.rows[0].salt,
       };
-      return [200, response];
+      let { password, salt } = result.rows[0];
+      return [response, { password, salt }];
     } catch (e) {
-      console.log(e);
       throw e;
     } finally {
       client.release();
     }
   }
 
-  public async changeUserPasswordByID(id: number, password: string): Promise<[number, GeneralResponse]> {
+  public async changeUserPasswordById(id: number, password: string): Promise<GeneralResponse> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database' }];
+    if (client === undefined) return { code: 500, message: 'Error accessing database' };
     try {
       await client.query('SET ROLE u_executioner;');
       await client.query('BEGIN;');
@@ -297,43 +243,41 @@ export default class UserController extends DatabaseController {
       let result = await client.query(query, [password, id]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
-        return [500, { message: 'Failed to change user password' }];
+        return { code: 500, message: 'Failed to change user password' };
       }
       await client.query('COMMIT;');
-      return [200, { message: 'OK' }];
+      return { code: 200, message: 'OK' };
     } catch (e) {
       await client.query('ROLLBACK;');
-      console.log(e);
       throw e;
     } finally {
       client.release();
     }
   }
 
-  public async getUserNameAndSurname(id: number): Promise<[number, Username]> {
+  public async getUserNameAndSurname(id: number): Promise<[GeneralResponse, Username]> {
     const client = await this.pool.connect();
-    if (client === undefined) return [500, { message: 'Error accessing database', name: '', surname: '' }];
+    if (client === undefined)
+      return [
+        { code: 500, message: 'Error accessing database' },
+        { name: '', surname: '' },
+      ];
     try {
       await client.query('SET ROLE u_executioner;');
       let query = 'SELECT U.name, U.surname FROM users.users as U WHERE id=$1;';
       let result = await client.query(query, [id]);
       if (result.rows[0] === undefined)
         return [
-          400,
-          {
-            message: 'Failed to obtain username',
-            name: '', 
-            surname: '' 
-          },
+          { code: 400, message: 'Failed to obtain username' },
+          { name: '', surname: '' },
         ];
       let response = {
+        code: 200,
         message: 'OK',
-        name: result.rows[0].name,
-        surname: result.rows[0].surname,
       };
-      return [200, response];
+      let { name, surname } = result.rows[0];
+      return [response, { name, surname }];
     } catch (e) {
-      console.log(e);
       throw e;
     } finally {
       client.release();

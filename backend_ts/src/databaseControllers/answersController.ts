@@ -15,7 +15,7 @@ interface Answer_ID_query {
 }
 
 export default class AnswersController extends DatabaseController {
-  public async getUserExerciseSolutionsByExerciseID(
+  public async getAllUserExerciseSolutionAnswersByUserIdAndExerciseId(
     user_id: number,
     exercise_id: number
   ): Promise<[GeneralResponse, Answer_ID_query[]]> {
@@ -25,14 +25,18 @@ export default class AnswersController extends DatabaseController {
       await client.query('SET ROLE u_executioner;');
       let query =
         'SELECT A.id, A.query FROM users.answers as A ' +
-        "WHERE A.exercise_id = $1 AND A.user_id = $2 AND A.solution_success = 'COMPLETE' ORDER BY A.id DESC;";
+        'JOIN users.users_to_exercises UTE on UTE.id = A.users_to_exercises_id ' +
+        "WHERE UTE.exercise_id = $1 AND UTE.user_id = $2 AND A.solution_success = 'COMPLETE' ORDER BY A.id DESC;";
       let result = await client.query(query, [exercise_id, user_id]);
       if (result.rows === undefined)
         return [
           {
             code: 500,
             message:
-              "Failed to obtain user's solution Answers for User id: " + user_id + ', for Exercise id: ' + exercise_id,
+              'Failed to obtain user exercise solution answers for User id: ' +
+              user_id +
+              ', for Exercise id: ' +
+              exercise_id,
           },
           [],
         ];
@@ -49,7 +53,7 @@ export default class AnswersController extends DatabaseController {
     }
   }
 
-  public async getExerciseAnswersByExerciseIDAndUserID(
+  public async getAllUserExerciseAnswersByExerciseIdAndUserId(
     exercise_id: number,
     user_id: number
   ): Promise<[GeneralResponse, Answer[]]> {
@@ -74,7 +78,8 @@ export default class AnswersController extends DatabaseController {
         return [
           {
             code: 500,
-            message: "Failed to obtain user's Answers for User id: " + user_id + ', for Exercise id: ' + exercise_id,
+            message:
+              'Failed to obtain user exercise answers for user_id: ' + user_id + ', for exercise_id: ' + exercise_id,
           },
           [],
         ];
@@ -90,21 +95,21 @@ export default class AnswersController extends DatabaseController {
     }
   }
 
-  public async insertNewAnswer(
+  public async insertReturningId(
     users_to_exercises_id: number,
     query: string,
     solution_success: string,
     submit_attempt: boolean,
     execution_time: number
-  ): Promise<GeneralResponse> {
+  ): Promise<[GeneralResponse, number]> {
     const client = await this.pool.connect();
-    if (client === undefined) return {code: 500, message: 'Error accessing database' };
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, -1];
     try {
       await client.query('SET ROLE u_executioner;');
       await client.query('BEGIN;');
       let insert =
         'INSERT INTO users.answers(users_to_exercises_id, query, solution_success, submit_attempt, execution_time, date) ' +
-        "VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP + INTERVAL '1 hour');";
+        "VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP + INTERVAL '1 hour') RETURNING id";
       let result = await client.query(insert, [
         users_to_exercises_id,
         query,
@@ -114,10 +119,16 @@ export default class AnswersController extends DatabaseController {
       ]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
-        return { code:500, message: "Failed to insert new record into user's exercise Answers" };
+        return [
+          {
+            code: 500,
+            message: 'Failed to insert new answer for users_to_exercises_id: ' + users_to_exercises_id,
+          },
+          -1,
+        ];
       }
       await client.query('COMMIT;');
-      return { code: 200, message: 'OK' };
+      return [{ code: 200, message: 'OK' }, result.rows[0].id];
     } catch (e) {
       await client.query('ROLLBACK;');
       throw e;

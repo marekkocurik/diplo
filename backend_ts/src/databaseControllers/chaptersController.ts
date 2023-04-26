@@ -17,7 +17,7 @@ export default class ChaptersController extends DatabaseController {
       await client.query('SET ROLE u_executioner;');
       let query = 'SELECT C.id, C.name FROM users.chapters C ORDER BY C.chapter_order;';
       let result = await client.query(query);
-      if (result.rows === undefined) return [{ code: 500, message: 'Failed to obtain chapters from database' }, []];
+      if (result.rows === undefined) return [{ code: 500, message: 'Failed to obtain chapters' }, []];
       let response = {
         code: 200,
         message: 'OK',
