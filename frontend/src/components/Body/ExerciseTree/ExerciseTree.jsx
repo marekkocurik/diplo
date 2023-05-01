@@ -35,13 +35,13 @@ export default function ExerciseTree({ ...props }) {
   };
 
   useEffect(() => {
+    initialize();
+  }, []);
+
+  useEffect(() => {
     activeTask = searchParams.get('id');
-    if (_.isEqual(exerciseTree, [])) {
-      initialize();
-    } else {
-      if (activeTask) initAccordion();
-    }
-  }, [searchParams.get('id'), exerciseTree]);
+    if (activeTask && exerciseTree?.length) initAccordion();
+  }, [searchParams.get('id')]);
 
   const ChapterMenuElement = ({ children, eventKey, active, chapterSolved, ...props }) => {
     const updateAccordion = useAccordionButton(eventKey);

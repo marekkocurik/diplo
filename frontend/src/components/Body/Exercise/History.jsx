@@ -27,6 +27,8 @@ export default function History({ exerciseId, setUserQuery, ...props }) {
     try {
       let { answers } = await services.getExerciseHistory(exerciseId);
       dispatch(historyInitialized({ answers }));
+      if (Array.isArray(answers) && answers[0] !== undefined) setUserQuery(answers[0].query);
+      else setUserQuery('');
       setErrorMessage(null);
     } catch (e) {
       console.log('Failed to obtain exercise history: ', e);

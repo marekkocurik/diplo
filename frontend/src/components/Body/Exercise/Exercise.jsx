@@ -62,7 +62,7 @@ export default function Exercise({ ...props }) {
     }
 
     setSelectedKey('hist');
-    setUserQuery('');
+    // setUserQuery('');
   };
 
   useEffect(() => {
@@ -226,6 +226,7 @@ export default function Exercise({ ...props }) {
             <Tab.Container
               id="left-tabs-example"
               defaultActiveKey="hist"
+              key={exercise.id}
               // style={{ maxHeight: '100%', overflow: 'auto' }}
             >
               <Nav fill variant="tabs" activeKey={selectedKey} onSelect={handleSelect}>
