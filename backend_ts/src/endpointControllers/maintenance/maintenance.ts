@@ -62,6 +62,7 @@ const updateSolutionNormalizedQuery = async (
 const updateSolutionAST = async (solution_id: number, normalized_query: string): Promise<GeneralResponse> => {
   try {
     let ast = parser.astify(normalized_query, opt);
+    if (Array.isArray(ast)) ast = ast[0];
     sortASTAlphabetically(ast);
     const response = await mController.updateSolutionASTById(solution_id, JSON.stringify(ast));
     return response;

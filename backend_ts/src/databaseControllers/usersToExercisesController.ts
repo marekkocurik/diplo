@@ -111,4 +111,30 @@ export default class UsersToExercisesController extends DatabaseController {
       client.release();
     }
   }
+
+  public async updateToSolved(user_id: number, exercise_id: number): Promise<GeneralResponse> {
+    const client = await this.pool.connect();
+    if (client === undefined) return { code: 500, message: 'Error accessing database' };
+    try {
+      await client.query('SET ROLE u_executioner;');
+      await client.query('BEGIN;');
+      let update = 'UPDATE users.users_to_exercises SET solved = true WHERE user_id = $1 AND exercise_id = $2;';
+      let result = await client.query(update, [user_id, exercise_id]);
+      if (result.rowCount !== 1) {
+        await client.query('ROLLBACK;');
+        return {
+          code: 500,
+          message:
+            'Failed to upadte users_to_exercises to solved for user_id: ' + user_id + ', exercise_id: ' + exercise_id,
+        };
+      }
+      await client.query('COMMIT;');
+      return { code: 200, message: 'OK' };
+    } catch (e) {
+      await client.query('ROLLBACK;');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
 }

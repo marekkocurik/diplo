@@ -66,22 +66,21 @@ const sortFromClause = (ast: Select) => {
           let i = 0;
           for (let o of ast.from) {
             if (i === occurencies) break;
-
           }
         }
       }
 
-      for (let o of tmp) { // usporiadanie left a right vetvy v pripade join
-        // let o = ast.from.find((obj) => obj.table === a);
-        //   if (o !== null) {
-        //     if (o.join === null) {
-        //       tmp.push(o);
-        //     } else {
-        //       let arr2 = [o.on.left.table, o.on.right.table].sort();
-        //       let tmp2: {} = o.on.left.table === arr2[0] ? o.on.left : o.on.right;
-        //     }
-        //   }
-      }
+      // for (let o of tmp) { // usporiadanie left a right vetvy v pripade join
+      // let o = ast.from.find((obj) => obj.table === a);
+      //   if (o !== null) {
+      //     if (o.join === null) {
+      //       tmp.push(o);
+      //     } else {
+      //       let arr2 = [o.on.left.table, o.on.right.table].sort();
+      //       let tmp2: {} = o.on.left.table === arr2[0] ? o.on.left : o.on.right;
+      //     }
+      //   }
+      // }
 
       for (let o of ast.from) if (isSubAst(o)) tmp.push(o);
       ast.from = tmp;
@@ -91,9 +90,8 @@ const sortFromClause = (ast: Select) => {
 
 const sortWhereClause = (ast: Select) => {
   if (ast.where !== null) {
-
   }
-}
+};
 
 const sortInsertClause = (ast: Insert_Replace) => {
   if (ast.columns !== null) {
@@ -121,24 +119,43 @@ const isSubAst = (value: any): value is AST => {
   return typeof value === 'object' && 'ast' in value;
 };
 
-const findSubAST = (obj: ASTObject) => {
-  for (let key in obj) {
-    if (typeof obj[key] === 'object' && obj[key] !== null) {
-      if (isSubAst(obj[key])) {
-        // console.log('found some sub AST');
-        // console.dir(obj[key], { depth: null });
-        sortAST(obj[key].ast);
+// const findSubAST = (obj: ASTObject) => {
+//   for (let key in obj) {
+//     if (typeof obj[key] === 'object' && obj[key] !== null) {
+//       if (isSubAst(obj[key])) {
+//         // console.log('found some sub AST');
+//         // console.dir(obj[key], { depth: null });
+//         sortAST(obj[key].ast);
+//       }
+//       findSubAST(obj[key]);
+//     }
+//   }
+// };
+
+const findSubAST = (obj: ASTObject)=> {
+  if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) {
+      if (typeof obj[i] === 'object' && obj[i] !== null) {
+        if (isSubAst(obj[i])) sortAST(obj[i].ast);
+        findSubAST(obj[i])
       }
-      findSubAST(obj[key]);
+    }
+    return false;
+  } else {
+    for (let key in obj) {
+      if (typeof obj[key] === 'object' && obj[key] !== null) {
+        if (isSubAst(obj[key])) sortAST(obj[key].ast);
+        findSubAST(obj[key])
+      }
     }
   }
 };
 
 export const sortASTAlphabetically = (ast: AST) => {
   // let ast2 = parser.astify(query, opt);
-  if (Array.isArray(ast)) ast = ast[0];
+  // if (Array.isArray(ast)) ast = ast[0];
   // if (Array.isArray(ast2)) ast2 = ast2[0];
-    // console.dir(ast, { depth: null });
+  // console.dir(ast, { depth: null });
   sortAST(ast);
   findSubAST(ast);
   // if (JSON.stringify(ast) === JSON.stringify(ast2)) console.log(true);

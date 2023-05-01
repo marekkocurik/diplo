@@ -18,10 +18,7 @@ export const answersController = new AnswersController();
 export const chaptersController = new ChaptersController();
 export const usersToExercisesController = new UsersToExercisesController();
 
-type ProcessNewSolutionResponse =
-| [GeneralResponse, string]
-| [GeneralResponse, AST | null]
-| GeneralResponse
+type ProcessNewSolutionResponse = [GeneralResponse, string] | [GeneralResponse, AST | null] | GeneralResponse;
 
 export const queryResultsMatch = (solution_query_result: Object, student_query_result: Object): boolean => {
   if (JSON.stringify(solution_query_result) === JSON.stringify(student_query_result)) return true;
@@ -70,6 +67,22 @@ export const testQueries = async (
   return [{ code: 200, message: 'OK' }, Object.assign(testResponse, response[1])];
 };
 
+export const updateUsersToExerciseToSolved = async (user_id: number, exercise_id: number): Promise<GeneralResponse> => {
+  try {
+    let response = await usersToExercisesController.updateToSolved(user_id, exercise_id);
+    return response;
+  } catch (error) {
+    return {
+      code: 500,
+      message:
+        'Unknown error occured while trying to update users_to_exercise to solved for user_id ' +
+        user_id +
+        ', exercise_id ' +
+        exercise_id,
+    };
+  }
+};
+
 export const getUsersToExercisesId = async (
   user_id: number,
   exercise_id: number
@@ -82,7 +95,10 @@ export const getUsersToExercisesId = async (
       {
         code: 500,
         message:
-          'Unknown error occured while trying to get users_to_exercises info: uid ' + user_id + ', eid ' + exercise_id,
+          'Unknown error occured while trying to get users_to_exercises info: user_id ' +
+          user_id +
+          ', exercise_id ' +
+          exercise_id,
       },
       undefined,
     ];
@@ -182,7 +198,7 @@ export const checkIfSolutionExist = async (
     if (response[0].code !== 200) return response[0];
     // console.log('new pot sol: ', normalizedPotentialSolution)
     for (let solution of response[1]) {
-        // console.log('already known sol: ', solution.normalized_query);
+      // console.log('already known sol: ', solution.normalized_query);
       if (normalizedPotentialSolution === solution.normalized_query) {
         // console.log('solution already exists: ', solution.normalized_query);
         return { code: 200, message: 'Solution already exists' };
@@ -204,10 +220,7 @@ export const editSolutionBeforeSaving = (solution: string): string => {
   return solution;
 };
 
-export const proccessNewSolution = async (
-  exercise_id: number,
-  potentialSolution: string
-): Promise<GeneralResponse> => {
+export const proccessNewSolution = async (exercise_id: number, potentialSolution: string): Promise<GeneralResponse> => {
   potentialSolution = editSolutionBeforeSaving(potentialSolution);
   let response: ProcessNewSolutionResponse;
 
@@ -220,11 +233,11 @@ export const proccessNewSolution = async (
   response = await checkIfSolutionExist(exercise_id, normalizedPotentialSolution);
   if (response.code === 200 && response.message === 'Solution does not exist yet') {
     response = await insertNewSolution(
-        exercise_id,
-        potentialSolution,
-        normalizedPotentialSolution,
-        JSON.stringify(ast)
-      );
+      exercise_id,
+      potentialSolution,
+      normalizedPotentialSolution,
+      JSON.stringify(ast)
+    );
   }
   return response;
 };

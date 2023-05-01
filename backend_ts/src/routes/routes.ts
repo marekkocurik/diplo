@@ -10,7 +10,7 @@ import {
   getQueryTestResult,
   getQuerySubmitResult,
 } from '../endpointControllers/exercise/exercise';
-// import { getHelp } from '../controllers/help/helper';
+import { getHelp } from '../endpointControllers/help/helper';
 import { jwt_secret, fe_ip_address } from '../env-config';
 const jwt = require('jsonwebtoken');
 
@@ -38,7 +38,7 @@ export default async function routes(server: any) {
     reply.code(200).send({ message: 'Ya man LETS GOO' });
   };
 
-  // server.get('/maintenance/database-update', updateDatabase);
+  server.get('/maintenance/database-update', updateDatabase);
   // server.get('/test-ast', testAST);
   server.get('/hello', sayHello);
   server.post('/auth/login', userLogin);
@@ -53,5 +53,5 @@ export default async function routes(server: any) {
   server.get('/home/query-test-result', { preHandler: checkJWT }, getQueryTestResult);
   server.get('/home/query-submit-result', { preHandler: checkJWT }, getQuerySubmitResult);
   server.post('/home/profile/change-password', { preHandler: checkJWT }, changeUserPassword);
-  // server.get('/home/get-help', { preHandler: checkJWT }, getHelp);
+  server.get('/home/get-help', { preHandler: checkJWT }, getHelp);
 }

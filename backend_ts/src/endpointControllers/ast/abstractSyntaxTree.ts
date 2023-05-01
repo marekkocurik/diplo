@@ -326,9 +326,10 @@ const testAll = async (): Promise<[GeneralResponse, QueryCompare[]]> => {
 export const createASTForQuery = (query: string): [GeneralResponse, AST | null] => {
   try {
     let ast = parser.astify(query, opt);
-    return [{code:200, message: 'OK'}, ast];
+    if (Array.isArray(ast)) ast = ast[0];
+    return [{ code: 200, message: 'OK' }, ast];
   } catch (error) {
-    return [{code:500, message: 'Failed to create AST for query: ' + query}, null];
+    return [{ code: 500, message: 'Failed to create AST for query: ' + query }, null];
   }
 };
 

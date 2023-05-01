@@ -16,6 +16,8 @@ import {
   editQueryToSecondScheme,
   proccessNewSolution,
   processNewAnswerReturningId,
+  getUsersToExercisesId,
+  updateUsersToExerciseToSolved,
 } from './exerciseFunctions';
 
 type ExerciseTreeResponse =
@@ -201,7 +203,7 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
     reply.code(response[0].code).send({ message: response[0].message });
     return;
   }
-  const queryTestResultPrimaryDatabase: [GeneralResponse, QueryTestResponse] = response;
+  const queryTestResultPrimaryDatabase = response as [GeneralResponse, QueryTestResponse];
   let solutionSuccess = response[0].code === 400 ? 'ERROR' : response[1].queriesResultsMatch ? 'PARTIAL' : 'WRONG';
 
   if (queryTestResultPrimaryDatabase[0].code === 200 && solutionSuccess === 'PARTIAL') {
@@ -215,7 +217,7 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
       const res = response[0];
       let queryResultInfo = {
         solutionSuccess: 'COMPLETE',
-        queryResult: response[1].queryResult
+        queryResult: response[1].queryResult,
       };
       response = await processNewAnswerReturningId(
         user_id,
@@ -229,6 +231,13 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
         reply.code(response[0].code).send({ message: response[0].message });
         return;
       }
+
+      response = await updateUsersToExerciseToSolved(user_id, exerciseId);
+      if (response.code !== 200) {
+        reply.code(response.code).send({ message: response.message });
+        return;
+      }
+
       response = await proccessNewSolution(exerciseId, queryToExecute);
       if (response.code !== 200) {
         // TODO: user case: solution je spravne, ale nejde ulozit - co s tym chcem spravit? Mozem vytvorit nejaky proces, ktory raz za cas prebehne answers a porovna, ci vsetky success = 'COMPLETE' su aj v users.solutions

@@ -77,12 +77,14 @@ const getTablesAndAliasesFromAST = (ast: ASTObject): TableWithAlias[] => {
   return twa;
 };
 
-const getTableNamesAliasesAndColumnsFromQuery = async (query: string): Promise<[GeneralResponse, TableWithAliasAndColumns[]]> => {
+const getTableNamesAliasesAndColumnsFromQuery = async (
+  query: string
+): Promise<[GeneralResponse, TableWithAliasAndColumns[]]> => {
   const ast = parser.astify(query, opt);
   if (Array.isArray(ast)) {
-    if ((ast[0].type as string).toLowerCase() === 'insert') return [{code:200, message: 'OK'}, [] ];
+    if ((ast[0].type as string).toLowerCase() === 'insert') return [{ code: 200, message: 'OK' }, []];
   } else {
-    if ((ast.type as string).toLowerCase() === 'insert') return [{code:200, message: 'OK'}, [] ];
+    if ((ast.type as string).toLowerCase() === 'insert') return [{ code: 200, message: 'OK' }, []];
   }
 
   const tablesWithAliasesAndColumns = getTablesAndAliasesFromAST(ast);
@@ -90,18 +92,18 @@ const getTableNamesAliasesAndColumnsFromQuery = async (query: string): Promise<[
   try {
     for (let obj of tablesWithAliasesAndColumns) {
       let [response, result] = await tableController.getAllTableColumns('cd', obj.table.toLocaleLowerCase());
-      if (response.code !== 200) return [{ code:response.code, message: response.message}, []];
+      if (response.code !== 200) return [{ code: response.code, message: response.message }, []];
       let tmptac = {
         table: obj.table,
         as: obj.as,
-        columns: result.map(x => x.column_name),
+        columns: result.map((x) => x.column_name),
       };
       tac.push(tmptac);
     }
   } catch (error) {
-    return [{code:500, message: 'Failed'}, []];
+    return [{ code: 500, message: 'Failed' }, []];
   }
-  return [{code: 200, message: 'OK'}, tac];
+  return [{ code: 200, message: 'OK' }, tac];
 };
 
 const replaceTableAliasesWithTableName = (query: string, tac: TableWithAliasAndColumns[]): string => {
@@ -190,7 +192,7 @@ export const normalizeQuery = async (query: string): Promise<[GeneralResponse, s
   let newQuery = queryToUpperCase(query);
   try {
     let [response, tablesAliasesAndColumns] = await getTableNamesAliasesAndColumnsFromQuery(newQuery);
-    if (response.code !== 200) return [{ code: response.code, message: response.message}, '' ];
+    if (response.code !== 200) return [{ code: response.code, message: response.message }, ''];
     newQuery = replaceTableAliasesWithTableName(newQuery, tablesAliasesAndColumns);
     //TODO: odstranit useless aliasy (SELECT * FROM cd.facilities as F)
     // console.log(newQuery);
@@ -199,8 +201,8 @@ export const normalizeQuery = async (query: string): Promise<[GeneralResponse, s
     newQuery = removeTableAliases(newQuery, tablesAliasesAndColumns);
     newQuery = removeColumnAliases(newQuery, tablesAliasesAndColumns);
     // newQuery = sortQueryAlphabetically(newQuery);
-    return [{code: 200, message: 'OK'}, newQuery];
+    return [{ code: 200, message: 'OK' }, newQuery];
   } catch (error) {
-    return [{code:500, message: 'Something went wrong while trying to normalize query'}, ''];
+    return [{ code: 500, message: 'Something went wrong while trying to normalize query' }, ''];
   }
 };
