@@ -1,5 +1,6 @@
 import { AST } from 'node-sql-parser/build/postgresql';
 import { ASTObject } from './analyzer';
+import { GeneralResponse } from '../../../databaseControllers/databaseController';
 
 const diffObjects = (obj1: ASTObject, obj2: ASTObject): ASTObject => {
   let result: ASTObject = {};
@@ -12,9 +13,7 @@ const diffObjects = (obj1: ASTObject, obj2: ASTObject): ASTObject => {
       } else if (typeof value1 !== typeof value2) {
         result[key] = value1;
       } else if (typeof value1 !== 'object') {
-        if (value1 !== value2) {
-          result[key] = value1;
-        }
+        if (value1 !== value2) result[key] = value1;
       } else if (Array.isArray(value1)) {
         if (!Array.isArray(value2)) {
           result[key] = value1;
@@ -34,7 +33,7 @@ const diffObjects = (obj1: ASTObject, obj2: ASTObject): ASTObject => {
     } //else console.log('skipping:', key, ':', value1);
   }
   return result;
-}
+};
 
 const isSubQuery = (value: any): value is AST => {
   if (typeof value === 'object' && 'expr' in value && 'ast' in value['expr']) return true;
@@ -42,10 +41,9 @@ const isSubQuery = (value: any): value is AST => {
 };
 
 const getSubAST = (ast: ASTObject): ASTObject => {
-  if (typeof ast === 'object' && 'expr' in ast && 'ast' in ast['expr'])
-    return ast['expr']['ast'];
+  if (typeof ast === 'object' && 'expr' in ast && 'ast' in ast['expr']) return ast['expr']['ast'];
   return {};
-}
+};
 
 const diffArrays = (arr1: ASTObject[], arr2: ASTObject[]): ASTObject => {
   const result: any[] = [];
@@ -54,24 +52,20 @@ const diffArrays = (arr1: ASTObject[], arr2: ASTObject[]): ASTObject => {
       if (isSubQuery(x)) {
         let y = arr2.find((o2) => isSubQuery(o2) === true);
         if (y === undefined) {
-          const newAST = getSubAST(x);
-          result.push({ast: newAST});
+          result.push({ ast: getSubAST(x) });
         } else {
-          result.push({ast: diffObjects(getSubAST(x), getSubAST(y))});
+          const diff = diffObjects(getSubAST(x), getSubAST(y));
+          if (Object.keys(diff).length > 0) {
+            result.push({ast: diff})
+          }
         }
       } else result.push(x);
     }
   }
-  // for (let i = 0; i < arr1.length; i++) {
-  //   const diff = diffObjects(arr1[i], arr2[i]);
-  //   if (Object.keys(diff).length > 0) {
-  //     result[i] = diff;
-  //   }
-  // }
   return result;
-}
+};
 
-export const compareQueryASTS = (studentAST: AST, solutionAST: AST) => {
+export const compareQueryASTS = (studentAST: AST, solutionAST: AST): [GeneralResponse, ASTObject, ASTObject] => {
   console.dir(solutionAST, { depth: null });
   console.dir(studentAST, { depth: null });
   try {
@@ -81,11 +75,131 @@ export const compareQueryASTS = (studentAST: AST, solutionAST: AST) => {
     let extras = diffObjects(studentAST, solutionAST);
     console.log('extras:');
     console.dir(extras, { depth: null });
+    return [{ code: 200, message: 'OK' }, missing, extras];
   } catch (error) {
     console.log(error);
+    return [{ code: 500, message: 'Something went wrong while trying to compare ASTs' }, {}, {}];
   }
 
   /**
    * 1. ked ukladam co je missing / extras, musim si zapamatat ci je nejaka vetva nadtym, resp ci som v subquery a podobne..
    */
 };
+
+
+/**
+ * sol_ast: {
+      from: [
+        {
+          prefix: null,
+          expr: {
+            tableList: [ 'select::CD::FACILITIES' ],
+            columnList: [
+              'select::X::NAME',
+              'select::X::MEMBERCOST',
+              'select::FACILITIES::NAME',
+              'select::FACILITIES::MEMBERCOST'
+            ],
+            ast: {
+              with: null,
+              type: 'select',
+              options: null,
+              distinct: { type: null },
+              columns: [
+                {
+                  type: 'expr',
+                  expr: {
+                    type: 'column_ref',
+                    table: 'FACILITIES',
+                    column: 'NAME'
+                  },
+                  as: null
+                },
+                {
+                  type: 'expr',
+                  expr: {
+                    type: 'column_ref',
+                    table: 'FACILITIES',
+                    column: 'MEMBERCOST'
+                  },
+                  as: null
+                }
+              ],
+              into: { position: null },
+              from: [ { db: 'CD', table: 'FACILITIES', as: null } ],
+              where: null,
+              groupby: null,
+              having: null,
+              orderby: null,
+              limit: { seperator: '', value: [] },
+              window: null
+            },
+            parentheses: true
+          },
+          as: 'X'
+        }
+      ]
+    },
+    stud_ast: {
+      from: [
+        {
+          prefix: null,
+          expr: {
+            tableList: [ 'select::CD::FACILITIES' ],
+            columnList: [
+              'select::X::NAME',
+              'select::X::MEMBERCOST',
+              'select::FACILITIES::FACID',
+              'select::FACILITIES::NAME',
+              'select::FACILITIES::MEMBERCOST'
+            ],
+            ast: {
+              with: null,
+              type: 'select',
+              options: null,
+              distinct: { type: null },
+              columns: [
+                {
+                  type: 'expr',
+                  expr: {
+                    type: 'column_ref',
+                    table: 'FACILITIES',
+                    column: 'FACID'
+                  },
+                  as: null
+                },
+                {
+                  type: 'expr',
+                  expr: {
+                    type: 'column_ref',
+                    table: 'FACILITIES',
+                    column: 'NAME'
+                  },
+                  as: null
+                },
+                {
+                  type: 'expr',
+                  expr: {
+                    type: 'column_ref',
+                    table: 'FACILITIES',
+                    column: 'MEMBERCOST'
+                  },
+                  as: null
+                }
+              ],
+              into: { position: null },
+              from: [ { db: 'CD', table: 'FACILITIES', as: null } ],
+              where: null,
+              groupby: null,
+              having: null,
+              orderby: null,
+              limit: { seperator: '', value: [] },
+              window: null
+            },
+            parentheses: true
+          },
+          as: 'X'
+        }
+      ]
+    },
+ */

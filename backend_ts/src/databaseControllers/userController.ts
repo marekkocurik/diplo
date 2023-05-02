@@ -283,4 +283,46 @@ export default class UserController extends DatabaseController {
       client.release();
     }
   }
+
+  public async getUserClusterById(user_id: number): Promise<[GeneralResponse, number]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, -1];
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query = 'SELECT cluster FROM users.users WHERE id = $1;';
+      let result = await client.query(query, [user_id]);
+      if (result.rows[0] === undefined) return [{ code: 500, message: "Failed to obtain user's cluster" }, -1];
+      let response = {
+        code: 200,
+        message: 'OK',
+      };
+      return [response, result.rows[0].cluster];
+    } catch (e) {
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async updateUserClusterById(user_id: number, cluster: number): Promise<GeneralResponse> {
+    const client = await this.pool.connect();
+    if (client === undefined) return { code: 500, message: 'Error accessing database' };
+    try {
+      await client.query('SET ROLE u_executioner;');
+      await client.query('BEGIN;');
+      let query = 'UPDATE users.users SET cluster = $1 WHERE id = $2;';
+      let result = await client.query(query, [cluster, user_id]);
+      if (result.rowCount !== 1) {
+        await client.query('ROLLBACK;');
+        return { code: 500, message: "Failed to obtain user's cluster" };
+      }
+      await client.query('COMMIT;');
+      return { code: 200, message: 'OK' };
+    } catch (e) {
+      await client.query('ROLLBACK;');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
 }

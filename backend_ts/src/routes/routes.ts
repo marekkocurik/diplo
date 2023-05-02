@@ -23,6 +23,7 @@ export default async function routes(server: any) {
       if (!req.query) req.query = {};
       req.query.role = decoded.role;
       req.query.id = decoded.id;
+      req.query.cluster = decoded.cluster;
       // console.log('decoded role: ' +decoded.role, ' decoded id: ' +decoded.id);
     } catch (e) {
       console.log('token is expired');

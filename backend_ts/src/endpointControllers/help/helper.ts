@@ -5,6 +5,7 @@ import { GeneralResponse, QueryResult } from '../../databaseControllers/database
 import { ASTObject, normalizeQuery } from '../ast/lexicalAnalysis/analyzer';
 import { createASTForQuery } from '../ast/abstractSyntaxTree';
 import { compareQueryASTS } from '../ast/lexicalAnalysis/comparator';
+import { createRecommendations } from '../recommendations/recommendator';
 
 interface SolutionAttempt {
   original_query: string;
@@ -17,7 +18,7 @@ type NormalizeStudentQueryAndCreateASTResponse =
   | [GeneralResponse, string]
   | [GeneralResponse, AST | null];
 
-type GetHelpResposne = [GeneralResponse, SolutionAttempt] | [GeneralResponse, Solution[]];
+type GetHelpResposne = [GeneralResponse, SolutionAttempt] | [GeneralResponse, Solution[]] | [GeneralResponse, ASTObject, ASTObject];
 
 const normalizeStudentQueryAndCreateAST = async (
   role: string,
@@ -166,7 +167,7 @@ const prioritizeSolutions = (studentSolution: SolutionAttempt, exerciseSolutions
 };
 
 export const getHelp = async (request: any, reply: any) => {
-  const { role, exerciseId, queryToExecute } = request.query;
+  const { role, cluster, exerciseId, queryToExecute } = request.query;
   // const user_id = request.query.id;
   let response: GetHelpResposne;
   response = await normalizeStudentQueryAndCreateAST(role, queryToExecute);
@@ -186,7 +187,14 @@ export const getHelp = async (request: any, reply: any) => {
 //   console.log(prioritizedExerciseSolutions[1].original_query);
 
   // porovnanie studentovho AST s prvym AST z prioritizovanych solutions
-  compareQueryASTS(solAttempt.ast, JSON.parse(prioritizedExerciseSolutions[0].ast));
+  response = compareQueryASTS(solAttempt.ast, JSON.parse(prioritizedExerciseSolutions[0].ast));
+  if (response[0].code !== 200) {
+    reply.code(response[0].code).send({ message: response[0].message });
+    return;
+  }
+  const missing = response[1] as ASTObject;
+  const extras = response[2] as ASTObject;
+  const recs = createRecommendations(missing, extras, cluster);
 
   reply.code(200).send({ message: 'OK', solAttempt });
   return;

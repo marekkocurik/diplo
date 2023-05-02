@@ -17,17 +17,18 @@ const hashPassword = (password: string, salt: string) => {
   return SHA512(hash + pepper).toString();
 };
 
-const createToken = (role: string, id: number) => {
+const createToken = (role: string, id: number, cluster: number) => {
   const payload = {
     role: role,
     id: id,
+    cluster: cluster,
     exp: Math.floor(Date.now() / 1000) + 3600,
   };
   return jwt.sign(payload, jwt_secret);
 };
 
 type UserRegistrationResponse = [GeneralResponse, boolean] | [GeneralResponse, number] | GeneralResponse;
-type UserLoginResponse = [GeneralResponse, User_ID_Password_Salt] | [GeneralResponse, string] | GeneralResponse;
+type UserLoginResponse = [GeneralResponse, User_ID_Password_Salt] | [GeneralResponse, string] | [GeneralResponse, number] | GeneralResponse;
 type ChangePasswordResponse = [GeneralResponse, User_Password_Salt] | GeneralResponse;
 
 export const userRegistration = async (request: any, reply: any) => {
@@ -71,7 +72,7 @@ export const userLogin = async (request: any, reply: any) => {
       reply.code(response[0].code).send({ message: response[0].message });
       return;
     }
-    const dbID = response[1].id;
+    const user_id = response[1].id;
     const dbPassword = response[1].password;
     const dbSalt = response[1].salt;
     const hashedPassword = hashPassword(password, dbSalt);
@@ -81,19 +82,25 @@ export const userLogin = async (request: any, reply: any) => {
       });
       return;
     }
-    response = await userController.getUserRoleById(dbID);
+    response = await userController.getUserRoleById(user_id);
     if (response[0].code !== 200) {
       reply.code(response[0].code).send({ message: response[0].message });
       return;
     }
     const role = response[1] as string;
-    response = await userController.updateLastLoginById(dbID);
+    response = await userController.updateLastLoginById(user_id);
     if (response.code !== 200) {
       reply.code(response.code).send({ message: response.message });
       return;
     }
-    let token = createToken(role, dbID);
-    reply.code(200).send({ message: response.message, token: token });
+    response = await userController.getUserClusterById(user_id);
+    if (response[0].code !== 200) {
+      reply.code(response[0].code).send({ message: response[0].message });
+      return;
+    }
+    const cluster = response[1] as number;
+    let token = createToken(role, user_id, cluster);
+    reply.code(200).send({ message: response[0].message, token: token });
     return;
   } catch (e) {
     reply.code(500).send({ message: 'Unknown error occured while trying to login user' });

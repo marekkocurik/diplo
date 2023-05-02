@@ -194,7 +194,7 @@ export default function Exercise({ ...props }) {
             <div style={{ width: '70%' }}>
               <Form.Control
                 id="user_query"
-                style={{ resize: 'vertical', minHeight: '100%', maxHeight: '100%' }}
+                style={{ fontSize: '0.9em', resize: 'vertical', minHeight: '100%', maxHeight: '100%' }}
                 as="textarea"
                 placeholder="Write your answer here"
                 value={userQuery}
