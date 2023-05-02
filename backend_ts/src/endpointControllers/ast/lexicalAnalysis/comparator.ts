@@ -1,7 +1,7 @@
 import { AST } from 'node-sql-parser/build/postgresql';
 import { ASTObject } from './analyzer';
 
-function diffObjects(obj1: ASTObject, obj2: ASTObject): ASTObject {
+const diffObjects = (obj1: ASTObject, obj2: ASTObject): ASTObject => {
   let result: ASTObject = {};
   for (let [key, value1] of Object.entries(obj1)) {
     const value2 = obj2[key];
@@ -47,7 +47,7 @@ const getSubAST = (ast: ASTObject): ASTObject => {
   return {};
 }
 
-function diffArrays(arr1: ASTObject[], arr2: ASTObject[]): ASTObject {
+const diffArrays = (arr1: ASTObject[], arr2: ASTObject[]): ASTObject => {
   const result: any[] = [];
   for (let x of arr1) {
     if (!arr2.find((o) => JSON.stringify(o) === JSON.stringify(x))) {
