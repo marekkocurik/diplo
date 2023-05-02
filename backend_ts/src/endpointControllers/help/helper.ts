@@ -4,6 +4,7 @@ import { Solution } from '../../databaseControllers/solutionsController';
 import { GeneralResponse, QueryResult } from '../../databaseControllers/databaseController';
 import { ASTObject, normalizeQuery } from '../ast/lexicalAnalysis/analyzer';
 import { createASTForQuery } from '../ast/abstractSyntaxTree';
+import { compareQueryASTS } from '../ast/lexicalAnalysis/comparator';
 
 interface SolutionAttempt {
   original_query: string;
@@ -51,7 +52,7 @@ const getExerciseSolutions = async (exercise_id: number): Promise<[GeneralRespon
   }
 };
 
-const isSubAst = (value: any): value is AST => {
+const hasSubAst = (value: any): value is AST => {
   return typeof value === 'object' && 'ast' in value;
 };
 
@@ -59,14 +60,14 @@ const findSubAST = (obj: ASTObject): boolean => {
   if (Array.isArray(obj)) {
     for (let i = 0; i < obj.length; i++) {
       if (typeof obj[i] === 'object' && obj[i] !== null) {
-        if (isSubAst(obj[i]) || findSubAST(obj[i])) return true;
+        if (hasSubAst(obj[i]) || findSubAST(obj[i])) return true;
       }
     }
     return false;
   } else {
     for (let key in obj) {
       if (typeof obj[key] === 'object' && obj[key] !== null) {
-        if (isSubAst(obj[key]) || findSubAST(obj[key])) return true;
+        if (hasSubAst(obj[key]) || findSubAST(obj[key])) return true;
       }
     }
     return false;
@@ -181,8 +182,11 @@ export const getHelp = async (request: any, reply: any) => {
   }
   const exerciseSolutions = response[1] as Solution[];
   let prioritizedExerciseSolutions = prioritizeSolutions(solAttempt, exerciseSolutions);
+//   console.log(prioritizedExerciseSolutions[0].original_query);
+//   console.log(prioritizedExerciseSolutions[1].original_query);
 
   // porovnanie studentovho AST s prvym AST z prioritizovanych solutions
+  compareQueryASTS(solAttempt.ast, JSON.parse(prioritizedExerciseSolutions[0].ast));
 
   reply.code(200).send({ message: 'OK', solAttempt });
   return;
