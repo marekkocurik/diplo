@@ -1,8 +1,7 @@
-import { AST, AggrFunc, Column, ColumnRef, Star } from 'node-sql-parser';
-import { ASTObject, normalizeQuery } from '../ast/lexicalAnalysis/analyzer';
-import { createASTForQuery } from '../ast/abstractSyntaxTree';
-import { sortASTAlphabetically } from '../ast/lexicalAnalysis/sorter';
-// import { aggr_func } from 'node-sql-parser/ast/postgresql';
+import { AggrFunc, Column, ColumnRef, Star } from 'node-sql-parser';
+import { ASTObject } from '../ast/lexicalAnalysis/analyzer';
+// import { aggr_func, select_stmt } from 'node-sql-parser/ast/postgresql';
+
 interface Recommendation {
   type: string;
   recommendation: string[];
@@ -14,7 +13,7 @@ export interface Recommendations {
   recommendations: Recommendation[];
 }
 
-interface myAST {
+interface MyAST {
   [key: string]: {
     ast: ASTObject;
   };
@@ -55,28 +54,16 @@ const aSTModified = (ast: ASTObject): boolean => {
   //   //   return false;
 };
 
-const checkUnmodifiedASTs = (obj: myAST[] | myAST): boolean => {
-  // console.log('here i am');
-  // let k = Object.keys(obj)[0];
-  // console.dir(obj[k], {depth:null});
-  // return false;
+const checkUnmodifiedASTs = (obj: MyAST[] | MyAST): MyAST | null => {
   if (Array.isArray(obj)) {
     for (let o of obj) {
-      for (let [key, value] of Object.entries(o)) {
-        if (!aSTModified(value.ast)) return true;
-        break;
-      }
+      if (!aSTModified(o[Object.keys(o)[0]].ast)) return o;
     }
-  } else {
-    for (let [key, value] of Object.entries(obj)) {
-      if (!aSTModified(value.ast)) return true;
-      break;
-    }
-  }
-  return false;
+  } else if (!aSTModified(obj[Object.keys(obj)[0]].ast)) return obj;
+  return null;
 };
 
-const generateColumnsRecommendationsForSelect = (
+const generateSelectColumnsRecommendations = (
   obj: Column,
   diff_type: string,
   sub: boolean,
@@ -273,16 +260,20 @@ const generateColumnsRecommendationsForSelect = (
   return rec;
 };
 
-const generateFromRecommendations = (sub: boolean) => {};
-const generateWhereRecommendations = (sub: boolean) => {};
-const generateGroupByRecommendations = (sub: boolean) => {};
-const generateHavingRecommendations = (sub: boolean) => {};
-const generateOrderByRecommendations = (sub: boolean) => {};
-const generateLimitRecommendations = (sub: boolean) => {};
+const generateSelectDistinctRecommendations = () => {};
+const generateSelectFromRecommendations = (sub: boolean) => {};
+const generateSelectWhereRecommendations = (sub: boolean) => {};
+const generateSelectGroupByRecommendations = (sub: boolean) => {};
+const generateSelectHavingRecommendations = (sub: boolean) => {};
+const generateSelectOrderByRecommendations = (sub: boolean) => {};
+const generateSelectLimitRecommendations = (sub: boolean) => {};
 
-const isSubQuery = (value: any): boolean => {
-  return typeof value === 'object' && value !== null && 'ast' in value;
-};
+const generateInsertColumnsRecommendations = () => {};
+// const generate
+
+// const isSubQuery = (value: any): boolean => {
+//   return typeof value === 'object' && value !== null && 'ast' in value;
+// };
 
 const recommender = (
   diff: ASTObject,
@@ -300,13 +291,13 @@ const recommender = (
         if (typeof col_val === 'object' && col_val !== null && 'ast' in col_val) {
           const subAST = col_val['ast'] as ASTObject;
           recommender(subAST, diff_type, recs, true, 'SELECT');
-        } else recs.push(generateColumnsRecommendationsForSelect(col_val as Column, diff_type, sub, branch as string));
+        } else recs.push(generateSelectColumnsRecommendations(col_val as Column, diff_type, sub, branch as string));
       }
     }
   }
 };
 
-const checkIfContainsSubAST = (obj: ASTObject, branch: string | undefined): myAST[] | myAST | null => {
+const checkIfContainsSubAST = (obj: ASTObject, branch: string | undefined): MyAST[] | MyAST | null => {
   let asts: ASTObject[] = [];
   for (let [key, value] of Object.entries(obj)) {
     if (typeof value === 'object' && value !== null) {
@@ -359,8 +350,125 @@ const sortRecommendations = (recs: Recommendation[]): Recommendation[] => {
   return newRecs;
 };
 
-export const createRecommendations = (missing: ASTObject, extras: ASTObject, cluster: number): Recommendations => {
+const generateGeneralRecommendation = (queryType: string, branch: string, diff_type: string): string => {
+  if (queryType === 'select') {
+    if (diff_type === 'missing') {
+      return 'Apparently, it is needed to use nested query in the ' + branch === 'columns'
+        ? 'SELECT'
+        : branch.toUpperCase + ' statement. Here are some examples:\n' + branch === 'columns'
+        ? 'SELECT (SELECT ... nested query) <AS alias>, <values> FROM ...;\n' +
+          'SELECT <values>, (SELECT ... nested query), <values> FROM ...;\n'
+        : branch === 'from'
+        ? 'SELECT ... FROM (SELECT ... nested query) <AS alias>;\n' +
+          'SELECT ... FROM (SELECT ... nested query) <AS alias> WHERE ...;'
+        : branch === 'where'
+        ? 'SELECT ... FROM ... WHERE <operand> <operator> (SELECT ... nested query);\n' +
+          'SELECT ... FROM ... WHERE (SELECT ... nested query) <operator> <operand>;'
+        : 'SELECT ... FROM ... GROUP BY ... HAVING <operand> <operator> (SELECT ... nested query);\n' +
+          'SELECT ... FROM ... GROUP BY ... HAVING (SELECT ... nested query) <operator> <operand>;';
+    } else if (diff_type === 'redundant') {
+      return 'Unfortunately, there is no known solution that uses nested query in the ' + branch === 'columns'
+        ? 'SELECT'
+        : branch.toUpperCase + ' statement. Apparently, this exercise can be solved without using nested query.';
+    } else {
+      return 'Unfortunately, there is no known solution that uses nested query in the same statement as you did. ' +
+        'However, it appears nested query is needed to solve this exercise. Try using it in the ' +
+        branch ===
+        'columns'
+        ? 'SELECT'
+        : branch.toUpperCase + ' statement. Here are some examples:\n' + branch === 'columns'
+        ? 'SELECT (SELECT ... nested query) <AS alias>, <values> FROM ...;\n' +
+          'SELECT <values>, (SELECT ... nested query), <values> FROM ...;\n'
+        : branch === 'from'
+        ? 'SELECT ... FROM (SELECT ... nested query) <AS alias>;\n' +
+          'SELECT ... FROM (SELECT ... nested query) <AS alias> WHERE ...;'
+        : branch === 'where'
+        ? 'SELECT ... FROM ... WHERE <operand> <operator> (SELECT ... nested query);\n' +
+          'SELECT ... FROM ... WHERE (SELECT ... nested query) <operator> <operand>;'
+        : 'SELECT ... FROM ... GROUP BY ... HAVING <operand> <operator> (SELECT ... nested query);\n' +
+          'SELECT ... FROM ... GROUP BY ... HAVING (SELECT ... nested query) <operator> <operand>;';
+    }
+  } else if (queryType === 'insert') {
+    if (diff_type === 'missing') {
+      return (
+        'Apparently, it is needed to use nested query in the VALUES / SELECT statement. Here are some examples:\n' +
+        'INSERT INTO ... VALUES (<values>, (SELECT ... nested query), <values>);\n' +
+        'INSERT INTO ... SELECT <values>, (SELECT ... nested query), <values>;'
+      );
+    } else if (diff_type === 'redundant') {
+      return (
+        'Unfortunately, there is no known solution that uses nested query in the VALUES / SELECT statement. Apparently, ' +
+        'this exercise can be solved without using nested query.'
+      );
+    } else {
+      return (
+        'Unfortunately, there is no known solution that uses nested query in the same statement as you did. ' +
+        'However, it appears nested query is needed to solve this exercise. Try using it in different statement. Here are some examples:\n' +
+        'INSERT INTO ... VALUES (<values>, (SELECT ... nested query), <values>);\n' +
+        'INSERT INTO ... SELECT <values>, (SELECT ... nested query), <values>;'
+      );
+    }
+  } else if (queryType === 'update') {
+    if (diff_type === 'missing') {
+      return 'Apparently, it is needed to use nested query in the ' +
+        branch.toUpperCase +
+        ' statement. Here are some examples:\n' +
+        branch ===
+        'set'
+        ? 'UPDATE ... SET <column_name> = (SELECT ... nested query)\n' +
+            'UPDATE ... SET <column_name> = (SELECT ... nested query) WHERE ...'
+        : 'UPDATE ... SET ... WHERE (SELECT ... nested query) <operator> <operand>\n' +
+            'UPDATE ... SET ... WHERE <operand> <operator> (SELECT ... nested query)';
+    } else if (diff_type === 'redundant') {
+      return (
+        'Unfortunately, there is no known solution that uses nested query in the ' +
+        branch +
+        ' statement. Apparently, this exercise can be solved without using nested query.'
+      );
+    } else {
+      return 'Unfortunately, there is no known solution that uses nested query in the same statement as you did. ' +
+        'However, it appears nested query is needed to solve this exercise. Try using it in ' +
+        branch.toUpperCase +
+        ' statement. Here are some examples:\n' +
+        branch ===
+        'set'
+        ? 'UPDATE ... SET <column_name> = (SELECT ... nested query)\n' +
+            'UPDATE ... SET <column_name> = (SELECT ... nested query) WHERE ...'
+        : 'UPDATE ... SET ... WHERE (SELECT ... nested query) <operator> <operand>\n' +
+            'UPDATE ... SET ... WHERE <operand> <operator> (SELECT ... nested query)';
+    }
+  } else if (queryType === 'delete') {
+    if (diff_type === 'missing') {
+      return (
+        'Apparently, it is needed to use nested query in the WHERE statement. Here are some examples:\n' +
+        'DELETE FROM ... WHERE <operand> <operator> (SELECT ... nested query);\n' +
+        'DELETE FROM ... WHERE (SELECT ... nested query) <operator> <operand>;'
+      );
+    } else if (diff_type === 'redundant') {
+      return (
+        'Unfortunately, there is no known solution that uses nested query in the WHERE statement. Apparently, ' +
+        'this exercise can be solved without using nested query.'
+      );
+    } else {
+      return (
+        'Unfortunately, there is no known solution that uses nested query in the same statement as you did. ' +
+        'However, it appears nested query is needed to solve this exercise. Try using it in different statement. Here are some examples:\n' +
+        'DELETE FROM ... WHERE <operand> <operator> (SELECT ... nested query);\n' +
+        'DELETE FROM ... WHERE (SELECT ... nested query) <operator> <operand>;'
+      );
+    }
+  }
+  return '';
+};
+
+export const createRecommendations = (
+  queryType: string,
+  missing: ASTObject,
+  extras: ASTObject,
+  cluster: number
+): Recommendations => {
   let recs: Recommendation[] = [];
+  let generalRecommendation: string;
 
   let missing_asts; //= checkIfContainsSubAST(missing);
   let extras_asts; //= checkIfContainsSubAST(extras);
@@ -368,16 +476,19 @@ export const createRecommendations = (missing: ASTObject, extras: ASTObject, clu
   if (Object.keys(missing).length > 0 && Object.keys(extras).length === 0) {
     console.log('First case');
     console.dir(missing, { depth: null });
-    //   console.log(typeof missing.columns)
     missing_asts = checkIfContainsSubAST(missing, undefined);
     console.log('miss_asts:');
     console.dir(missing_asts, { depth: null });
 
     if (missing_asts === null) {
-        // TODO: vytvorenie odporucani
+      // recommender(missing, 'missing', recs, false, undefined);
     } else {
-      if (checkUnmodifiedASTs(missing_asts)) {
-        console.log('Found some unmodified AST');
+      const unmodifiedAST = checkUnmodifiedASTs(missing_asts);
+      if (unmodifiedAST !== null) {
+        const key = Object.keys(unmodifiedAST)[0];
+        console.log(queryType, ':', key, ':', unmodifiedAST[key]);
+        // generalRecommendation = generateGeneralRecommendation(queryType, key, 'missing');
+
         /**
          * zistim kde sa nachadza toto FULL AST a nastavim generalRecommendation na nieco ako "Based on existing solutions,
          *                                                                                      it is most likely it is needed
@@ -385,6 +496,7 @@ export const createRecommendations = (missing: ASTObject, extras: ASTObject, clu
          */
       }
       // TODO: vytvorenie odporucani
+      // recommender(missing, 'missing,', recs, false, undefined);
     }
     /**
      * ak je to null, potom:
@@ -394,7 +506,7 @@ export const createRecommendations = (missing: ASTObject, extras: ASTObject, clu
      *      a. ast je full -->      stud: normal, sol: subQuery         -> otestujem ako vyzera ked chyba cele AST
      *                                                                  -> vytvorim odporucanie, ktore povie:
      *                                                                      "Skus pouzit subQuery vo vetve X.."
-     *                                                                  -> nasledne vytvorim odporucania pre vnorene query
+     *                                                                  -> nasledne vytvorim odporucania
      *      b. ast nie je full -->  stud: subQuery, sol: subQuery, rovnake vetvy, ale studentovi v subQuery nieco chyba
      *                                                                  -> vytvorim odporucania
      */
@@ -405,6 +517,16 @@ export const createRecommendations = (missing: ASTObject, extras: ASTObject, clu
     //   console.log(typeof missing.columns)
     console.log('extras_asts:');
     console.dir(extras_asts, { depth: null });
+
+    if (extras_asts === null) {
+    } else {
+      const unmodifiedAST = checkUnmodifiedASTs(extras_asts);
+      if (unmodifiedAST !== null) {
+        const key = Object.keys(unmodifiedAST)[0];
+        console.log(queryType, ':', key, ':', unmodifiedAST[key]);
+        // generalRecommendation = generateGeneralRecommendation(queryType, key, 'missing');
+      }
+    }
     /**
      * ak to je null, potom:
      *      a. stud: normal, sol: normal                                -> vytvorim odporucania
@@ -433,6 +555,41 @@ export const createRecommendations = (missing: ASTObject, extras: ASTObject, clu
     console.dir(missing_asts, { depth: null });
     console.log('extras_asts:');
     console.dir(extras_asts, { depth: null });
+
+    if (missing_asts === null && extras_asts === null) {
+    } else if (missing_asts === null && extras_asts !== null) {
+      const extrasUnmodifiedAST = checkUnmodifiedASTs(extras_asts);
+      if (extrasUnmodifiedAST !== null) {
+        const key = Object.keys(extrasUnmodifiedAST)[0];
+        console.log(queryType, ':', key, ':', extrasUnmodifiedAST[key]);
+        generalRecommendation = generateGeneralRecommendation(queryType, key, 'both');
+        console.log('EXTRAS GENERAL RECOMMENDATION:', generalRecommendation);
+      }
+    } else if (missing_asts !== null && extras_asts === null) {
+      const missingUnmodifiedAST = checkUnmodifiedASTs(missing_asts);
+      if (missingUnmodifiedAST !== null) {
+        const key = Object.keys(missingUnmodifiedAST)[0];
+        console.log(queryType, ':', key, ':', missingUnmodifiedAST[key]);
+        generalRecommendation = generateGeneralRecommendation(queryType, key, 'both');
+        console.log('MISSING GENERAL RECOMMENDATION:', generalRecommendation);
+      }
+    } else if (missing_asts !== null && extras_asts !== null) {
+      const missingUnmodifiedAST = checkUnmodifiedASTs(missing_asts);
+      const extrasUnmodifiedAST = checkUnmodifiedASTs(extras_asts);
+      if (missingUnmodifiedAST !== null) {
+        const key = Object.keys(missingUnmodifiedAST)[0];
+        console.log(queryType, ':', key, ':', missingUnmodifiedAST[key]);
+        generalRecommendation = generateGeneralRecommendation(queryType, key, 'both');
+        console.log('MISSING GENERAL RECOMMENDATION:', generalRecommendation);
+      }
+      if (extrasUnmodifiedAST !== null) {
+        const key = Object.keys(extrasUnmodifiedAST)[0];
+        console.log(queryType, ':', key, ':', extrasUnmodifiedAST[key]);
+        generalRecommendation = generateGeneralRecommendation(queryType, key, 'both');
+        console.log('EXTRAS GENERAL RECOMMENDATION:', generalRecommendation);
+      }
+    }
+
     /**
      * ak su oboje null:
      *      a. nieco mu chyba, nieco ma navyse, NIE SU TAM AST (alebo su spravne)   -> vytvorim odporucania
@@ -459,11 +616,8 @@ export const createRecommendations = (missing: ASTObject, extras: ASTObject, clu
      */
   }
 
-  // if (missing_asts === null && extras_asts === null) {
-
-  // }
-
-  /**
+  /* if (missing_asts === null && extras_asts === null) {}
+   *
    * oboje su null ->           stud: normal, sol: normal
    * missing nie je null ->     stud: normal, sol: subQuery
    * extras nie je null ->      stud: subQuery, sol: normal
@@ -483,7 +637,7 @@ export const createRecommendations = (missing: ASTObject, extras: ASTObject, clu
   console.dir(recs, { depth: null });
   let result: Recommendations = {
     default_detail_level: cluster,
-    generalRecommendation: '',
+    generalRecommendation: '', //generalRecommendation
     recommendations: recs,
   };
   return result;

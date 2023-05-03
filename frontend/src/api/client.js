@@ -2,8 +2,8 @@ import ky from 'ky';
 
 const client = ky.extend({
   credentials: 'include',
-  prefixUrl: 'https://mk-dp-be.azurewebsites.net',
-  // prefixUrl: 'http://localhost:80',
+  // prefixUrl: 'https://mk-dp-be.azurewebsites.net',
+  prefixUrl: 'http://localhost:80',
   timeout: false,
   hooks: {
     beforeRequest: [

@@ -194,7 +194,7 @@ export const getHelp = async (request: any, reply: any) => {
   }
   const missing = response[1] as ASTObject;
   const extras = response[2] as ASTObject;
-  const recs = createRecommendations(missing, extras, cluster);
+  const recs = createRecommendations(solAttempt.ast.type, missing, extras, cluster);
 
   reply.code(200).send({ message: 'OK', solAttempt });
   return;
