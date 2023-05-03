@@ -345,4 +345,82 @@ const a = [
       ],
     },
   },
+  {
+    sol_query: '',
+    stud_query: '',
+    sol_ast: {
+      with: null,
+      type: 'select',
+      options: null,
+      distinct: { type: 'DISTINCT' },
+      columns: [
+        {
+          type: 'expr',
+          expr: {
+            type: 'binary_expr',
+            operator: '||',
+            left: {
+              type: 'binary_expr',
+              operator: '||',
+              left: { type: 'column_ref', table: 'MEMBERS', column: 'FIRSTNAME' },
+              right: { type: 'single_quote_string', value: ' ' }
+            },
+            right: { type: 'column_ref', table: 'MEMBERS', column: 'SURNAME' }
+          },
+          as: null
+        }
+      ],
+      into: { position: null },
+      from: [ { db: 'CD', table: 'MEMBERS', as: null } ],
+      where: null,
+      groupby: null,
+      having: null,
+      orderby: [
+        {
+          expr: { type: 'column_ref', table: 'MEMBERS', column: 'SURNAME' },
+          type: 'ASC',
+          nulls: null
+        }
+      ],
+      limit: { seperator: '', value: [] },
+      window: null
+    },
+    stud_ast: {
+      with: null,
+      type: 'select',
+      options: null,
+      distinct: { type: 'DISTINCT' },
+      columns: [
+        {
+          type: 'expr',
+          expr: {
+            type: 'binary_expr',
+            operator: '||',
+            left: {
+              type: 'binary_expr',
+              operator: '||',
+              left: { type: 'column_ref', table: 'MEMBERS', column: 'FIRSTNAME' },
+              right: { type: 'single_quote_string', value: ' ' }
+            },
+            right: { type: 'column_ref', table: 'MEMBERS', column: 'SURNAME' }
+          },
+          as: null
+        }
+      ],
+      into: { position: null },
+      from: [ { db: 'CD', table: 'MEMBERS', as: null } ],
+      where: null,
+      groupby: null,
+      having: null,
+      orderby: [
+        {
+          expr: { type: 'column_ref', table: 'MEMBERS', column: 'SURNAME' },
+          type: 'ASC',
+          nulls: null
+        }
+      ],
+      limit: { seperator: '', value: [] },
+      window: null
+    }
+  }
 ];

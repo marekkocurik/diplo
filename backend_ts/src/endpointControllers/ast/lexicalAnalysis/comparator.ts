@@ -24,7 +24,6 @@ const diffObjects = (obj1: ASTObject, obj2: ASTObject): ASTObject => {
           }
         }
       } else {
-        // console.log('here');
         const diff = diffObjects(value1, value2);
         if (Object.keys(diff).length > 0) {
           result[key] = diff;
@@ -66,140 +65,18 @@ const diffArrays = (arr1: ASTObject[], arr2: ASTObject[]): ASTObject => {
 };
 
 export const compareQueryASTS = (studentAST: AST, solutionAST: AST): [GeneralResponse, ASTObject, ASTObject] => {
-  console.dir(solutionAST, { depth: null });
-  console.dir(studentAST, { depth: null });
+  // console.dir(solutionAST, { depth: null });
+  // console.dir(studentAST, { depth: null });
   try {
     let missing = diffObjects(solutionAST, studentAST);
-    console.log('missing:');
-    console.dir(missing, { depth: null });
+    // console.log('missing:');
+    // console.dir(missing, { depth: null });
     let extras = diffObjects(studentAST, solutionAST);
-    console.log('extras:');
-    console.dir(extras, { depth: null });
+    // console.log('extras:');
+    // console.dir(extras, { depth: null });
     return [{ code: 200, message: 'OK' }, missing, extras];
   } catch (error) {
     console.log(error);
     return [{ code: 500, message: 'Something went wrong while trying to compare ASTs' }, {}, {}];
   }
-
-  /**
-   * 1. ked ukladam co je missing / extras, musim si zapamatat ci je nejaka vetva nadtym, resp ci som v subquery a podobne..
-   */
 };
-
-
-/**
- * sol_ast: {
-      from: [
-        {
-          prefix: null,
-          expr: {
-            tableList: [ 'select::CD::FACILITIES' ],
-            columnList: [
-              'select::X::NAME',
-              'select::X::MEMBERCOST',
-              'select::FACILITIES::NAME',
-              'select::FACILITIES::MEMBERCOST'
-            ],
-            ast: {
-              with: null,
-              type: 'select',
-              options: null,
-              distinct: { type: null },
-              columns: [
-                {
-                  type: 'expr',
-                  expr: {
-                    type: 'column_ref',
-                    table: 'FACILITIES',
-                    column: 'NAME'
-                  },
-                  as: null
-                },
-                {
-                  type: 'expr',
-                  expr: {
-                    type: 'column_ref',
-                    table: 'FACILITIES',
-                    column: 'MEMBERCOST'
-                  },
-                  as: null
-                }
-              ],
-              into: { position: null },
-              from: [ { db: 'CD', table: 'FACILITIES', as: null } ],
-              where: null,
-              groupby: null,
-              having: null,
-              orderby: null,
-              limit: { seperator: '', value: [] },
-              window: null
-            },
-            parentheses: true
-          },
-          as: 'X'
-        }
-      ]
-    },
-    stud_ast: {
-      from: [
-        {
-          prefix: null,
-          expr: {
-            tableList: [ 'select::CD::FACILITIES' ],
-            columnList: [
-              'select::X::NAME',
-              'select::X::MEMBERCOST',
-              'select::FACILITIES::FACID',
-              'select::FACILITIES::NAME',
-              'select::FACILITIES::MEMBERCOST'
-            ],
-            ast: {
-              with: null,
-              type: 'select',
-              options: null,
-              distinct: { type: null },
-              columns: [
-                {
-                  type: 'expr',
-                  expr: {
-                    type: 'column_ref',
-                    table: 'FACILITIES',
-                    column: 'FACID'
-                  },
-                  as: null
-                },
-                {
-                  type: 'expr',
-                  expr: {
-                    type: 'column_ref',
-                    table: 'FACILITIES',
-                    column: 'NAME'
-                  },
-                  as: null
-                },
-                {
-                  type: 'expr',
-                  expr: {
-                    type: 'column_ref',
-                    table: 'FACILITIES',
-                    column: 'MEMBERCOST'
-                  },
-                  as: null
-                }
-              ],
-              into: { position: null },
-              from: [ { db: 'CD', table: 'FACILITIES', as: null } ],
-              where: null,
-              groupby: null,
-              having: null,
-              orderby: null,
-              limit: { seperator: '', value: [] },
-              window: null
-            },
-            parentheses: true
-          },
-          as: 'X'
-        }
-      ]
-    },
- */
