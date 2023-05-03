@@ -31,17 +31,6 @@ CREATE TABLE users.users_to_roles (
     FOREIGN KEY (role_id) REFERENCES users.roles(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
-CREATE TABLE users.ratings (
-  id SERIAL PRIMARY KEY,
-  user_id INT NOT NULL,
-  rating INT,
-  type VARCHAR(20),
-  visited BOOLEAN,
-  detail_level INT,
-  date TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
 CREATE TABLE users.chapters (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50),
@@ -76,6 +65,17 @@ CREATE TABLE users.users_to_exercises (
     finished BOOLEAN DEFAULT false,
     FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE TABLE users.ratings (
+  id SERIAL PRIMARY KEY,
+  users_to_exercises_id INT NOT NULL,
+  rating INT,
+  type VARCHAR(20),
+  visited BOOLEAN,
+  detail_level INT,
+  date TIMESTAMP,
+  FOREIGN KEY (users_to_exercises_id) REFERENCES users.users_to_exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 CREATE TABLE users.answers (
