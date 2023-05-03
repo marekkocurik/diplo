@@ -105,21 +105,22 @@ export default function Exercise({ ...props }) {
         setUserQueryResult(result.queryResultInfo.queryResult);
         setUserQueryErrorMsg('');
       } catch (err) {
-        console.log('Error caught')
+        console.log('Error caught');
         const { message } = await err.response.json();
         console.log('setting error message to: ', message);
         setUserQueryErrorMsg(message);
       }
 
-      !(userQuery.trim().length === 0) && dispatch(
-        historyUpdated({
-          id: result === undefined ? -1 : result.queryResultInfo.id,
-          submit_attempt: !test,
-          query: userQuery,
-          solution_success: result === undefined ? 'ERROR' : result.queryResultInfo.solutionSuccess,
-          date: Date.now(),
-        })
-      );
+      !(userQuery.trim().length === 0) &&
+        dispatch(
+          historyUpdated({
+            id: result === undefined ? -1 : result.queryResultInfo.id,
+            submit_attempt: !test,
+            query: userQuery,
+            solution_success: result === undefined ? 'ERROR' : result.queryResultInfo.solutionSuccess,
+            date: Date.now(),
+          })
+        );
       result?.queryResultInfo.solutionSuccess === 'COMPLETE' &&
         dispatch(
           solutionsUpdated({
@@ -191,7 +192,7 @@ export default function Exercise({ ...props }) {
             className="py-2 px-1"
             style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '50vh' }}
           >
-            <div style={{ width: '70%' }}>
+            <div style={{ width: '50%' }}>
               <Form.Control
                 id="user_query"
                 style={{ fontSize: '0.9em', resize: 'vertical', minHeight: '100%', maxHeight: '100%' }}
@@ -203,7 +204,10 @@ export default function Exercise({ ...props }) {
             </div>
             <div className="px-2" style={{ width: '10%', display: 'flex', flexDirection: 'column' }}>
               <div style={{ width: '100%' }}>
-                <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleGivingHelp}>
+                <Button
+                  style={{ width: '8vw', backgroundColor: '#2666CF' }}
+                  // onClick={handleGivingHelp}
+                >
                   Help
                 </Button>
               </div>

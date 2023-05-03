@@ -8,11 +8,13 @@ import { useAccordionButton } from 'react-bootstrap/AccordionButton';
 import _ from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { treeLoaded } from '../../../store/slices/exerciseSlice';
+import { selectActiveChapter } from '../../../store/selectors';
 
 export default function ExerciseTree({ ...props }) {
   const navigate = useNavigate();
 
   const [searchParams] = useSearchParams();
+  const activeChapterId = useSelector(selectActiveChapter)?.id;
   const [expandedChapter, setExpandedChapter] = useState(null);
   let activeTask = searchParams.get('id');
   const dispatch = useDispatch();
@@ -28,20 +30,13 @@ export default function ExerciseTree({ ...props }) {
     }
   };
 
-  const initAccordion = async () => {
-    const c_id = searchParams.get('id').split('-')[0];
-    const chapter = exerciseTree.find((item) => item._id === parseInt(c_id));
-    setExpandedChapter(chapter.id);
-  };
+  useEffect(() => {
+    setExpandedChapter(activeChapterId);
+  }, [activeChapterId]);
 
   useEffect(() => {
     initialize();
   }, []);
-
-  useEffect(() => {
-    activeTask = searchParams.get('id');
-    if (activeTask && exerciseTree?.length) initAccordion();
-  }, [searchParams.get('id')]);
 
   const ChapterMenuElement = ({ children, eventKey, active, chapterSolved, ...props }) => {
     const updateAccordion = useAccordionButton(eventKey);
@@ -72,12 +67,13 @@ export default function ExerciseTree({ ...props }) {
 
     return (
       <motion.div
-        className="py-2 px-3 font-weight-300 clickable"
+        className="py-2 px-3 clickable"
         onClick={exerciseClick}
         initial={false}
         animate={{
           opacity: active ? 1 : 0.55,
-          fontSize: active ? '0.9em' : '0.7em',
+          fontSize: '0.7em',
+          fontWeight: active ? 600 : 300,
           backgroundColor: exerciseSolved ? '#03C988' : exerciseStarted ? 'yellow' : 'white',
         }}
         whileHover={!active && { opacity: 0.8 }}

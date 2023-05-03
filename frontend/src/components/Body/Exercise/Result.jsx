@@ -29,14 +29,15 @@ export default function Result({ table_name, queryResult, errorMessage, ...props
       <div
         style={{
           width: '100%',
-          height: '40vh',
+          minHeight: '10vh',
+          maxHeight: '40vh',
           overflowY: 'auto',
           overscrollBehavior: 'contain',
         }}
       >
         {errorMessage ? (
           errorMessage
-        ) : queryResult ? (
+        ) : queryResult?.length ? (
           <Table striped bordered hover style={{ fontSize: '0.7em' }}>
             <thead>
               <tr>
@@ -65,7 +66,7 @@ export default function Result({ table_name, queryResult, errorMessage, ...props
             style={{ color: '#aaa' }}
             className="loading-content w-100 h-100 d-flex justify-content-center align-items-center"
           >
-            No solution.
+            {queryResult && !queryResult.length ? '0 rows returned.' : 'No solution.'}
           </div>
         )}
       </div>
