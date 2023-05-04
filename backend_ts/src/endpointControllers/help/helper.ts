@@ -183,11 +183,20 @@ export const getHelp = async (request: any, reply: any) => {
   }
   const exerciseSolutions = response[1] as Solution[];
   let prioritizedExerciseSolutions = prioritizeSolutions(solAttempt, exerciseSolutions);
+
+  // console.log('Selected solution AST:');
   // console.dir(JSON.parse(prioritizedExerciseSolutions[0].ast), {depth:null});
-//   console.log(prioritizedExerciseSolutions[0].original_query);
-//   console.log(prioritizedExerciseSolutions[1].original_query);
+
+  console.log('User query AST:');
+  const x = createASTForQuery(queryToExecute);
+  console.dir(x, {depth:null});
+
+  console.log('User query AST normalized:');
+  const xx = (await normalizeStudentQueryAndCreateAST(role, queryToExecute))[1].ast;
+  console.dir(xx, {depth:null});
 
   // porovnanie studentovho AST s prvym AST z prioritizovanych solutions
+
   response = compareQueryASTS(solAttempt.ast, JSON.parse(prioritizedExerciseSolutions[0].ast));
   if (response[0].code !== 200) {
     reply.code(response[0].code).send({ message: response[0].message });
@@ -197,6 +206,6 @@ export const getHelp = async (request: any, reply: any) => {
   const extras = response[2] as ASTObject;
   const recs = createRecommendations(JSON.parse(prioritizedExerciseSolutions[0].ast).type, missing, extras, cluster);
 
-  reply.code(200).send({ message: 'OK', solAttempt });
+  reply.code(200).send({ message: 'OK', solAttempt});
   return;
 };

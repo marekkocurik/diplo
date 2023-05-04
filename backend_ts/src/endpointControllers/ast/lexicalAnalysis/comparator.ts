@@ -59,7 +59,7 @@ const diffArrays = (arr1: ASTObject[], arr2: ASTObject[]): ASTObject => {
           result.push({ ast: getSubAST(x) });
         } else {
           const diff = diffObjects(getSubAST(x), getSubAST(y), true);
-          if (Object.keys(diff).length > 0) {
+          if (Object.keys(diff).length > 1) {
             // let newObj: { [key: string]: any } = {};
             // newObj[parent] = { ast: diff };
             // result.push(newObj);
@@ -77,11 +77,11 @@ export const compareQueryASTS = (studentAST: AST, solutionAST: AST): [GeneralRes
   // console.dir(studentAST, { depth: null });
   try {
     let missing = diffObjects(solutionAST, studentAST, false);
-    console.log('missing:');
-    console.dir(missing, { depth: null });
+    // console.log('missing:');
+    // console.dir(missing, { depth: null });
     let extras = diffObjects(studentAST, solutionAST, false);
-    console.log('extras:');
-    console.dir(extras, { depth: null });
+    // console.log('extras:');
+    // console.dir(extras, { depth: null });
     return [{ code: 200, message: 'OK' }, missing, extras];
   } catch (error) {
     console.log(error);

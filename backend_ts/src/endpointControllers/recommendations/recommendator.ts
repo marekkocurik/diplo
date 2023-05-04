@@ -1,10 +1,20 @@
-import { AggrFunc, Column, ColumnRef, Star } from 'node-sql-parser';
 import { ASTObject } from '../ast/lexicalAnalysis/analyzer';
-// import { aggr_func, select_stmt } from 'node-sql-parser/ast/postgresql';
+import {
+  BINARY_OPERATORS,
+  additive_expr,
+  aggr_filter,
+  aggr_func,
+  binary_expr,
+  count_arg,
+  distinct_args,
+  expr,
+  over_partition,
+} from 'node-sql-parser/ast/postgresql';
 
 interface Recommendation {
   query_type: string;
   statement: string;
+  parent_query_type: string | undefined;
   parent_statement: string | undefined;
   recommendation: string[];
 }
@@ -21,9 +31,32 @@ interface MyAST {
   };
 }
 
-interface MyArgs {
-  expr: ColumnRef | Star;
+type MyColumnRef = {
+  type: 'column_ref';
+  table: string;
+  column: string;
+};
+
+interface MySelectColumn {
+  type: string;
+  expr: MyColumnRef | aggr_func | binary_expr;
+  as: string | undefined;
 }
+
+type MyAggrFunc = {
+  type: 'aggr_func';
+  name: string;
+  args: { expr: additive_expr | MyColumnRef } | count_arg;
+  over: over_partition;
+  filter?: aggr_filter;
+};
+
+type MyExpr = {
+  type: 'binary_expr';
+  operator: BINARY_OPERATORS;
+  left: expr | MyColumnRef;
+  right: expr | MyColumnRef;
+};
 
 const aSTModified = (ast: ASTObject): boolean => {
   const keys_select = [
@@ -61,249 +94,519 @@ const checkUnmodifiedASTs = (obj: MyAST[] | MyAST): MyAST | null => {
 };
 
 const generateSelectColumnsRecommendations = (
-  query_type: string,
-  obj: Column,
+  obj: MySelectColumn,
   diff_type: string,
   sub: boolean,
-  branch: string | undefined
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
 ): Recommendation => {
-  console.log('generating SELECT recommendations for obj:');
-  console.dir(obj, { depth: null });
-  let o;
   let rec = {
-    query_type: query_type,
+    query_type: 'SELECT',
     statement: 'SELECT',
-    parent_statement: branch,
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
     recommendation: [] as string[],
   };
-
-  if (!sub) {
-    if (diff_type === 'missing') {
-      if (obj.expr.type === 'column_ref') {
-        o = obj.expr as ColumnRef;
-        rec.recommendation.push(
-          'Make sure the SELECT statement includes ALL the required columns and their required aliases.'
-        );
-        rec.recommendation.push(
-          o.column + (obj.as ? ' AS ' + obj.as : '') + ' column is missing in the SELECT statement.'
-        );
-        rec.recommendation.push(
-          (o.table as string) +
-            '.' +
-            o.column +
-            (obj.as ? ' AS ' + obj.as : '') +
-            ' column is missing in the SELECT statement.'
-        );
-      } else if (obj.expr.type === 'aggr_func') {
-        // TODO: !SUB, MISSING, aggr_func
-        o = obj.expr as AggrFunc;
-        rec.recommendation.push(
-          'Make sure the SELECT statement includes ALL the required aggregate functions and their required aliases.'
-        );
-        rec.recommendation.push(
-          'Aggregate function ' +
-            o.name +
-            '(...)' +
-            (obj.as ? ' AS ' + obj.as : '') +
-            ' in the SELECT statement is missing or contains invalid values.'
-        );
-        if (o.args !== null) {
-          const args = o.args as unknown as MyArgs;
-          if (args.expr.type === 'column_ref') {
-            rec.recommendation.push(
-              'Aggregate function ' +
-                o.name +
-                '(' +
-                (args.expr.table as string) +
-                '.' +
-                args.expr.column +
-                ')' +
-                (obj.as ? ' AS ' + obj.as : '') +
-                ' is missing in the SELECT statement.'
-            );
-          } else if (args.expr.type === 'star') {
-            rec.recommendation.push(
-              'Aggregate function ' +
-                o.name +
-                '(*)' +
-                (obj.as ? ' AS ' + obj.as : '') +
-                ' is missing in the SELECT statement.'
-            );
-          }
-          //   else if (o.args?.type === 'aggr_func') {
-          //     rec.recommendation.push(
-          //       'Aggregate function ' +
-          //         o.name +
-          //         '(' +
-          //         o.args.name +
-          //         '(...))' +
-          //         (obj.as ? ' AS ' + obj.as : '') +
-          //         ' is missing in the SELECT statement.'
-          //     );
-          //   }
-        }
-      }
-    } else if (diff_type === 'extra') {
-      if (obj.expr.type === 'column_ref') {
-        o = obj.expr as ColumnRef;
-        rec.recommendation.push('Make sure the SELECT statement includes ONLY the required columns.');
-        rec.recommendation.push(
-          o.column + (obj.as ? ' AS ' + obj.as : '') + ' column is redundant in the SELECT statement.'
-        );
-        rec.recommendation.push(
-          (o.table as string) +
-            '.' +
-            o.column +
-            (obj.as ? ' AS ' + obj.as : '') +
-            ' column is redundant in the SELECT statement.'
-        );
-      } else if (obj.expr.type === 'aggr_func') {
-        // TODO: !SUB, EXTRA, aggr_func
-        o = obj.expr as AggrFunc;
-        rec.recommendation.push(
-          'Make sure the SELECT statement includes ONLY the required aggregate functions and their required aliases.'
-        );
-        rec.recommendation.push(
-          'Aggregate function ' +
-            o.name +
-            '(...)' +
-            (obj.as ? ' AS ' + obj.as : '') +
-            ' in the SELECT statement is redundant or contains invalid values.'
-        );
-        if (o.args !== null) {
-          const args = o.args as unknown as MyArgs;
-          if (args.expr.type === 'column_ref') {
-            rec.recommendation.push(
-              'Aggregate function ' +
-                o.name +
-                '(' +
-                (args.expr.table as string) +
-                '.' +
-                args.expr.column +
-                ')' +
-                (obj.as ? ' AS ' + obj.as : '') +
-                ' is redundant in the SELECT statement.'
-            );
-          } else if (args.expr.type === 'star') {
-            rec.recommendation.push(
-              'Aggregate functioo ' +
-                o.name +
-                '(*)' +
-                (obj.as ? ' AS ' + obj.as : '') +
-                ' is redundant in the SELECT statement.'
-            );
-          }
-          //   else if (o.args?.type === 'aggr_func') {
-          //     rec.recommendation.push(
-          //       'Aggregate function ' +
-          //         o.name +
-          //         '(' +
-          //         o.args.name +
-          //         '(...))' +
-          //         (obj.as ? ' AS ' + obj.as : '') +
-          //         ' is redundant in the SELECT statement.'
-          //     );
-          //   }
-        }
-      }
+  let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
+  let diff_message0 = diff_type === 'missing' ? 'ALL' : 'ONLY';
+  if (!('expr' in obj && 'type' in obj.expr)) {
+    let message =
+      'An uknown object has been found in the SELECT statement' +
+      (sub ? sub_message : '') +
+      '. Please report this as bug, stating the chapter number, exercise number and your query. Thank you! Your help is much appreciated.';
+    rec.recommendation.push(message, message, message);
+  } else if (obj.expr.type === 'column_ref') {
+    let o = obj.expr as MyColumnRef;
+    let message0 =
+      'Make sure the SELECT statement' +
+      (sub ? sub_message : '') +
+      ' includes ' +
+      diff_message0 +
+      ' the required columns and their required aliases.';
+    let message1 = o.column + ' is ' + diff_type + ' in the SELECT statement' + (sub ? sub_message : '') + '.';
+    let message2 =
+      o.table +
+      '.' +
+      o.column +
+      (obj.as ? ' AS ' + obj.as : '') +
+      ' column is ' +
+      diff_type +
+      ' in the SELECT statement.';
+    rec.recommendation.push(message0, message1, message2);
+  } else if (obj.expr.type === 'aggr_func') {
+    let o = obj.expr as MyAggrFunc;
+    let message0 =
+      'Make sure the SELECT statement' +
+      (sub ? sub_message : '') +
+      ' includes ' +
+      diff_message0 +
+      ' the required aggregate functions and their required aliases.';
+    let message1 =
+      'Aggregate function ' +
+      o.name +
+      '(...)' +
+      (obj.as ? ' AS ' + obj.as : '') +
+      ' in the SELECT statement' +
+      (sub ? sub_message : '') +
+      ' is ' +
+      diff_type +
+      ' or contains invalid values.';
+    let message2 = 'Aggregate function ';
+    if ('type' in o.args.expr && o.args.expr.type === 'star') {
+      message2 += o.name + '(*)' + (obj.as ? ' AS ' + obj.as : '');
+    } else if ('distinct' in o.args) {
+      // TODO: zistit co je to za pripad, kedy je distinct v args
+      let dis = o.args as distinct_args;
+      message2 += o.name + '(...)' + (obj.as ? ' AS ' + obj.as : '');
+    } else if ('type' in o.args.expr && o.args.expr.type === 'binary_expr') {
+      let ober = o.args.expr as binary_expr;
+      message2 += o.name + '(... ' + ober.operator + ' ...)' + (obj.as ? ' AS ' + obj.as : '');
+    } else if ('type' in o.args.expr && o.args.expr.type === 'column_ref') {
+      let col = o.args.expr as MyColumnRef;
+      message2 += o.name + '(' + col.table + '.' + col.column + ')' + (obj.as ? ' AS ' + obj.as : '');
     }
-  } else if (sub) {
-    // TODO: toto som este nekontroloval
-    if (diff_type === 'missing') {
-      if (obj.expr.type === 'column_ref') {
-        o = obj.expr as ColumnRef;
-        rec.recommendation.push(
-          'Make sure the SELECT statement of the NESTED QUERY in the ' +
-            branch +
-            ' statement includes ALL the required columns.'
-        );
-        rec.recommendation.push(
-          o.column + ' column is missing in the ' + branch + ' statement of the NESTED QUERY in the SELECT statement.'
-        );
-        rec.recommendation.push(
-          (o.table as string) +
-            '.' +
-            o.column +
-            ' column is missing in the ' +
-            branch +
-            ' statement of the NESTED QUERY in the SELECT statement.'
-        );
-      } else {
-        // TODO: SUB, MISSING, aggr_func
-        o = obj.expr as AggrFunc;
-      }
-    } else {
-      if (obj.expr.type === 'column_ref') {
-        o = obj.expr as ColumnRef;
-        rec.recommendation.push(
-          'Make sure the SELECT statement of the NESTED QUERY in the ' +
-            branch +
-            ' statement includes ONLY the required columns.'
-        );
-        rec.recommendation.push(
-          o.column + ' column is redundant in the ' + branch + ' statement of the NESTED QUERY in the SELECT statement.'
-        );
-        rec.recommendation.push(
-          (o.table as string) +
-            '.' +
-            o.column +
-            ' column is redundant in the ' +
-            branch +
-            ' statement of the NESTED QUERY in the SELECT statement.'
-        );
-      } else {
-        // TODO: SUB, EXTRA, aggr_func
-        o = obj.expr as AggrFunc;
-      }
+    message2 +=
+      ' in the SELECT statement' + (sub ? sub_message : '') + ' is ' + diff_type + ' or contains invalid values.';
+    rec.recommendation.push(message0, message1, message2);
+  } else if (obj.expr.type === 'binary_expr') {
+    let o = obj.expr as MyExpr;
+    let message0 =
+      'Make sure the SELECT statement' +
+      (sub ? sub_message : '') +
+      ' includes ' +
+      diff_message0 +
+      ' the required binary expressions and their required aliases.';
+    let message1 =
+      "Binary expression '... " +
+      o.operator +
+      " ...'" +
+      (obj.as ? ' AS ' + obj.as : '') +
+      ' in the SELECT statement' +
+      (sub ? sub_message : '') +
+      ' is ' +
+      diff_type +
+      ' or contains invalid values.';
+    let message2 = 'Binary expression ';
+    if (o.left.type === 'column_ref' && o.right.type === 'column_ref') {
+      message2 +=
+        '(' +
+        o.left.table +
+        '.' +
+        o.left.column +
+        ' ' +
+        o.operator +
+        ' ' +
+        o.right.table +
+        '.' +
+        o.right.column +
+        ')' +
+        (obj.as ? ' AS ' + obj.as : '') +
+        ' in the SELECT statement' +
+        (sub ? sub_message : '') +
+        ' is ' +
+        diff_type +
+        ' or contains invalid values.';
+    } else if (o.left.type === 'column_ref' && o.right.type !== 'column_ref') {
+      message2 +=
+        '(' +
+        o.left.table +
+        '.' +
+        o.left.column +
+        ' ' +
+        o.operator +
+        ' ...)' +
+        (obj.as ? ' AS ' + obj.as : '') +
+        ' in the SELECT statement' +
+        (sub ? sub_message : '') +
+        ' is ' +
+        diff_type +
+        ' or contains invalid values.';
+    } else if (o.left.type !== 'column_ref' && o.right.type === 'column_ref') {
+      message2 +=
+        '(... ' +
+        o.operator +
+        ' ' +
+        o.right.table +
+        '.' +
+        o.right.column +
+        ')' +
+        (obj.as ? ' AS ' + obj.as : '') +
+        ' in the SELECT statement' +
+        (sub ? sub_message : '') +
+        ' is ' +
+        diff_type +
+        ' or contains invalid values.';
     }
+    rec.recommendation.push(message0, message1, message2);
+  } else {
+    let message =
+      'An uknown object has been found in the SELECT statement' +
+      (sub ? ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement' : '') +
+      '. Please report this as bug, stating the chapter number, exercise number and your query. Thank you! Your help is much appreciated.';
+    rec.recommendation.push(message, message, message);
   }
   return rec;
 };
 
-const generateSelectDistinctRecommendations = () => {};
-const generateSelectFromRecommendations = (sub: boolean) => {};
-const generateSelectWhereRecommendations = (sub: boolean) => {};
-const generateSelectGroupByRecommendations = (sub: boolean) => {};
-const generateSelectHavingRecommendations = (sub: boolean) => {};
-const generateSelectOrderByRecommendations = (sub: boolean) => {};
-const generateSelectLimitRecommendations = (sub: boolean) => {};
+const generateSelectDistinctRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'SELECT',
+    statement: 'DISTINCT',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
+  let diff_message0 = diff_type === 'missing' ? 'removing' : 'not removing';
+  let message0 = 'Try ' + diff_message0 + ' duplicate records in the SELECT statement' + (sub ? sub_message : '') + '.';
+  let message1 = "Key word 'DISTINCT' is " + diff_type + ' in the SELECT statement' + (sub ? sub_message : '') + '.';
+  let message2 =
+    'Try ' +
+    (diff_type === 'missing' ? 'using' : 'not using') +
+    " 'SELECT DISTINCT' in the SELECT statement" +
+    (sub ? sub_message : '') +
+    '.';
+  rec.recommendation.push(message0, message1, message2);
+  return rec;
+};
+const generateSelectFromRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'SELECT',
+    statement: 'FROM',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateSelectWhereRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'SELECT',
+    statement: 'WHERE',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateSelectGroupByRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'SELECT',
+    statement: 'GROUPBY',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateSelectHavingRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'SELECT',
+    statement: 'HAVING',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateSelectOrderByRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'SELECT',
+    statement: 'ORDERBY',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateSelectLimitRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'SELECT',
+    statement: 'LIMIT',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
 
-const generateInsertTableRecommendations = () => {};
-const generateInsertColumnsRecommendations = () => {};
-const generateInsertValuesRecommendations = () => {};
+const generateInsertTableRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'INSERT',
+    statement: 'TABLE',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateInsertColumnsRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  // INSERT INTO table(COLUMNS) --> generujem odporucania pre COLUMNS
+  let rec = {
+    query_type: 'INSERT',
+    statement: 'COLUMNS',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateInsertValuesRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  // INSERT INTO table(columns) VALUES --> generujem odporucania pre VALUES
+  // values : [ {}, {} , {}], kde {} reprezentuje 1 riadok VALUES (x,x,y,z)
+  // {} obsahuje type a value: [{x},{x},{y},{z}]
+  // ak vsak values : {}, potom sa jedna o SELECT. Ak niekde v SELECT je ast, potom o INSERT .. SELECT x,(SELECT ....),y, z
+  let rec = {
+    query_type: 'INSERT',
+    statement: 'VALUES',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateInsertSelectRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  // INSERT INTO table(columns) VALUES --> generujem odporucania pre VALUES
+  // values : [ {}, {} , {}], kde {} reprezentuje 1 riadok VALUES (x,x,y,z)
+  // {} obsahuje type a value: [{x},{x},{y},{z}]
+  // ak vsak values : {}, potom sa jedna o SELECT. Ak niekde v SELECT je ast, potom o INSERT .. SELECT x,(SELECT ....),y, z
+  let rec = {
+    query_type: 'INSERT',
+    statement: 'SELECT',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
 
-const generateUpdateTableRecommendations = () => {};
-const generateUpdateSetRecommendations = () => {};
-const generateUpdateWhereRecommendations = () => {};
+const generateUpdateTableRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'UPDATE',
+    statement: 'TABLE',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateUpdateSetRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'UPDATE',
+    statement: 'SET',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateUpdateWhereRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'UPDATE',
+    statement: 'WHERE',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
 
 // const generateDeleteTableRecommendations = () => {};
-const generateDeleteFromRecommendations = () => {};
-const generateDeleteWhereRecommendations = () => {};
+const generateDeleteFromRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'DELETE',
+    statement: 'FROM',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
+const generateDeleteWhereRecommendations = (
+  obj: ASTObject,
+  diff_type: string,
+  sub: boolean,
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
+): Recommendation => {
+  let rec = {
+    query_type: 'DELETE',
+    statement: 'WHERE',
+    parent_query_type: parent_query_type?.toUpperCase(),
+    parent_statement: parent_query_statement?.toUpperCase(),
+    recommendation: [] as string[],
+  };
+  return rec;
+};
 
 const recommender = (
-  query_type: string,
   diff: ASTObject,
   diff_type: string,
   recs: Recommendation[],
   sub: boolean,
+  query_type: string,
   branch: string | undefined
 ) => {
-  //   console.log('Checking:', diff_type, '; sub:', sub);
+  console.log('Checking:', diff_type, '; sub:', sub);
   for (let [key, value] of Object.entries(diff)) {
-    // console.log(key, ':', value);
+    console.log(key, ':', value);
     if (query_type === 'select') {
       if (key === 'columns') {
-        // value === Array? value === object?
-        for (let [col_key, col_val] of Object.entries(value)) {
-          if (typeof col_val === 'object' && col_val !== null && 'ast' in col_val) {
-            const subAST = col_val['ast'] as ASTObject;
-            recommender(query_type, subAST, diff_type, recs, true, branch ? branch : 'SELECT');
-          } else recs.push(generateSelectColumnsRecommendations(query_type, col_val as Column, diff_type, sub, branch));
+        if (Array.isArray(value) && value.length > 0) {
+          for (let [v_key, v_val] of Object.entries(value)) {
+            if (typeof v_val === 'object' && v_val !== null && 'ast' in v_val) {
+              const subAST = v_val['ast'] as ASTObject;
+              recommender(subAST, diff_type, recs, true, 'select', branch ? branch : 'select');
+            } else
+              recs.push(
+                generateSelectColumnsRecommendations(v_val, diff_type, sub, sub ? query_type : undefined, branch)
+              );
+          }
+        } else if (typeof value === 'object' && value !== null) {
+          if ('ast' in value) {
+            const subAST = value['ast'] as ASTObject;
+            recommender(subAST, diff_type, recs, true, 'select', branch ? branch : 'select');
+          } else
+            recs.push(
+              generateSelectColumnsRecommendations(value, diff_type, sub, sub ? query_type : undefined, branch)
+            );
         }
+        // for (let [col_key, col_val] of Object.entries(value)) {
+        //   if (typeof col_val === 'object' && col_val !== null && 'ast' in col_val) {
+        //     const subAST = col_val['ast'] as ASTObject;
+        //     recommender(subAST, diff_type, recs, true, 'select', branch ? branch : 'select');
+        //   } else recs.push(generateSelectColumnsRecommendations(, query_type, col_val as Column, diff_type, sub, branch));
+        // }
+      } else if (key === 'distinct') {
+        if (typeof value === 'object' && value !== null && 'type' in value) {
+          if (typeof value.type === 'string' && value.type !== null)
+            recs.push(
+              generateSelectDistinctRecommendations(value, diff_type, sub, sub ? query_type : undefined, branch)
+            );
+        }
+      } else if (key === 'from') {
+      } else if (key === 'where') {
+      } else if (key === 'groupby') {
+      } else if (key === 'having') {
+      } else if (key === 'orderby') {
+      } else if (key === 'limit') {
       }
     } else if (query_type === 'insert') {
+      if (key === 'table') {
+        // value === Array? value === object?
+      } else if (key === 'columns') {
+      } else if (key === 'values') {
+        /**
+         * ak values = []:
+         *    -> INSERT INTO ... VALUES (x,x,z),(a,b,c),(m,n,o) --> ci uz ide o vlozenie jedneho riadku (), alebo viacero riadkov (), (), ()
+         *          -> hodnoty vsak mozy byt vnoreny SELECT, napriklad ... VALUES (x,y,z), (a,b,(SELECT ...)), ((SELECT),(SELECT),x)
+         * ak values = {}
+         *    -> INSERT INTO ... SELECT x,x,(SELECT ..), y
+         *    -> cize values = AST, ale nema 'ast' key
+         *    -> hodnoty, ktore sa maju vlozit do tabulky su vo values.columns[{x},{x},{ast},{y}]
+         */
+      }
     } else if (query_type === 'update') {
+      if (key === 'table') {
+        // value === Array? value === object?
+      } else if (key === 'set') {
+      } else if (key === 'where') {
+      }
     } else if (query_type === 'delete') {
+      if (key === 'from') {
+        // value === Array? value === object?
+      } else if (key === 'where') {
+      }
     }
   }
 };
@@ -354,11 +657,6 @@ const checkIfContainsSubAST = (obj: ASTObject, parent: string | undefined): MyAS
   if (asts.length === 1) return asts[0];
   else if (asts.length > 1) return asts;
   else return null;
-};
-
-const sortRecommendations = (recs: Recommendation[]): Recommendation[] => {
-  let newRecs: Recommendation[] = [];
-  return newRecs;
 };
 
 const generateGeneralRecommendation = (queryType: string, branch: string, diff_type: string): string => {
@@ -515,7 +813,7 @@ export const createRecommendations = (
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'missing');
       }
     }
-    recommender(queryType, missing, 'missing', recs, false, undefined);
+    recommender(missing, 'missing', recs, false, queryType, undefined);
     /**
      * ak je to null, potom: ---> DONE!
      *      a. stud: normal, sol: normal                                -> vytvorim odporucania
@@ -542,7 +840,7 @@ export const createRecommendations = (
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'redundant');
       }
     }
-    recommender(queryType, extras, 'redundant', recs, false, undefined);
+    recommender(extras, 'redundant', recs, false, queryType, undefined);
     /**
      * ak to je null, potom:
      *      a. stud: normal, sol: normal                                -> vytvorim odporucania
@@ -603,8 +901,8 @@ export const createRecommendations = (
         // console.log('MISSING GENERAL RECOMMENDATION:', generalRecommendation);
       }
     }
-    recommender(queryType, missing, 'missing', recs, false, undefined);
-    recommender(queryType, extras, 'redundant', recs, false, undefined);
+    recommender(missing, 'missing', recs, false, queryType, undefined);
+    recommender(extras, 'redundant', recs, false, queryType, undefined);
     /**
      * ak su oboje null:
      *      a. nieco mu chyba, nieco ma navyse, NIE SU TAM AST (alebo su spravne)   -> vytvorim odporucania
@@ -650,7 +948,6 @@ export const createRecommendations = (
 
   console.log('recs:');
   console.dir(recs, { depth: null });
-  // TODO: sortnut odporucania
   let result: Recommendations = {
     default_detail_level: cluster,
     generalRecommendation: generalRecommendation,
