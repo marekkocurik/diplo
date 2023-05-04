@@ -2,14 +2,14 @@ import { AST } from 'node-sql-parser/build/postgresql';
 import { ASTObject } from './analyzer';
 import { GeneralResponse } from '../../../databaseControllers/databaseController';
 
-const diffObjects = (obj1: ASTObject, obj2: ASTObject, parent: string | undefined): ASTObject => {
+const diffObjects = (obj1: ASTObject, obj2: ASTObject, isAst: boolean): ASTObject => {
   let result: ASTObject = {};
   for (let [key, value1] of Object.entries(obj1)) {
     // console.log('parent:',parent,'key:',key);
     const value2 = obj2[key];
     if (value1 !== null) {
       //console.log('checking:', key, ':', value1);
-      if (parent === 'ast' && key === 'type') result[key] = value1;
+      if (isAst && key === 'type') result[key] = value1;
       else if (value2 === undefined || value2 === null) {
         result[key] = value1;
       } else if (typeof value1 !== typeof value2) {
@@ -26,7 +26,7 @@ const diffObjects = (obj1: ASTObject, obj2: ASTObject, parent: string | undefine
           }
         }
       } else {
-        const diff = diffObjects(value1, value2, key);
+        const diff = diffObjects(value1, value2, false);
         if (Object.keys(diff).length > 0) {
           result[key] = diff;
         }
@@ -53,10 +53,16 @@ const diffArrays = (arr1: ASTObject[], arr2: ASTObject[]): ASTObject => {
       if (isSubQuery(x)) {
         let y = arr2.find((o2) => isSubQuery(o2) === true);
         if (y === undefined) {
+          // let newObj: { [key: string]: any } = {};
+          // newObj[parent] = { ast: getSubAST(x) };
+          // result.push(newObj);
           result.push({ ast: getSubAST(x) });
         } else {
-          const diff = diffObjects(getSubAST(x), getSubAST(y), 'ast');
+          const diff = diffObjects(getSubAST(x), getSubAST(y), true);
           if (Object.keys(diff).length > 0) {
+            // let newObj: { [key: string]: any } = {};
+            // newObj[parent] = { ast: diff };
+            // result.push(newObj);
             result.push({ast: diff})
           }
         }
@@ -67,15 +73,15 @@ const diffArrays = (arr1: ASTObject[], arr2: ASTObject[]): ASTObject => {
 };
 
 export const compareQueryASTS = (studentAST: AST, solutionAST: AST): [GeneralResponse, ASTObject, ASTObject] => {
-  console.dir(solutionAST, { depth: null });
-  console.dir(studentAST, { depth: null });
+  // console.dir(solutionAST, { depth: null });
+  // console.dir(studentAST, { depth: null });
   try {
-    let missing = diffObjects(solutionAST, studentAST, undefined);
-    // console.log('missing:');
-    // console.dir(missing, { depth: null });
-    let extras = diffObjects(studentAST, solutionAST, undefined);
-    // console.log('extras:');
-    // console.dir(extras, { depth: null });
+    let missing = diffObjects(solutionAST, studentAST, false);
+    console.log('missing:');
+    console.dir(missing, { depth: null });
+    let extras = diffObjects(studentAST, solutionAST, false);
+    console.log('extras:');
+    console.dir(extras, { depth: null });
     return [{ code: 200, message: 'OK' }, missing, extras];
   } catch (error) {
     console.log(error);

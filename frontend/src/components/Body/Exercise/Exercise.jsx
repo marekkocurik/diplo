@@ -206,7 +206,7 @@ export default function Exercise({ ...props }) {
               <div style={{ width: '100%' }}>
                 <Button
                   style={{ width: '8vw', backgroundColor: '#2666CF' }}
-                  // onClick={handleGivingHelp}
+                  onClick={handleGivingHelp}
                 >
                   Help
                 </Button>

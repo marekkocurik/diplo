@@ -183,6 +183,7 @@ export const getHelp = async (request: any, reply: any) => {
   }
   const exerciseSolutions = response[1] as Solution[];
   let prioritizedExerciseSolutions = prioritizeSolutions(solAttempt, exerciseSolutions);
+  // console.dir(JSON.parse(prioritizedExerciseSolutions[0].ast), {depth:null});
 //   console.log(prioritizedExerciseSolutions[0].original_query);
 //   console.log(prioritizedExerciseSolutions[1].original_query);
 
@@ -194,7 +195,7 @@ export const getHelp = async (request: any, reply: any) => {
   }
   const missing = response[1] as ASTObject;
   const extras = response[2] as ASTObject;
-  const recs = createRecommendations(solAttempt.ast.type, missing, extras, cluster);
+  const recs = createRecommendations(JSON.parse(prioritizedExerciseSolutions[0].ast).type, missing, extras, cluster);
 
   reply.code(200).send({ message: 'OK', solAttempt });
   return;
