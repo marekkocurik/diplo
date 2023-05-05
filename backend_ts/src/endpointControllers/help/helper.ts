@@ -5,7 +5,7 @@ import { GeneralResponse, QueryResult } from '../../databaseControllers/database
 import { ASTObject, normalizeQuery } from '../ast/lexicalAnalysis/analyzer';
 import { createASTForQuery } from '../ast/abstractSyntaxTree';
 import { compareQueryASTS } from '../ast/lexicalAnalysis/comparator';
-import { createRecommendations } from '../recommendations/recommendator';
+import { createRecommendations } from '../recommendations/recommender';
 
 interface SolutionAttempt {
   original_query: string;
@@ -169,6 +169,7 @@ const prioritizeSolutions = (studentSolution: SolutionAttempt, exerciseSolutions
 export const getHelp = async (request: any, reply: any) => {
   const { role, cluster, exerciseId, queryToExecute } = request.query;
   // const user_id = request.query.id;
+  // console.log('calling done');
   let response: GetHelpResposne;
   response = await normalizeStudentQueryAndCreateAST(role, queryToExecute);
   if (response[0].code !== 200) {
@@ -206,6 +207,6 @@ export const getHelp = async (request: any, reply: any) => {
   const extras = response[2] as ASTObject;
   const recs = createRecommendations(JSON.parse(prioritizedExerciseSolutions[0].ast).type, missing, extras, cluster);
 
-  reply.code(200).send({ message: 'OK', solAttempt});
+  reply.code(200).send({ message: 'OK', recs});
   return;
 };

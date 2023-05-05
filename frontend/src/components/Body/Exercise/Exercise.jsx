@@ -8,6 +8,7 @@ import History from './History';
 import Solutions from './Solutions';
 import Tab from 'react-bootstrap/Tab';
 import Nav from 'react-bootstrap/Nav';
+import { motion } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import { exerciseSelected, historyUpdated, solutionsUpdated } from '../../../store/slices/exerciseSlice';
 import {
@@ -15,6 +16,7 @@ import {
   selectNextExerciseUrlString,
   selectPreviousExerciseUrlString,
 } from '../../../store/selectors';
+import Hint from './Hint';
 
 export default function Exercise({ ...props }) {
   const navigate = useNavigate();
@@ -83,7 +85,7 @@ export default function Exercise({ ...props }) {
       let result = await services.getHelp(userQuery, exercise.id);
     } catch (error) {
       const { message } = await error.response.json();
-      setModalErrorMessage('Please fix the following errors first:\n' + message);
+      setModalErrorMessage('Please fix the following errors first:\n\n' + message);
       setShowModal(true);
     }
   };
@@ -188,43 +190,43 @@ export default function Exercise({ ...props }) {
               />
             </div>
           </div>
-          <div
-            className="py-2 px-1"
-            style={{ display: 'flex', flexDirection: 'row', width: '100%', maxHeight: '50vh' }}
-          >
-            <div style={{ width: '50%' }}>
+          <div className="py-2 px-1 w-100" style={{ display: 'flex' }}>
+            <div className="p-1" style={{ width: '60%', display: 'flex', flexDirection: 'column' }}>
               <Form.Control
                 id="user_query"
-                style={{ fontSize: '0.9em', resize: 'vertical', minHeight: '100%', maxHeight: '100%' }}
+                rows={10}
+                style={{ fontSize: '0.9em', resize: 'vertical' }}
                 as="textarea"
                 placeholder="Write your answer here"
                 value={userQuery}
                 onChange={handleUserQueryChange}
               />
-            </div>
-            <div className="px-2" style={{ width: '10%', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ width: '100%' }}>
-                <Button
-                  style={{ width: '8vw', backgroundColor: '#2666CF' }}
-                  onClick={handleGivingHelp}
+              <div className="d-flex">
+                {/* <Button
+                  className="m-1"
+                  style={{ flex: 1, backgroundColor: '#2666CF' }}
+                  // onClick={handleGivingHelp}
                 >
                   Help
-                </Button>
-              </div>
-              <div className="py-1" style={{ width: '100%' }}>
+                </Button> */}
                 <Button
-                  style={{ width: '8vw', backgroundColor: '#2666CF' }}
+                  className="m-1"
+                  style={{ flex: 1, backgroundColor: '#2666CF' }}
                   onClick={handleExecuteQuery({ test: true })}
                 >
                   Test
                 </Button>
-              </div>
-              <div style={{ width: '100%' }}>
-                <Button style={{ width: '8vw', backgroundColor: '#2666CF' }} onClick={handleExecuteQuery({})}>
+                <Button
+                  className="m-1"
+                  style={{ flex: 1, backgroundColor: '#2666CF' }}
+                  onClick={handleExecuteQuery({})}
+                >
                   Submit
                 </Button>
               </div>
             </div>
+
+            <Hint exerciseId={exercise.id} userQuery={userQuery} />
           </div>
           <div className="py-2 px-1" style={{ width: '100%', maxHeight: '40vh' }}>
             <Tab.Container
@@ -272,17 +274,16 @@ export default function Exercise({ ...props }) {
           <div className="py-3" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
             <div className="px-2">
               <Button
-                style={{ width: '8vw', backgroundColor: '#2666CF' }}
+                style={{ width: 150, backgroundColor: '#2666CF' }}
                 disabled={!previousExerciseUrlString}
                 onClick={handlePreviousExercise}
               >
-                {' '}
                 {'< Previous'}
               </Button>
             </div>
             <div className="px-2">
               <Button
-                style={{ width: '8vw', backgroundColor: '#2666CF' }}
+                style={{ width: 150, backgroundColor: '#2666CF' }}
                 disabled={!nextExerciseUrlString}
                 onClick={handleNextExercise}
               >

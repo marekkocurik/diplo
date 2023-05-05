@@ -1,6 +1,7 @@
 # Use Node.js 14 Alpine as the base image
 FROM node:14-alpine
 
+RUN apk add --no-cache git
 # Set the working directory
 WORKDIR /app
 

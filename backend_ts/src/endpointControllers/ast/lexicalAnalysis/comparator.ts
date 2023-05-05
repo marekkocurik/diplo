@@ -1,6 +1,7 @@
-import { AST } from 'node-sql-parser/build/postgresql';
+
 import { ASTObject } from './analyzer';
 import { GeneralResponse } from '../../../databaseControllers/databaseController';
+import { AST } from 'node-sql-parser';
 
 const diffObjects = (obj1: ASTObject, obj2: ASTObject, isAst: boolean): ASTObject => {
   let result: ASTObject = {};

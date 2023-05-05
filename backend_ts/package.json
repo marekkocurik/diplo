@@ -19,7 +19,7 @@
     "dotenv": "^16.0.3",
     "fastify": "^4.5.3",
     "jsonwebtoken": "^9.0.0",
-    "node-sql-parser": "^4.6.6",
+    "node-sql-parser": "github:marekkocurik/node-sql-parser",
     "nodemon": "^2.0.20",
     "pg": "^8.8.0",
     "ts-node": "^10.9.1"

@@ -1,7 +1,8 @@
 import TableController, { Solution } from '../../../databaseControllers/solutionsController';
 import { sortASTAlphabetically } from './sorter';
 import { GeneralResponse } from '../../../databaseControllers/databaseController';
-const { Parser } = require('node-sql-parser/build/postgresql');
+import { Parser } from 'node-sql-parser/build/postgresql';
+// import { Parser } from '../../../lib/node-sql-parser/types';
 
 const parser = new Parser();
 const opt = { database: 'PostgresQL' };
@@ -169,7 +170,7 @@ const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns[]): st
     for (let c of t.columns) {
       let regex = new RegExp(
         `(?<=SELECT\\s+(.*)?${t.table}\\.${c}\\s+)(?:as\\s+|AS\\s+)?(\\w+)(?=\\s*(?:,|FROM))`,
-        'gi'
+        'gi' 
       );
       let matches = result.matchAll(regex);
       result = result.replace(regex, ``);
