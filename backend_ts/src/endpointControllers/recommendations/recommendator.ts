@@ -5,12 +5,14 @@ import {
   aggr_filter,
   aggr_func,
   binary_expr,
+  case_expr,
   count_arg,
   distinct_args,
   expr,
   expr_item,
   join_op,
   over_partition,
+  window_func,
 } from 'node-sql-parser/ast/postgresql';
 
 interface Recommendation {
@@ -47,14 +49,14 @@ type MyColumnRefWithNullTable = {
 
 interface MySelectColumn {
   type: string;
-  expr: MyColumnRef | aggr_func | binary_expr;
+  expr: MyColumnRef | aggr_func | binary_expr | window_func;
   as: string | undefined;
 }
 
 type MyAggrFunc = {
   type: 'aggr_func';
   name: string;
-  args: { expr: additive_expr | MyColumnRef } | count_arg;
+  args: { expr: additive_expr | MyColumnRef | case_expr } | count_arg;
   over: over_partition;
   filter?: aggr_filter;
 };
@@ -93,6 +95,12 @@ type MyGroupBy = {
   type: string;
   name: string;
   args: MyExprList;
+};
+
+type MyOrderByElement = {
+  expr: MyExpr | MyAggrFunc | MyColumnRefWithNullTable;
+  type: 'ASC' | 'DESC';
+  nulls: 'NULLS FIRST' | 'NULLS LAST' | undefined;
 };
 
 const aSTModified = (ast: ASTObject): boolean => {
@@ -245,6 +253,13 @@ const generateSelectColumnsRecommendations = (
         ' is ' +
         diff_type +
         ' or contains invalid values.';
+    } else if ('type' in o.args.expr && o.args.expr.type === 'case') {
+      message2 +=
+        "Aggregate function 'CASE.. WHEN.. THEN.. ELSE..' in the SELECT statement" +
+        (sub ? sub_message : '') +
+        ' is probably ' +
+        diff_type +
+        ' or contains invalid values.';
     } else {
       message2 +=
         'An unknown object has been found in the SELECT statement' +
@@ -326,6 +341,31 @@ const generateSelectColumnsRecommendations = (
         (sub ? sub_message : '') +
         '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
     }
+    rec.recommendation.push(message0, message1, message2);
+  } else if (obj.expr.type === 'window_func') {
+    let o = obj.expr as window_func;
+    let message0 =
+      'Make sure the SELECT statement' +
+      (sub ? sub_message : '') +
+      ' includes ' +
+      diff_message0 +
+      ' the required window functions and their required aliases.';
+    let message1 =
+      "Window function '" +
+      o.name +
+      "(...)'" +
+      (obj.as ? ' AS ' + obj.as : '') +
+      ' in the SELECT statement' +
+      (sub ? sub_message : '') +
+      ' is ' +
+      diff_type +
+      ' or contains invalid values.';
+    let message2 =
+      'Unfortunately, the capabilities of this recommendation system are limited. Content of a window function ' +
+      'used in the SELECT statement' +
+      (sub ? sub_message : '') +
+      ' is too complex. Feel free to report this as bug, stating the chapter name, exercise number ' +
+      'and your query. Thank you! Your help is much appreciated.';
     rec.recommendation.push(message0, message1, message2);
   } else {
     let message =
@@ -771,6 +811,55 @@ const generateSelectOrderByRecommendations = (
     parent_statement: parent_query_statement?.toUpperCase(),
     recommendation: [] as string[],
   };
+  let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
+  let diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
+  if ('expr' in obj && 'type' in obj) {
+    let o = obj as MyOrderByElement;
+    if (o.expr.type === 'column_ref') {
+    } else if (o.expr.type === 'aggr_func') {
+      // v args.expr moze byt columnRef kde table === null
+    } else if (o.expr.type === 'binary_expr') {
+      /** podla objektu nizsie, o.type = desc, o.nulls = null, o.expr = cela ta sracka nizsie
+       * expr: {
+                    type: 'binary_expr',
+                    operator: '*',
+                    left: {
+                      type: 'binary_expr',
+                      operator: '/',
+                      left: {
+                        type: 'binary_expr',
+                        operator: '+',
+                        left: {
+                          type: 'aggr_func',
+                          name: 'SUM',
+                          args: {
+                            expr: {
+                              type: 'column_ref',
+                              table: 'BOOKINGS',
+                              column: 'SLOTS'
+                            }
+                          },
+                          over: null
+                        },
+                        right: { type: 'number', value: 10 },
+                        parentheses: true
+                      },
+                      right: { type: 'number', value: 20 },
+                      parentheses: true
+                    },
+                    right: { type: 'number', value: 10 }
+                  },
+                  type: 'DESC',
+                  nulls: null
+       */
+    }
+  } else {
+    let message =
+      'An unknown object has been found in the ORDER BY statement' +
+      (sub ? sub_message : '') +
+      '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
+    rec.recommendation.push(message, message, message);
+  }
   return rec;
 };
 const generateSelectLimitRecommendations = (
