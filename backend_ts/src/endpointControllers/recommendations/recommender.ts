@@ -105,10 +105,9 @@ type MyOrderByElement = {
 };
 
 const reconstructGenericObject = (obj: ASTObject): string | undefined => {
-  let s: string | undefined;
-  if ('value' in obj && obj.value !== null) s = obj.value;
-  else if ('table' in obj || 'column' in obj) s = reconstructColumnRef(obj);
-  return s;
+  if ('value' in obj && obj.value !== null) return obj.value;
+  else if ('table' in obj || 'column' in obj) return reconstructColumnRef(obj);
+  else return undefined;
 };
 
 const reconstructColumnRef = (obj: ASTObject): string | undefined => {
@@ -118,92 +117,144 @@ const reconstructColumnRef = (obj: ASTObject): string | undefined => {
     if (s === undefined) s = obj.column;
     else s += '.' + obj.column;
   }
-  if ('as' in obj && obj.as !== null && s !== undefined) s += ' AS ' + obj.as;
-  return s;
-};
-
-const reconstructAggregateFunction = (obj: ASTObject): string | undefined => {
-  let s: string | undefined;
-  if ('name' in obj) {
-    s = obj.name + '(';
-    if ('args' in obj && 'expr' in obj.args) {
-      const expr = obj.args.expr;
-      if ('type' in expr) {
-        if (expr.type === 'binary_expr') {
-          let ret = reconstructBinaryExpr(expr);
-          s += ret === undefined ? '...' : ret;
-        } else if (expr.type === 'column_ref') {
-          let ret = reconstructColumnRef(expr);
-          s += ret === undefined ? '...' : ret;
-        } else if (expr.type === 'case') {
-        } else if (expr.type === 'aggr_func') {
-          let ret = reconstructAggregateFunction(expr);
-          s += ret === undefined ? '...' : ret;
-        } else s += '...';
-        s += ')';
-      } else s += '...)';
-    } else s += '...)';
-  }
-  return s;
-};
-
-const reconstructBinaryBranch = (obj: ASTObject): string | undefined => {
-  let s: string | undefined;
-  if ('type' in obj) {
-    if (obj.type === 'column_ref') s = reconstructColumnRef(obj);
-    else if (obj.type === 'aggr_func') s = reconstructAggregateFunction(obj);
-    else if (obj.type === 'case') s = reconstructCase(obj);
-    else if (obj.type === 'window_func') s = reconstructWindowFunction(obj);
-    else if ('value' in obj) s = obj.value;
-  } else s = reconstructGenericObject(obj);
+  if (s !== undefined && 'as' in obj && obj.as !== null) s += ' AS ' + obj.as;
   return s;
 };
 
 const reconstructWindowFunction = (obj: ASTObject): string | undefined => {
-  let s: string | undefined;
-  if('name' in obj) s = obj.name + '(...)';
-  return s;
-}
+  return 'name' in obj && obj.name !== null ? obj.name + '(...)' : undefined;
+  // let s: string | undefined;
+  // if ('name' in obj && obj.name !== null) s = obj.name + '(...)';
+  // return s;
+};
 
-const reconstructCase = (obj: ASTObject): string | undefined => {
+const reconstructFunction = (obj: ASTObject, nesting: number): string | undefined => {
   let s: string | undefined;
-  if('args' in obj) {
+  if ('name' in obj && obj.name !== null) {
+    s += obj.name + '(';
+    if ('args' in obj && 'value' in obj.args && Array.isArray(obj.args.value) && obj.args.value.length === 2) {
+      const left = resolveType(obj.args.value[0], 0);
+      const right = resolveType(obj.args.value[1], 0);
+      if (left !== undefined && right !== undefined) {
+        return (s += left + ', ' + right + ')');
+      } else if (left !== undefined && right === undefined) {
+        return (s += left + ', ...)');
+      } else if (left === undefined && right !== undefined) {
+        return (s += '..., ' + right + ')');
+      } else return (s += '...)');
+    } else return (s += '...)');
   }
   return s;
-}
+};
 
-const reconstructBinaryExpr = (obj: ASTObject): string | undefined => {
+const resolveType = (obj: ASTObject, nesting: number): string | undefined => {
+  if (nesting >= 2) return undefined;
+  if ('type' in obj) {
+    if (obj.type === 'column_ref') return reconstructColumnRef(obj);
+    else if (obj.type === 'aggr_func') return reconstructAggregateFunction(obj, nesting + 1);
+    else if (obj.type === 'case') return reconstructCase(obj, nesting + 1);
+    else if (obj.type === 'window_func') return reconstructWindowFunction(obj);
+    else if (obj.type === 'binary_expr') return reconstructBinaryExpr(obj, nesting + 1);
+    else if (obj.type === 'function') return reconstructFunction(obj, nesting + 1);
+    else if ('value' in obj && obj.value !== null) return obj.value;
+  } else return reconstructGenericObject(obj);
+};
+
+const reconstructCaseBranch = (obj: ASTObject, nesting: number): string | undefined => {
+  let s: string | undefined;
+  if ('type' in obj) {
+    if (obj.type === 'when') {
+      if ('cond' in obj && !('result' in obj)) {
+        const cond = resolveType(obj.cond, nesting);
+        return 'WHEN' + (cond === undefined ? '..' : ' ' + cond);
+      } else if (!('cond' in obj) && 'result' in obj) {
+        const result = resolveType(obj.result, nesting);
+        return 'WHEN.. THEN' + (result === undefined ? '..' : ' ' + result);
+      } else if ('cond' in obj && 'result' in obj) {
+        const cond = resolveType(obj.cond, nesting);
+        const result = resolveType(obj.result, nesting);
+        return (
+          'WHEN' + (cond === undefined ? '..' : ' ' + cond) + ' THEN' + (result === undefined ? '..' : ' ' + result)
+        );
+      }
+    } else {
+      let ret = resolveType(obj, nesting);
+      return 'ELSE' + (ret === undefined ? '..' : ' ' + ret);
+    }
+  }
+  return s;
+};
+
+const reconstructCase = (obj: ASTObject, nesting: number): string => {
+  let s: string = 'CASE';
+  if ('args' in obj && Array.isArray(obj.args) && obj.args.length > 0) {
+    if (obj.args.length === 1) {
+      let ret = reconstructCaseBranch(obj.args[0], nesting);
+      if (ret === undefined) {
+        return (s += ' WHEN.. THEN.. (ELSE..)');
+      } else {
+        if (ret.includes('WHEN')) return (s += ' ' + ret + ' (ELSE..)');
+        else return (s += ' WHEN.. THEN.. ' + ret);
+      }
+    } else {
+      for (let [key, val] of Object.entries(obj.args)) {
+        let ret = reconstructCaseBranch(val, nesting);
+        s += ret === undefined ? '' : ' ' + ret;
+      }
+      return s;
+    }
+  } else return 'CASE WHEN.. THEN.. ELSE..';
+};
+
+const reconstructAggregateFunction = (obj: ASTObject, nesting: number): string | undefined => {
+  let s: string | undefined;
+  if ('name' in obj && obj.name !== null) {
+    s = obj.name + '(';
+    if ('args' in obj && 'expr' in obj.args) {
+      const expr = obj.args.expr;
+      const ret = resolveType(expr, nesting);
+      s += ret === undefined ? '...)' : ret + ')';
+      if ('as' in expr && expr.as !== null) s += ' AS ' + expr.as;
+    } else {
+      s += '...)';
+      if ('as' in obj && obj.as !== null) s += ' AS ' + obj.as;
+    }
+  }
+  return s;
+};
+
+const reconstructBinaryExpr = (obj: ASTObject, nesting: number): string | undefined => {
   let s: string | undefined;
   if ('left' in obj && !('operator' in obj) && !('right' in obj)) {
     // iba left
-    let ret = reconstructBinaryBranch(obj.left);
+    let ret = resolveType(obj.left, nesting);
     if (ret !== undefined) s = "'" + ret + "...'";
   } else if (!('left' in obj) && 'operator' in obj && !('right' in obj)) {
     // iba operator
     s = "'... " + obj.operator + " ...'";
   } else if (!('left' in obj) && !('operator' in obj) && 'right' in obj) {
     // iba right
-    let ret = reconstructBinaryBranch(obj.right);
+    let ret = resolveType(obj.right, nesting);
     if (ret !== undefined) s = "'..." + ret + "'";
   } else if ('left' in obj && 'operator' in obj && !('right' in obj)) {
     // left a operator
-    let ret = reconstructBinaryBranch(obj.left);
+    let ret = resolveType(obj.left, nesting);
     if (ret !== undefined) s = "'" + ret + ' ' + obj.operator + "...'";
   } else if (!('left' in obj) && 'operator' in obj && 'right' in obj) {
     // operator a right
-    let ret = reconstructBinaryBranch(obj.right);
+    let ret = resolveType(obj.right, nesting);
     if (ret !== undefined) s = "'..." + obj.operator + ' ' + ret + "'";
   } else if ('left' in obj && !('operator' in obj) && 'right' in obj) {
     // left a right
-    let l = reconstructBinaryBranch(obj.left);
-    let r = reconstructBinaryBranch(obj.right);
+    let l = resolveType(obj.left, nesting);
+    let r = resolveType(obj.right, nesting);
     if (l !== undefined && r === undefined) s = "'" + l + "...'";
     else if (l === undefined && r !== undefined) s = "'..." + r + "'";
     else if (l !== undefined && r != undefined) s = "'" + l + '...' + r + "'";
   } else if ('left' in obj && 'operator' in obj && 'right' in obj) {
     // vsetky
-    let l = reconstructBinaryBranch(obj.left);
-    let r = reconstructBinaryBranch(obj.right);
+    let l = resolveType(obj.left, nesting);
+    let r = resolveType(obj.right, nesting);
     if (l !== undefined && r === undefined) s = "'" + l + ' ' + obj.operator + "...'";
     else if (l === undefined && r !== undefined) s = "'..." + obj.operator + ' ' + r + "'";
     else if (l !== undefined && r != undefined) s = "'" + l + ' ' + obj.operator + ' ' + r + "'";
@@ -246,8 +297,27 @@ const checkUnmodifiedASTs = (obj: MyAST[] | MyAST): MyAST | null => {
   return null;
 };
 
+const unknownObjectMessage = (statement: string, sub_message: string): string => {
+  return (
+    'An unknown object has been found in the ' +
+    statement +
+    ' statement' +
+    sub_message +
+    '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.'
+  );
+};
+
+const systemIsLimitedMessage = (message: string): string => {
+  return (
+    'Unfortunately, the capabilities of this recommendation system are limited. ' +
+    message +
+    ' Feel free to report this as bug, stating the chapter name, exercise number ' +
+    'and your query. Thank you! Your help is much appreciated.'
+  );
+};
+
 const generateSelectColumnsRecommendations = (
-  obj: MySelectColumn,
+  obj: ASTObject,
   diff_type: string,
   sub: boolean,
   parent_query_type: string | undefined,
@@ -260,227 +330,110 @@ const generateSelectColumnsRecommendations = (
     parent_statement: parent_query_statement?.toUpperCase(),
     recommendation: [] as string[],
   };
-  let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
-  let diff_message0 = diff_type === 'missing' ? 'ALL' : 'ONLY';
+  const sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
+  const diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
+  const limitedMessage = ' used in the SELECT statement' + (sub ? sub_message : '') + ' is too complex.';
+  let message0, message1, message2;
   if (!('expr' in obj && 'type' in obj.expr)) {
-    let message =
-      'An unknown object has been found in the SELECT statement' +
-      (sub ? sub_message : '') +
-      '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
-    rec.recommendation.push(message, message, message);
-  } else if (obj.expr.type === 'column_ref') {
-    let o = obj.expr as MyColumnRef;
-    let message0 =
-      'Make sure the SELECT statement' +
-      (sub ? sub_message : '') +
-      ' includes ' +
-      diff_message0 +
-      ' the required columns and their required aliases.';
-    let message1 = o.column + ' is ' + diff_type + ' in the SELECT statement' + (sub ? sub_message : '') + '.';
-    let col = o.table === null ? o.column : o.table + '.' + o.column;
-    let message2 =
-      col +
-      (obj.as ? ' AS ' + obj.as : '') +
-      ' column is ' +
-      diff_type +
-      ' in the SELECT statement' +
-      (sub ? sub_message : '') +
-      '.';
-    rec.recommendation.push(message0, message1, message2);
-  } else if (obj.expr.type === 'aggr_func') {
-    let o = obj.expr as MyAggrFunc;
-    let message0 =
-      'Make sure the SELECT statement' +
-      (sub ? sub_message : '') +
-      ' includes ' +
-      diff_message0 +
-      ' the required aggregate functions and their required aliases.';
-    let message1 =
-      'Aggregate function ' +
-      o.name +
-      '(...)' +
-      (obj.as ? ' AS ' + obj.as : '') +
-      ' in the SELECT statement' +
-      (sub ? sub_message : '') +
-      ' is ' +
-      diff_type +
-      ' or contains invalid values.';
-    let message2 = '';
-    if ('type' in o.args.expr && o.args.expr.type === 'star') {
-      message2 +=
-        'Aggregate function ' +
-        o.name +
-        '(*)' +
-        (obj.as ? ' AS ' + obj.as : '') +
-        ' in the SELECT statement' +
-        (sub ? sub_message : '') +
-        ' is ' +
-        diff_type +
-        ' or contains invalid values.';
-    } else if ('distinct' in o.args) {
-      // TODO: zistit co je to za pripad, kedy je distinct v args
-      let dis = o.args as distinct_args;
-      message2 +=
-        'Aggregate function ' +
-        o.name +
-        '(...)' +
-        (obj.as ? ' AS ' + obj.as : '') +
-        ' in the SELECT statement' +
-        (sub ? sub_message : '') +
-        ' is ' +
-        diff_type +
-        ' or contains invalid values.';
-    } else if ('type' in o.args.expr && o.args.expr.type === 'binary_expr') {
-      let ober = o.args.expr as binary_expr;
-      message2 +=
-        'Aggregate function ' +
-        o.name +
-        '(... ' +
-        ober.operator +
-        ' ...)' +
-        (obj.as ? ' AS ' + obj.as : '') +
-        ' in the SELECT statement' +
-        (sub ? sub_message : '') +
-        ' is ' +
-        diff_type +
-        ' or contains invalid values.';
-    } else if ('type' in o.args.expr && o.args.expr.type === 'column_ref') {
-      let col = o.args.expr as MyColumnRef;
-      message2 +=
-        'Aggregate function ' +
-        o.name +
-        '(' +
-        col.table +
-        '.' +
-        col.column +
-        ')' +
-        (obj.as ? ' AS ' + obj.as : '') +
-        ' in the SELECT statement' +
-        (sub ? sub_message : '') +
-        ' is ' +
-        diff_type +
-        ' or contains invalid values.';
-    } else if ('type' in o.args.expr && o.args.expr.type === 'case') {
-      message2 +=
-        "Aggregate function 'CASE.. WHEN.. THEN.. ELSE..' in the SELECT statement" +
-        (sub ? sub_message : '') +
-        ' is probably ' +
-        diff_type +
-        ' or contains invalid values.';
-    } else {
-      message2 +=
-        'An unknown object has been found in the SELECT statement' +
-        (sub ? sub_message : '') +
-        '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
-    }
-    rec.recommendation.push(message0, message1, message2);
-  } else if (obj.expr.type === 'binary_expr') {
-    let o = obj.expr as MyExpr;
-    let message0 =
-      'Make sure the SELECT statement' +
-      (sub ? sub_message : '') +
-      ' includes ' +
-      diff_message0 +
-      ' the required binary expressions and their required aliases.';
-    let message1 =
-      "Binary expression '... " +
-      o.operator +
-      " ...'" +
-      (obj.as ? ' AS ' + obj.as : '') +
-      ' in the SELECT statement' +
-      (sub ? sub_message : '') +
-      ' is ' +
-      diff_type +
-      ' or contains invalid values.';
-    let message2 = '';
-    if (o.left.type === 'column_ref' && o.right.type === 'column_ref') {
-      message2 +=
-        'Binary expression (' +
-        o.left.table +
-        '.' +
-        o.left.column +
-        ' ' +
-        o.operator +
-        ' ' +
-        o.right.table +
-        '.' +
-        o.right.column +
-        ')' +
-        (obj.as ? ' AS ' + obj.as : '') +
-        ' in the SELECT statement' +
-        (sub ? sub_message : '') +
-        ' is ' +
-        diff_type +
-        ' or contains invalid values.';
-    } else if (o.left.type === 'column_ref' && o.right.type !== 'column_ref') {
-      message2 +=
-        'Binary expression (' +
-        o.left.table +
-        '.' +
-        o.left.column +
-        ' ' +
-        o.operator +
-        ' ...)' +
-        (obj.as ? ' AS ' + obj.as : '') +
-        ' in the SELECT statement' +
-        (sub ? sub_message : '') +
-        ' is ' +
-        diff_type +
-        ' or contains invalid values.';
-    } else if (o.left.type !== 'column_ref' && o.right.type === 'column_ref') {
-      message2 +=
-        'Binary expression (... ' +
-        o.operator +
-        ' ' +
-        o.right.table +
-        '.' +
-        o.right.column +
-        ')' +
-        (obj.as ? ' AS ' + obj.as : '') +
-        ' in the SELECT statement' +
-        (sub ? sub_message : '') +
-        ' is ' +
-        diff_type +
-        ' or contains invalid values.';
-    } else {
-      message2 +=
-        'An unknown object has been found in the SELECT statement' +
-        (sub ? sub_message : '') +
-        '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
-    }
-    rec.recommendation.push(message0, message1, message2);
-  } else if (obj.expr.type === 'window_func') {
-    let o = obj.expr as window_func;
-    let message0 =
-      'Make sure the SELECT statement' +
-      (sub ? sub_message : '') +
-      ' includes ' +
-      diff_message0 +
-      ' the required window functions and their required aliases.';
-    let message1 =
-      "Window function '" +
-      o.name +
-      "(...)'" +
-      (obj.as ? ' AS ' + obj.as : '') +
-      ' in the SELECT statement' +
-      (sub ? sub_message : '') +
-      ' is ' +
-      diff_type +
-      ' or contains invalid values.';
-    let message2 =
-      'Unfortunately, the capabilities of this recommendation system are limited. Content of a window function ' +
-      'used in the SELECT statement' +
-      (sub ? sub_message : '') +
-      ' is too complex. Feel free to report this as bug, stating the chapter name, exercise number ' +
-      'and your query. Thank you! Your help is much appreciated.';
-    rec.recommendation.push(message0, message1, message2);
+    [message0, message1, message2] = Array(3).fill(unknownObjectMessage('SELECT', sub ? sub_message : ''));
   } else {
-    let message =
-      'An unknown object has been found in the SELECT statement' +
-      (sub ? sub_message : '') +
-      '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
-    rec.recommendation.push(message, message, message);
+    message0 =
+      'Make sure the SELECT statement' + (sub ? sub_message : '') + ' includes ' + diff_message + ' the required';
+    if (obj.expr.type === 'column_ref') {
+      message0 += ' columns and required aliases.';
+      const c = resolveType(obj.expr, 0);
+      if (c !== undefined) {
+        let col = c;
+        if (col.includes('.')) col = col.split('.')[1];
+        if (col.includes(' ')) col = col.split(' ')[0];
+        message1 = col + ' is ' + diff_type + ' in the SELECT statement' + (sub ? sub_message : '') + '.';
+        message2 = c + ' column is ' + diff_type + ' in the SELECT statement' + (sub ? sub_message : '') + '.';
+      } else [message1, message2] = Array(2).fill(unknownObjectMessage('SELECT', sub ? sub_message : ''));
+    } else if (obj.expr.type === 'window_func') {
+      message0 += ' window functions and required aliases.';
+      const w = resolveType(obj.expr, 0);
+      if (w !== undefined) {
+        message1 =
+          "Window function '" +
+          w +
+          "' in the SELECT statement" +
+          (sub ? sub_message : '') +
+          ' is ' +
+          diff_type +
+          ' or contains invalid values.';
+        message2 = systemIsLimitedMessage('Content of a window function' + limitedMessage);
+      } else [message1, message2] = Array(2).fill(unknownObjectMessage('SELECT', sub ? sub_message : ''));
+    } else if (obj.expr.type === 'aggr_func') {
+      message0 += ' aggregate functions and required aliases.';
+      const agrf_1 = resolveType(obj.expr, 1);
+      if (agrf_1 !== undefined) {
+        message1 =
+          "Aggregate function '" +
+          agrf_1 +
+          "(...)' in the SELECT statement" +
+          (sub ? sub_message : '') +
+          ' is ' +
+          diff_type +
+          ' or contains invalid values.';
+        const agrf_2 = resolveType(obj.expr, 0);
+        message2 =
+          "Aggregate function '" +
+          agrf_2 +
+          "' in the SELECT statement" +
+          (sub ? sub_message : '') +
+          ' is ' +
+          diff_type +
+          ' or contains invalid values.';
+      } else [message1, message2] = Array(2).fill(unknownObjectMessage('SELECT', sub ? sub_message : ''));
+    } else if (obj.expr.type === 'binary_expr') {
+      message0 += ' binary expressions and required aliases.';
+      const b_1 = resolveType(obj.expr, 1);
+      if (b_1 !== undefined) {
+        message1 =
+          "Binary expression '" +
+          b_1 +
+          "' in the SELECT statement" +
+          (sub ? sub_message : '') +
+          ' is ' +
+          diff_type +
+          ', missing alias, or contains invalid values.';
+        const b_2 = resolveType(obj.exp, 0);
+        message2 =
+          "Binary expression '" +
+          b_2 +
+          (obj.as !== undefined && obj.as !== null ? ' AS ' + obj.as : '') +
+          "' in the SELECT statement" +
+          (sub ? sub_message : '') +
+          ' is ' +
+          diff_type +
+          ' or contains invalid values.';
+      } else [message1, message2] = Array(2).fill(unknownObjectMessage('SELECT', sub ? sub_message : ''));
+    } else if (obj.expr.type === 'case') {
+      message0 += ' cases and required aliases.';
+      const case_1 = resolveType(obj.expr, 1);
+      if (case_1 !== undefined) {
+        message1 =
+          "Case '" +
+          case_1 +
+          "' in the SELECT statement" +
+          (sub ? sub_message : '') +
+          ' is ' +
+          diff_type +
+          ', missing alias, or contains invalid values.';
+        const case_2 = resolveType(obj.expr, 0);
+        message2 =
+          "Binary expression '" +
+          case_2 +
+          (obj.as !== undefined && obj.as !== null ? ' AS ' + obj.as : '') +
+          "' in the SELECT statement" +
+          (sub ? sub_message : '') +
+          ' is ' +
+          diff_type +
+          ' or contains invalid values.';
+      } else [message1, message2] = Array(2).fill(unknownObjectMessage('SELECT', sub ? sub_message : ''));
+    } else [message0, message1, message2] = Array(3).fill(unknownObjectMessage('SELECT', sub ? sub_message : ''));
   }
+  rec.recommendation.push(message0, message1, message2);
   return rec;
 };
 
@@ -499,8 +452,8 @@ const generateSelectDistinctRecommendations = (
     recommendation: [] as string[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
-  let diff_message0 = diff_type === 'missing' ? 'removing' : 'not removing';
-  let message0 = 'Try ' + diff_message0 + ' duplicate records in the SELECT statement' + (sub ? sub_message : '') + '.';
+  let diff_message = diff_type === 'missing' ? 'removing' : 'not removing';
+  let message0 = 'Try ' + diff_message + ' duplicate records in the SELECT statement' + (sub ? sub_message : '') + '.';
   let message1 = "Key word 'DISTINCT' is " + diff_type + ' in the SELECT statement' + (sub ? sub_message : '') + '.';
   let message2 =
     'Try ' +
@@ -511,6 +464,7 @@ const generateSelectDistinctRecommendations = (
   rec.recommendation.push(message0, message1, message2);
   return rec;
 };
+
 const generateSelectFromRecommendations = (
   obj: ASTObject,
   diff_type: string,
@@ -526,26 +480,30 @@ const generateSelectFromRecommendations = (
     recommendation: [] as string[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
-  let diff_message0 = diff_type === 'missing' ? 'ALL' : 'ONLY';
-  let message0: string = '',
-    message1: string = '',
-    message2: string = '';
+  let diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
+  let message0, message1, message2;
+  message0 =
+    'Make sure the FROM/JOIN statement' +
+    (sub ? sub_message : '') +
+    ' include ' +
+    diff_message +
+    ' the required tables.';
+  message1 =
+    'Table ' +
+    ('table' in obj && obj.table !== null ? obj.table : '') +
+    ' is ' +
+    diff_type +
+    ' in the ' +
+    'FROM/JOIN statement' +
+    (sub ? sub_message : '') +
+    ', or you are using incorrect type of relation when joining tables. ' +
+    'Try using different JOIN type, e.g. INNER JOIN, LEFT OUTER JOIN, FULL JOIN, CROSS JOIN ...';
+  let t = '';
+  if ('db' in obj && obj.db !== null) t += obj.db + '.';
+  t += obj.table;
+  message2 = t + ' is ' + diff_type + ' in the FROM/JOIN statement' + (sub ? sub_message : '');
   if (Object.keys(obj).length === 3 && 'db' in obj && 'table' in obj && 'as' in obj) {
-    let o = obj as MyTableBase;
-    message0 +=
-      'Make sure the FROM statement' +
-      (sub ? sub_message : '') +
-      ' includes ' +
-      diff_message0 +
-      ' the required tables.';
-    message1 +=
-      'You are probably selecting data from the incorrect table/s. Make sure the FROM statement (including JOINs)' +
-      (sub ? sub_message : '') +
-      ' includes ' +
-      diff_message0 +
-      ' the required tables.';
-    message2 += o.db + '.' + o.table + ' is ' + diff_type + ' in the FROM statement' + (sub ? sub_message : '') + '.';
-    rec.recommendation.push(message0, message1, message2);
+    message2 += '.';
   } else if (
     Object.keys(obj).length > 3 &&
     'db' in obj &&
@@ -555,92 +513,40 @@ const generateSelectFromRecommendations = (
     'on' in obj
   ) {
     let o = obj as MyTableJoin;
-    message0 +=
-      'Make sure the FROM/JOIN statements' +
-      (sub ? sub_message : '') +
-      ' include ' +
-      diff_message0 +
-      ' the required tables, ' +
-      'and make sure you are using the correct type of relation between joining tables.';
-    message1 +=
-      'In the FROM/JOIN statements' +
-      (sub ? sub_message : '') +
-      ', table ' +
-      o.db +
-      '.' +
-      o.table +
-      ' is probably ' +
-      diff_type +
-      ' or the JOIN type is incorrect. Try using different JOIN type, e.g. INNER JOIN, LEFT OUTER JOIN, FULL JOIN, CROSS JOIN ...';
-    if (o.on.left.type === 'column_ref' && o.on.right.type === 'column_ref') {
+    const left = resolveType(o.on.left, 0);
+    const right = resolveType(o.on.right, 0);
+    if (left !== undefined && right !== undefined) {
       message2 +=
-        o.db +
-        '.' +
-        o.table +
-        ' is ' +
-        diff_type +
-        ' or the relation ' +
-        o.on.left.table +
-        '.' +
-        o.on.left.column +
+        ', or the relation ' +
+        left +
         ' ' +
         o.join +
         ' ' +
-        o.on.right.table +
-        '.' +
-        o.on.right.column +
-        (sub ? sub_message : '') +
+        right +
         ' is incorrect. Try using different type of relation, e.g. ' +
         'INNER LEFT/RIGHT JOIN, LEFT/RIGHT OUTER JOIN, FULL (OUTER) JOIN, CROSS JOIN, SELF-JOIN';
-    } else if (o.on.left.type === 'column_ref' && o.on.right.type !== 'column_ref') {
+    } else if (left !== undefined && right === undefined) {
       message2 +=
-        o.db +
-        '.' +
-        o.table +
-        ' is ' +
-        diff_type +
-        ' or the relation ' +
-        o.on.left.table +
-        '.' +
-        o.on.left.column +
+        ', or the relation ' +
+        left +
         ' ' +
         o.join +
-        '...' +
-        (sub ? sub_message : '') +
-        ' is incorrect. Try using different type of relation, e.g.: ' +
+        '... is incorrect. Try using different type of relation, e.g.: ' +
         'INNER LEFT/RIGHT JOIN, LEFT/RIGHT OUTER JOIN, FULL (OUTER) JOIN, CROSS JOIN, SELF-JOIN';
-    } else if (o.on.left.type !== 'column_ref' && o.on.right.type === 'column_ref') {
+    } else if (left === undefined && right !== undefined) {
       message2 +=
-        o.db +
-        '.' +
-        o.table +
-        ' is ' +
-        diff_type +
-        ' or the relation ...' +
+        ', or the relation ...' +
         o.join +
         ' ' +
-        o.on.right.table +
-        '.' +
-        o.on.right.column +
-        (sub ? sub_message : '') +
+        right +
         ' is incorrect. Try using different type of relation, e.g.: ' +
         'INNER LEFT/RIGHT JOIN, LEFT/RIGHT OUTER JOIN, FULL (OUTER) JOIN, CROSS JOIN, SELF-JOIN';
-    } else {
-      message2 +=
-        'An unknown object has been found in the FROM/JOIN statement' +
-        (sub ? sub_message : '') +
-        '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
-    }
-    rec.recommendation.push(message0, message1, message2);
-  } else {
-    let message =
-      'An unknown object has been found in the FROM/JOIN statement' +
-      (sub ? sub_message : '') +
-      '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
-    rec.recommendation.push(message, message, message);
-  }
+    } else message2 = unknownObjectMessage('FROM/JOIN', sub ? sub_message : '');
+  } else [message0, message1, message2] = Array(3).fill(unknownObjectMessage('FROM', sub ? sub_message : ''));
+  rec.recommendation.push(message0, message1, message2);
   return rec;
 };
+
 const generateSelectWhereRecommendations = (
   obj: ASTObject,
   diff_type: string,
@@ -656,76 +562,40 @@ const generateSelectWhereRecommendations = (
     recommendation: [] as string[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
-  let message0: string = '',
-    message1: string = '',
-    message2: string = '';
-  if ('type' in obj && 'operator' in obj && 'left' in obj && 'right' in obj) {
-    let o = obj as MyExpr;
-    message0 = 'Make sure the condition in the WHERE statement' + (sub ? sub_message : '') + ' is correct.';
+  let message0 = 'Make sure the condition in the WHERE statement' + (sub ? sub_message : '') + ' is correct.';
+  let message1, message2;
+  const cond_1 = resolveType(obj, 1);
+  if (cond_1 !== undefined) {
     message1 =
-      "Condition using '" +
-      o.operator +
-      "' operator is probably " +
+      "Condition '" +
+      cond_1 +
+      "' in the WHERE statement" +
+      (sub ? sub_message : '') +
+      ' is probably ' +
       diff_type +
-      ' in the WHERE statement' +
-      (sub ? sub_message : '') +
-      '.';
-    if (o.left.type === 'column_ref' && o.right.type === 'column_ref') {
-      let l_col = o.left.table === null ? o.left.column : o.left.table + '.' + o.left.column;
-      let r_col = o.right.table === null ? o.right.column : o.right.table + '.' + o.right.column;
-      message2 =
-        "Condition '" +
-        l_col +
-        ' ' +
-        o.operator +
-        ' ' +
-        r_col +
-        "' in the WHERE statement" +
-        (sub ? sub_message : '') +
-        ' is probably ' +
-        diff_type +
-        '.';
-    } else if (o.left.type !== 'column_ref' && o.right.type === 'column_ref') {
-      let r_col = o.right.table === null ? o.right.column : o.right.table + '.' + o.right.column;
-      message2 =
-        "Condition '... " +
-        o.operator +
-        ' ' +
-        r_col +
-        "' in the WHERE statement" +
-        (sub ? sub_message : '') +
-        ' is probably ' +
-        diff_type +
-        '.';
-    } else if (o.left.type === 'column_ref' && o.right.type !== 'column_ref') {
-      let l_col = o.left.table === null ? o.left.column : o.left.table + '.' + o.left.column;
-      message2 =
-        "Condition '" +
-        l_col +
-        ' ' +
-        o.operator +
-        " ...' in the WHERE statement" +
-        (sub ? sub_message : '') +
-        ' is probably ' +
-        diff_type +
-        '.';
+      ' or incorrect.';
+    if ('type' in obj && obj.type === 'window_func') {
+      message2 = systemIsLimitedMessage(
+        'Content of a window function used in the WHERE statement' + (sub ? sub_message : '') + ' is too complex.'
+      );
     } else {
-      message2 =
-        'Unfortunately, the capabilities of this recommendation system are limited. Condition used in the WHERE statement' +
-        (sub ? sub_message : '') +
-        ' is too complex. Feel free to report this as bug, stating the chapter name, exercise number ' +
-        'and your query. Thank you! Your help is much appreciated.';
+      const cond_2 = resolveType(obj, 0);
+      if (cond_2 !== undefined) {
+        message2 =
+          "Condition '" +
+          cond_2 +
+          "' in the WHERE statement" +
+          (sub ? sub_message : '') +
+          ' is probably ' +
+          diff_type +
+          ' or incorrect.';
+      } else message2 = unknownObjectMessage('WHERE', sub ? sub_message : '');
     }
-    rec.recommendation.push(message0, message1, message2);
-  } else {
-    let message =
-      'An unknown object has been found in the WHERE statement' +
-      (sub ? sub_message : '') +
-      '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
-    rec.recommendation.push(message, message, message);
-  }
+  } else [message1, message2] = Array(2).fill(unknownObjectMessage('WHERE', sub ? sub_message : ''));
+  rec.recommendation.push(message0, message1, message2);
   return rec;
 };
+
 const generateSelectGroupByRecommendations = (
   obj: ASTObject,
   diff_type: string,
@@ -742,63 +612,32 @@ const generateSelectGroupByRecommendations = (
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
   let diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
-  let message0: string =
+  let message0 =
     'Make sure the GROUP BY statement' +
     (sub ? sub_message : '') +
     ' includes ' +
     diff_message +
     ' the required columns or expressions.';
-  let message1: string =
+  let message1 =
     'Make sure the columns or expressions in the GROUP BY statement' +
     (sub ? sub_message : '') +
     ' are in the correct order.';
-  let message2: string = '';
-  if ('type' in obj && 'table' in obj && 'column' in obj) {
-    let o = obj as MyColumnRefWithNullTable;
-    let col: string = o.table === null ? o.column : o.table + '.' + o.column;
+  let message2;
+  const cond = resolveType(obj, 0);
+  if (cond !== undefined) {
     message2 =
-      'Column ' +
-      col +
-      ' in the GROUP BY statement' +
+      "Condition '" +
+      cond +
+      "' in the GROUP BY statement" +
       (sub ? sub_message : '') +
       ' is ' +
       diff_type +
-      ' or is in incorrect order.';
-    rec.recommendation.push(message0, message1, message2);
-  } else if ('type' in obj && 'name' in obj && 'args' in obj) {
-    let o = obj as MyGroupBy;
-    if (o.type === 'function' && o.args.value[0].type === 'column_ref' && o.args.value[1].type === 'column_ref') {
-      let col1: string =
-        o.args.value[0].table === null ? o.args.value[0].column : o.args.value[0].table + '.' + o.args.value[0].column;
-      let col2: string =
-        o.args.value[1].table === null ? o.args.value[1].column : o.args.value[1].table + '.' + o.args.value[1].column;
-      message2 =
-        o.name +
-        '(' +
-        col1 +
-        ', ' +
-        col2 +
-        ') function in the GROUP BY statement' +
-        (sub ? sub_message : '') +
-        ' is ' +
-        diff_type +
-        ' or is in incorrect order.';
-    } else {
-      message2 =
-        'An unknown object has been found in the GROUP BY statement' +
-        (sub ? sub_message : '') +
-        '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
-    }
-    rec.recommendation.push(message0, message1, message2);
-  } else {
-    let message =
-      'An unknown object has been found in the GROUP BY statement' +
-      (sub ? sub_message : '') +
-      '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
-    rec.recommendation.push(message, message, message);
-  }
+      ' or incorrect.';
+  } else message2 = unknownObjectMessage('GROUP BY', sub ? sub_message : '');
+  rec.recommendation.push(message0, message1, message2);
   return rec;
 };
+
 const generateSelectHavingRecommendations = (
   obj: ASTObject,
   diff_type: string,
@@ -814,90 +653,37 @@ const generateSelectHavingRecommendations = (
     recommendation: [] as string[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
-  let diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
-  if ('type' in obj && 'operator' in obj && 'left' in obj && 'right' in obj && obj.type === 'binary_expr') {
-    let o = obj as MyExprHaving;
-    let left: string | undefined;
-    let right: string | undefined;
-    if (o.left.type === 'column_ref') left = o.left.table === null ? o.left.column : o.left.table + '.' + o.left.column;
-    else if (o.left.type === 'aggr_func') {
-      if (o.left.args.expr.type === 'column_ref') {
-        left =
-          o.left.name + '(' + o.left.args.expr.table === null
-            ? o.left.args.expr.column + ')'
-            : o.left.args.expr.table + '.' + o.left.args.expr.column + ')';
-      } else left = o.left.name + '(...)';
-    }
-    if (o.right.type === 'column_ref')
-      right = o.right.table === null ? o.right.column : o.right.table + '.' + o.right.column;
-    else if (o.right.type === 'aggr_func') {
-      if (o.right.args.expr.type === 'column_ref') {
-        right =
-          o.right.name + '(' + o.right.args.expr.table === null
-            ? o.right.args.expr.column + ')'
-            : o.right.args.expr.table + '.' + o.right.args.expr.column + ')';
-      } else right = o.right.name + '(...)';
-    }
-    let message0 = 'Make sure the condition in the HAVING statement' + (sub ? sub_message : '') + ' is correct.';
-    let message1 =
-      "Condition using '" +
-      o.operator +
-      "' operator is probably " +
+  let message0 = 'Make sure the condition in the HAVING statement' + (sub ? sub_message : '') + ' is correct.';
+  let message1, message2;
+  const cond_1 = resolveType(obj, 1);
+  if (cond_1 !== undefined) {
+    message1 =
+      "Condition '" +
+      cond_1 +
+      "' in the HAVING statement" +
+      (sub ? sub_message : '') +
+      ' is probably ' +
       diff_type +
-      ' in the HAVING statement' +
-      (sub ? sub_message : '') +
-      '.';
-    let message2;
-    if (left !== undefined && right !== undefined) {
-      message2 =
-        "Condition '" +
-        left +
-        ' ' +
-        o.operator +
-        ' ' +
-        right +
-        "' in the HAVING statement" +
-        (sub ? sub_message : '') +
-        ' is probably ' +
-        diff_type +
-        '.';
-    } else if (left === undefined && right !== undefined) {
-      message2 =
-        "Condition '... " +
-        o.operator +
-        ' ' +
-        right +
-        "' in the HAVING statement" +
-        (sub ? sub_message : '') +
-        ' is probably ' +
-        diff_type +
-        '.';
-    } else if (left !== undefined && right === undefined) {
-      message2 =
-        "Condition '" +
-        left +
-        ' ' +
-        o.operator +
-        " ...' in the HAVING statement" +
-        (sub ? sub_message : '') +
-        ' is probably ' +
-        diff_type +
-        '.';
+      ' or incorrect.';
+    if ('type' in obj && obj.type === 'window_func') {
+      message2 = systemIsLimitedMessage(
+        'Content of a window function used in the HAVING statement' + (sub ? sub_message : '') + ' is too complex.'
+      );
     } else {
-      message2 =
-        'Unfortunately, the capabilities of this recommendation system are limited. Condition used in the HAVING statement' +
-        (sub ? sub_message : '') +
-        ' is too complex. Feel free to report this as bug, stating the chapter name, exercise number ' +
-        'and your query. Thank you! Your help is much appreciated.';
+      const cond_2 = resolveType(obj, 0);
+      if (cond_2 !== undefined) {
+        message2 =
+          "Condition '" +
+          cond_2 +
+          "' in the HAVING statement" +
+          (sub ? sub_message : '') +
+          ' is probably ' +
+          diff_type +
+          ' or incorrect.';
+      } else message2 = unknownObjectMessage('HAVING', sub ? sub_message : '');
     }
-    rec.recommendation.push(message0, message1, message2);
-  } else {
-    let message =
-      'An unknown object has been found in the HAVING statement' +
-      (sub ? sub_message : '') +
-      '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
-    rec.recommendation.push(message, message, message);
-  }
+  } else [message1, message2] = Array(2).fill(unknownObjectMessage('HAVING', sub ? sub_message : ''));
+  rec.recommendation.push(message0, message1, message2);
   return rec;
 };
 const generateSelectOrderByRecommendations = (
