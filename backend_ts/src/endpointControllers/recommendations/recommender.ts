@@ -10,11 +10,11 @@ import {
   distinct_args,
   expr,
   expr_item,
+  expr_list,
   join_op,
   over_partition,
   window_func,
 } from 'node-sql-parser/ast/postgresql';
-
 
 interface Recommendation {
   query_type: string;
@@ -104,6 +104,113 @@ type MyOrderByElement = {
   nulls: 'NULLS FIRST' | 'NULLS LAST' | undefined;
 };
 
+const reconstructGenericObject = (obj: ASTObject): string | undefined => {
+  let s: string | undefined;
+  if ('value' in obj && obj.value !== null) s = obj.value;
+  else if ('table' in obj || 'column' in obj) s = reconstructColumnRef(obj);
+  return s;
+};
+
+const reconstructColumnRef = (obj: ASTObject): string | undefined => {
+  let s: string | undefined;
+  if ('table' in obj && obj.table !== null) s = obj.table;
+  if ('column' in obj && obj.column !== null) {
+    if (s === undefined) s = obj.column;
+    else s += '.' + obj.column;
+  }
+  if ('as' in obj && obj.as !== null && s !== undefined) s += ' AS ' + obj.as;
+  return s;
+};
+
+const reconstructAggregateFunction = (obj: ASTObject): string | undefined => {
+  let s: string | undefined;
+  if ('name' in obj) {
+    s = obj.name + '(';
+    if ('args' in obj && 'expr' in obj.args) {
+      const expr = obj.args.expr;
+      if ('type' in expr) {
+        if (expr.type === 'binary_expr') {
+          let ret = reconstructBinaryExpr(expr);
+          s += ret === undefined ? '...' : ret;
+        } else if (expr.type === 'column_ref') {
+          let ret = reconstructColumnRef(expr);
+          s += ret === undefined ? '...' : ret;
+        } else if (expr.type === 'case') {
+        } else if (expr.type === 'aggr_func') {
+          let ret = reconstructAggregateFunction(expr);
+          s += ret === undefined ? '...' : ret;
+        } else s += '...';
+        s += ')';
+      } else s += '...)';
+    } else s += '...)';
+  }
+  return s;
+};
+
+const reconstructBinaryBranch = (obj: ASTObject): string | undefined => {
+  let s: string | undefined;
+  if ('type' in obj) {
+    if (obj.type === 'column_ref') s = reconstructColumnRef(obj);
+    else if (obj.type === 'aggr_func') s = reconstructAggregateFunction(obj);
+    else if (obj.type === 'case') s = reconstructCase(obj);
+    else if (obj.type === 'window_func') s = reconstructWindowFunction(obj);
+    else if ('value' in obj) s = obj.value;
+  } else s = reconstructGenericObject(obj);
+  return s;
+};
+
+const reconstructWindowFunction = (obj: ASTObject): string | undefined => {
+  let s: string | undefined;
+  if('name' in obj) s = obj.name + '(...)';
+  return s;
+}
+
+const reconstructCase = (obj: ASTObject): string | undefined => {
+  let s: string | undefined;
+  if('args' in obj) {
+  }
+  return s;
+}
+
+const reconstructBinaryExpr = (obj: ASTObject): string | undefined => {
+  let s: string | undefined;
+  if ('left' in obj && !('operator' in obj) && !('right' in obj)) {
+    // iba left
+    let ret = reconstructBinaryBranch(obj.left);
+    if (ret !== undefined) s = "'" + ret + "...'";
+  } else if (!('left' in obj) && 'operator' in obj && !('right' in obj)) {
+    // iba operator
+    s = "'... " + obj.operator + " ...'";
+  } else if (!('left' in obj) && !('operator' in obj) && 'right' in obj) {
+    // iba right
+    let ret = reconstructBinaryBranch(obj.right);
+    if (ret !== undefined) s = "'..." + ret + "'";
+  } else if ('left' in obj && 'operator' in obj && !('right' in obj)) {
+    // left a operator
+    let ret = reconstructBinaryBranch(obj.left);
+    if (ret !== undefined) s = "'" + ret + ' ' + obj.operator + "...'";
+  } else if (!('left' in obj) && 'operator' in obj && 'right' in obj) {
+    // operator a right
+    let ret = reconstructBinaryBranch(obj.right);
+    if (ret !== undefined) s = "'..." + obj.operator + ' ' + ret + "'";
+  } else if ('left' in obj && !('operator' in obj) && 'right' in obj) {
+    // left a right
+    let l = reconstructBinaryBranch(obj.left);
+    let r = reconstructBinaryBranch(obj.right);
+    if (l !== undefined && r === undefined) s = "'" + l + "...'";
+    else if (l === undefined && r !== undefined) s = "'..." + r + "'";
+    else if (l !== undefined && r != undefined) s = "'" + l + '...' + r + "'";
+  } else if ('left' in obj && 'operator' in obj && 'right' in obj) {
+    // vsetky
+    let l = reconstructBinaryBranch(obj.left);
+    let r = reconstructBinaryBranch(obj.right);
+    if (l !== undefined && r === undefined) s = "'" + l + ' ' + obj.operator + "...'";
+    else if (l === undefined && r !== undefined) s = "'..." + obj.operator + ' ' + r + "'";
+    else if (l !== undefined && r != undefined) s = "'" + l + ' ' + obj.operator + ' ' + r + "'";
+  }
+  return s;
+};
+
 const aSTModified = (ast: ASTObject): boolean => {
   const keys_select = [
     'with',
@@ -170,10 +277,9 @@ const generateSelectColumnsRecommendations = (
       diff_message0 +
       ' the required columns and their required aliases.';
     let message1 = o.column + ' is ' + diff_type + ' in the SELECT statement' + (sub ? sub_message : '') + '.';
+    let col = o.table === null ? o.column : o.table + '.' + o.column;
     let message2 =
-      o.table +
-      '.' +
-      o.column +
+      col +
       (obj.as ? ' AS ' + obj.as : '') +
       ' column is ' +
       diff_type +
@@ -565,41 +671,37 @@ const generateSelectWhereRecommendations = (
       (sub ? sub_message : '') +
       '.';
     if (o.left.type === 'column_ref' && o.right.type === 'column_ref') {
+      let l_col = o.left.table === null ? o.left.column : o.left.table + '.' + o.left.column;
+      let r_col = o.right.table === null ? o.right.column : o.right.table + '.' + o.right.column;
       message2 =
         "Condition '" +
-        o.left.table +
-        '.' +
-        o.left.column +
+        l_col +
         ' ' +
         o.operator +
         ' ' +
-        o.right.table +
-        '.' +
-        o.right.column +
+        r_col +
         "' in the WHERE statement" +
         (sub ? sub_message : '') +
         ' is probably ' +
         diff_type +
         '.';
     } else if (o.left.type !== 'column_ref' && o.right.type === 'column_ref') {
+      let r_col = o.right.table === null ? o.right.column : o.right.table + '.' + o.right.column;
       message2 =
         "Condition '... " +
         o.operator +
         ' ' +
-        o.right.table +
-        '.' +
-        o.right.column +
+        r_col +
         "' in the WHERE statement" +
         (sub ? sub_message : '') +
         ' is probably ' +
         diff_type +
         '.';
     } else if (o.left.type === 'column_ref' && o.right.type !== 'column_ref') {
+      let l_col = o.left.table === null ? o.left.column : o.left.table + '.' + o.left.column;
       message2 =
         "Condition '" +
-        o.left.table +
-        '.' +
-        o.left.column +
+        l_col +
         ' ' +
         o.operator +
         " ...' in the WHERE statement" +
@@ -813,47 +915,112 @@ const generateSelectOrderByRecommendations = (
     recommendation: [] as string[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
-  let diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
   if ('expr' in obj && 'type' in obj) {
     let o = obj as MyOrderByElement;
+    let message0 =
+      'ORDER BY statement' +
+      (sub ? sub_message : '') +
+      ' is probably ' +
+      diff_type +
+      ', using incorrect ordering, or ' +
+      'columns/expressions used in the ORDER BY statement are in the wrong order.';
+    let message1 =
+      'ORDER BY ... ' +
+      o.type +
+      ' statement' +
+      (sub ? sub_message : '') +
+      ' is probably ' +
+      diff_type +
+      '. Note that there is a difference between ORDER BY x,y and ORDER BY y,x.';
+    let message2 = '';
     if (o.expr.type === 'column_ref') {
+      let col = o.expr.table === null ? o.expr.column : o.expr.table + '.' + o.expr.column;
+      message2 += 'ORDER BY ' + col + ' ' + o.type + (sub ? sub_message : '') + ' is ' + diff_type + '.';
     } else if (o.expr.type === 'aggr_func') {
       // v args.expr moze byt columnRef kde table === null
+      message2 += 'ORDER BY ' + o.expr.name + '(...) ' + o.type + (sub ? sub_message : '') + ' is ' + diff_type + '.';
     } else if (o.expr.type === 'binary_expr') {
-      /** podla objektu nizsie, o.type = desc, o.nulls = null, o.expr = cela ta sracka nizsie
-       * expr: {
-                    type: 'binary_expr',
-                    operator: '*',
-                    left: {
-                      type: 'binary_expr',
-                      operator: '/',
-                      left: {
-                        type: 'binary_expr',
-                        operator: '+',
-                        left: {
-                          type: 'aggr_func',
-                          name: 'SUM',
-                          args: {
-                            expr: {
-                              type: 'column_ref',
-                              table: 'BOOKINGS',
-                              column: 'SLOTS'
-                            }
-                          },
-                          over: null
-                        },
-                        right: { type: 'number', value: 10 },
-                        parentheses: true
-                      },
-                      right: { type: 'number', value: 20 },
-                      parentheses: true
-                    },
-                    right: { type: 'number', value: 10 }
-                  },
-                  type: 'DESC',
-                  nulls: null
-       */
+      let x = o.expr as MyExprHaving;
+      let left: string | undefined;
+      let right: string | undefined;
+      if ('left' in o.expr && 'right' in o.expr && 'operator' in o.expr) {
+        if (x.left.type === 'column_ref')
+          left = x.left.table === null ? x.left.column : x.left.table + '.' + x.left.column;
+        else if (x.left.type === 'aggr_func') {
+          if (x.left.args.expr.type === 'column_ref') {
+            left =
+              x.left.name + '(' + x.left.args.expr.table === null
+                ? x.left.args.expr.column + ')'
+                : x.left.args.expr.table + '.' + x.left.args.expr.column + ')';
+          } else left = x.left.name + '(...)';
+        }
+        if (x.right.type === 'column_ref')
+          right = x.right.table === null ? x.right.column : x.right.table + '.' + x.right.column;
+        else if (x.right.type === 'aggr_func') {
+          if (x.right.args.expr.type === 'column_ref') {
+            right =
+              x.right.name + '(' + x.right.args.expr.table === null
+                ? x.right.args.expr.column + ')'
+                : x.right.args.expr.table + '.' + x.right.args.expr.column + ')';
+          } else right = x.right.name + '(...)';
+        }
+        if (left !== undefined && right !== undefined) {
+          message2 +=
+            'ORDER BY (' +
+            left +
+            ' ' +
+            o.expr.operator +
+            ' ' +
+            right +
+            ') ' +
+            o.type +
+            (sub ? sub_message : '') +
+            ' is ' +
+            diff_type +
+            '.';
+        } else if (left === undefined && right !== undefined) {
+          message2 +=
+            'ORDER BY (... ' +
+            o.expr.operator +
+            ' ' +
+            right +
+            ') ' +
+            o.type +
+            (sub ? sub_message : '') +
+            ' is ' +
+            diff_type +
+            '.';
+        } else if (left !== undefined && right == undefined) {
+          message2 +=
+            'ORDER BY (' +
+            left +
+            ' ' +
+            o.expr.operator +
+            ' ...) ' +
+            o.type +
+            (sub ? sub_message : '') +
+            ' is ' +
+            diff_type +
+            '.';
+        } else if (left === undefined && right === undefined) {
+          message2 +=
+            'ORDER BY (... ' +
+            o.expr.operator +
+            ' ...) ' +
+            o.type +
+            (sub ? sub_message : '') +
+            ' is ' +
+            diff_type +
+            '.';
+        }
+      } else {
+        message2 =
+          'An unknown object has been found in the ORDER BY statement' +
+          (sub ? sub_message : '') +
+          '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
+      }
     }
+    rec.recommendation.push(message0, message1, message2);
   } else {
     let message =
       'An unknown object has been found in the ORDER BY statement' +
@@ -877,147 +1044,333 @@ const generateSelectLimitRecommendations = (
     parent_statement: parent_query_statement?.toUpperCase(),
     recommendation: [] as string[],
   };
+  console.log('OU FUCK:');
+  console.dir(obj, { depth: null });
+  let sub_message = ' the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
+  let diff_message = diff_type === 'missing' ? 'less' : 'more';
+  let message0 = 'Expecting more/less rows to be returned by' + (sub ? sub_message + '.' : ' a query.');
+  let message1 =
+    'LIMIT statement' +
+    (sub ? ' of' + sub_message : '') +
+    ' is ' +
+    diff_type +
+    ' or is returning more/less rows than expected.';
+  let message2 = '';
+  if (
+    'value' in obj &&
+    obj.value !== null &&
+    ((Array.isArray(obj.value) && obj.value.length > 0 && 'type' in obj.value[0] && obj.value[0].type === 'number') ||
+      ('type' in obj.value && obj.value.type === 'number'))
+  ) {
+    let val: number;
+    if (Array.isArray(obj.value)) val = obj.value[0].value;
+    else val = obj.value.value;
+    message2 =
+      'LIMIT ' +
+      val +
+      ' statement' +
+      (sub ? ' of' + sub_message : '') +
+      ' is ' +
+      diff_type +
+      ' or is returning more/less rows than expected.';
+  } else {
+    message2 =
+      'Unfortunately, the capabilities of this recommendation system are limited. Condition used in the LIMIT statement' +
+      (sub ? sub_message : '') +
+      ' is too complex. Feel free to report this as bug, stating the chapter name, exercise number ' +
+      'and your query. Thank you! Your help is much appreciated.';
+  }
+  rec.recommendation.push(message0, message1, message2);
   return rec;
 };
 
-const generateInsertTableRecommendations = (
-  obj: ASTObject,
-  diff_type: string,
-  sub: boolean,
-  parent_query_type: string | undefined,
-  parent_query_statement: string | undefined
-): Recommendation => {
+const generateInsertTableRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
   let rec = {
     query_type: 'INSERT',
     statement: 'TABLE',
-    parent_query_type: parent_query_type?.toUpperCase(),
-    parent_statement: parent_query_statement?.toUpperCase(),
+    parent_query_type: undefined,
+    parent_statement: undefined,
     recommendation: [] as string[],
   };
+  if ('db' in obj && 'table' in obj) {
+    let message0 = 'Make sure you are inserting into the correct table.';
+    let message1 = obj.table + ' table is ' + diff_type + ' in the INSERT INTO statement.';
+    let message2 = 'INSERT INTO ' + obj.table + ' is ' + (diff_type === 'missing' ? diff_type : 'incorrect') + '.';
+    rec.recommendation.push(message0, message1, message2);
+  } else {
+    let message =
+      'An unknown object has been found in the INSERT INTO <table> statement.' +
+      ' Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
+    rec.recommendation.push(message, message, message);
+  }
   return rec;
 };
-const generateInsertColumnsRecommendations = (
-  obj: ASTObject,
-  diff_type: string,
-  sub: boolean,
-  parent_query_type: string | undefined,
-  parent_query_statement: string | undefined
-): Recommendation => {
-  // INSERT INTO table(COLUMNS) --> generujem odporucania pre COLUMNS
+const generateInsertColumnsRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
   let rec = {
     query_type: 'INSERT',
     statement: 'COLUMNS',
-    parent_query_type: parent_query_type?.toUpperCase(),
-    parent_statement: parent_query_statement?.toUpperCase(),
+    parent_query_type: undefined,
+    parent_statement: undefined,
     recommendation: [] as string[],
   };
+  console.log('Creating INSERT-COLUMNS recommendations for: ', obj);
+  if (Array.isArray(obj)) {
+    let message0 =
+      'Make sure the INSERT INTO statement includes ' +
+      (diff_type === 'missing' ? 'ALL' : 'ONLY') +
+      ' the required columns.';
+    let message1 =
+      (diff_type === 'missing' ? 'Missing' : 'Redundant') +
+      ' columns in the INSERT INTO table(col_1, col_2, ..., col_x) statement.';
+    let message2 = (diff_type === 'missing' ? 'Missing' : 'Redundant') + ' column/s: ';
+    for (let col of obj) message2 += col + ', ';
+    message2 = message2.slice(0, -2) + ' in the INSERT INTO table(...) statement.';
+    rec.recommendation.push(message0, message1, message2);
+  } else {
+    let message =
+      'An unknown object has been found in the INSERT INTO table(column_1, column_2, ..., column_x) statement' +
+      '. Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
+    rec.recommendation.push(message, message, message);
+  }
   return rec;
 };
-const generateInsertValuesRecommendations = (
-  obj: ASTObject,
-  diff_type: string,
-  sub: boolean,
-  parent_query_type: string | undefined,
-  parent_query_statement: string | undefined
-): Recommendation => {
-  // INSERT INTO table(columns) VALUES --> generujem odporucania pre VALUES
-  // values : [ {}, {} , {}], kde {} reprezentuje 1 riadok VALUES (x,x,y,z)
-  // {} obsahuje type a value: [{x},{x},{y},{z}]
-  // ak vsak values : {}, potom sa jedna o SELECT. Ak niekde v SELECT je ast, potom o INSERT .. SELECT x,(SELECT ....),y, z
+const generateInsertValuesRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
   let rec = {
     query_type: 'INSERT',
     statement: 'VALUES',
-    parent_query_type: parent_query_type?.toUpperCase(),
-    parent_statement: parent_query_statement?.toUpperCase(),
+    parent_query_type: undefined,
+    parent_statement: undefined,
     recommendation: [] as string[],
   };
-  return rec;
-};
-const generateInsertSelectRecommendations = (
-  obj: ASTObject,
-  diff_type: string,
-  sub: boolean,
-  parent_query_type: string | undefined,
-  parent_query_statement: string | undefined
-): Recommendation => {
-  // INSERT INTO table(columns) VALUES --> generujem odporucania pre VALUES
-  // values : [ {}, {} , {}], kde {} reprezentuje 1 riadok VALUES (x,x,y,z)
-  // {} obsahuje type a value: [{x},{x},{y},{z}]
-  // ak vsak values : {}, potom sa jedna o SELECT. Ak niekde v SELECT je ast, potom o INSERT .. SELECT x,(SELECT ....),y, z
-  let rec = {
-    query_type: 'INSERT',
-    statement: 'SELECT',
-    parent_query_type: parent_query_type?.toUpperCase(),
-    parent_statement: parent_query_statement?.toUpperCase(),
-    recommendation: [] as string[],
-  };
+  if (obj !== null && 'type' in obj && 'value' in obj) {
+    let diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
+    let message0 = 'Make sure you are inserting ' + diff_message + ' the required values.';
+    let message1 = 'VALUES statement contains incorrect values.';
+    let message2 = "VALUES statement is missing value '" + obj.value + "'.";
+    rec.recommendation.push(message0, message1, message2);
+  } else {
+    let message =
+      'An unknown object has been found in the INSERT INTO ... VALUES statement.' +
+      ' Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
+    rec.recommendation.push(message, message, message);
+  }
   return rec;
 };
 
-const generateUpdateTableRecommendations = (
-  obj: ASTObject,
-  diff_type: string,
-  sub: boolean,
-  parent_query_type: string | undefined,
-  parent_query_statement: string | undefined
-): Recommendation => {
+const generateUpdateTableRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
   let rec = {
     query_type: 'UPDATE',
     statement: 'TABLE',
-    parent_query_type: parent_query_type?.toUpperCase(),
-    parent_statement: parent_query_statement?.toUpperCase(),
+    parent_query_type: undefined,
+    parent_statement: undefined,
     recommendation: [] as string[],
   };
+  if ('db' in obj && 'table' in obj) {
+    let message0 = 'Make sure you are updating the correct table.';
+    let message1 = obj.table + ' table is ' + diff_type + ' in the UPDATE statement.';
+    let message2 = 'UPDATE ' + obj.table + ' is ' + (diff_type === 'missing' ? diff_type : 'incorrect') + '.';
+    rec.recommendation.push(message0, message1, message2);
+  } else {
+    let message =
+      'An unknown object has been found in the UPDATE table statement.' +
+      ' Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
+    rec.recommendation.push(message, message, message);
+  }
   return rec;
 };
-const generateUpdateSetRecommendations = (
-  obj: ASTObject,
-  diff_type: string,
-  sub: boolean,
-  parent_query_type: string | undefined,
-  parent_query_statement: string | undefined
-): Recommendation => {
+const generateUpdateSetRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
   let rec = {
     query_type: 'UPDATE',
     statement: 'SET',
-    parent_query_type: parent_query_type?.toUpperCase(),
-    parent_statement: parent_query_statement?.toUpperCase(),
+    parent_query_type: undefined,
+    parent_statement: undefined,
     recommendation: [] as string[],
   };
+  if ('column' in obj && 'value' in obj && 'table' in obj) {
+    let message0 = 'Make sure you are setting the correct values and columns in the UPDATE statement.';
+    let message1 = 'SET ' + obj.column + ' is ' + diff_type + ' in the UPDATE statement.';
+    let val = '';
+    if (typeof obj.value === 'object') {
+      if ('value' in obj.value && (typeof obj.value.value === 'number' || typeof obj.value.value === 'string'))
+        val = obj.value.value;
+    }
+    let message2 =
+      'SET ' +
+      obj.column +
+      ' = ' +
+      (val === '' ? '...' : val) +
+      ' is ' +
+      diff_type +
+      ' or contains invalid values in the UPDATE statement.';
+    rec.recommendation.push(message0, message1, message2);
+  } else {
+    let message =
+      'An unknown object has been found in the UPDATE .. SET .. statement.' +
+      ' Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
+    rec.recommendation.push(message, message, message);
+  }
   return rec;
 };
-const generateUpdateWhereRecommendations = (
-  obj: ASTObject,
-  diff_type: string,
-  sub: boolean,
-  parent_query_type: string | undefined,
-  parent_query_statement: string | undefined
-): Recommendation => {
+const generateUpdateWhereRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
   let rec = {
     query_type: 'UPDATE',
     statement: 'WHERE',
-    parent_query_type: parent_query_type?.toUpperCase(),
-    parent_statement: parent_query_statement?.toUpperCase(),
+    parent_query_type: undefined,
+    parent_statement: undefined,
     recommendation: [] as string[],
   };
+
+  let type: string | undefined;
+  let operator: string | undefined;
+  let left: ASTObject | undefined;
+  let right: ASTObject | undefined;
+  for (let [key, value] of Object.entries(obj)) {
+    if (key === 'type') type = value;
+    else if (key === 'operator') operator = value;
+    else if (key === 'left') left = value;
+    else if (key === 'right') right = value;
+  }
+  // if (type === undefined && operator === undefined && left === undefined && right === undefined) {
+  //   let message =
+  //     'An unknown object has been found in the UPDATE .. WHERE statement.' +
+  //     ' Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
+  //   rec.recommendation.push(message, message, message);
+  // } else {
+  //   let message0: string = 'Make sure the condition in the WHERE statement is correct.',
+  //     message1: string = '',
+  //     message2: string = '';
+  //   if (operator !== undefined && left === undefined && right === undefined) {
+  //     message1 = 'Try using different operator in the condition of your WHERE statement.';
+  //     message2 = "Operator '... " + operator + " ...' is " +
+  //       (diff_type === 'missing' ? diff_type : 'incorrect') +
+  //       ' in the condition of your WHERE statement.';
+  //   } else if (operator === undefined && left !== undefined && right === undefined) {
+  //     // iba left
+  //     let l_val: string | undefined;
+  //     message1 = 'Left side of the condition in the WHERE statement is incorrect.';
+  //     //moze byt column_ref, binary_exp, aggr_func
+  //     if ('type' in left) {
+  //       if (left.type === 'column_ref') {
+
+  //       } else if (left.type === 'binary_exp') {
+
+  //       } else if (left.type === 'aggr_func') {
+  //         if ('name' in left) {
+  //           l_val = left.name;
+  //           if ('args' in left && 'expr' in left.args) {
+  //             if ()
+  //           }
+  //         }
+  //       } else if ('value'in left) l_val = left.value;
+  //     } else {
+  //       if ('column' in left) {
+  //         if ('table' in left) l_val = left.table === null ? left.column : left.table + '.' + left.column;
+  //         else l_val = left.column;
+  //       } else if ('value' in left) {
+  //         l_val = left.value;
+  //       }
+  //     }
+  //     if(l_val !== undefined) {
+  //       message2 = '';
+  //     }
+  //   } else if (operator === undefined && left === undefined && right !== undefined) {
+  //     // iba right
+  //   } else if (operator !== undefined && left !== undefined && right === undefined) {
+  //     //operator + left
+  //   } else if (operator !== undefined && left === undefined && right !== undefined) {
+  //     //operator + right
+  //   } else if (operator === undefined && left !== undefined && right !== undefined) {
+  //     //left + right
+  //   } else if (operator !== undefined && left !== undefined && right !== undefined) {
+  //     //vsetko
+  //   }
+  //   if(message2 === '') {
+  //     //lutujem, ale nemam viac info
+  //   }
+  //   rec.recommendation.push(message0, message1, message2);
+  // }
+  // if ('type' in obj && 'operator' in obj && 'left' in obj && 'right' in obj) {
+  //   let o = obj as MyExpr;
+  //   message0 = 'Make sure the condition in the WHERE statement is correct.';
+  //   message1 =
+  //     "Condition using '" +
+  //     o.operator +
+  //     "' operator is probably " +
+  //     diff_type +
+  //     ' in the WHERE statement' +
+  //     (sub ? sub_message : '') +
+  //     '.';
+  //   if (o.left.type === 'column_ref' && o.right.type === 'column_ref') {
+  //     let l_col = o.left.table === null ? o.left.column : o.left.table + '.' + o.left.column;
+  //     let r_col = o.right.table === null ? o.right.column : o.right.table + '.' + o.right.column;
+  //     message2 =
+  //       "Condition '" +
+  //       l_col +
+  //       ' ' +
+  //       o.operator +
+  //       ' ' +
+  //       r_col +
+  //       "' in the WHERE statement" +
+  //       (sub ? sub_message : '') +
+  //       ' is probably ' +
+  //       diff_type +
+  //       '.';
+  //   } else if (o.left.type !== 'column_ref' && o.right.type === 'column_ref') {
+  //     let r_col = o.right.table === null ? o.right.column : o.right.table + '.' + o.right.column;
+  //     message2 =
+  //       "Condition '... " +
+  //       o.operator +
+  //       ' ' +
+  //       r_col +
+  //       "' in the WHERE statement" +
+  //       (sub ? sub_message : '') +
+  //       ' is probably ' +
+  //       diff_type +
+  //       '.';
+  //   } else if (o.left.type === 'column_ref' && o.right.type !== 'column_ref') {
+  //     let l_col = o.left.table === null ? o.left.column : o.left.table + '.' + o.left.column;
+  //     message2 =
+  //       "Condition '" +
+  //       l_col +
+  //       ' ' +
+  //       o.operator +
+  //       " ...' in the WHERE statement" +
+  //       (sub ? sub_message : '') +
+  //       ' is probably ' +
+  //       diff_type +
+  //       '.';
+  //   } else {
+  //     message2 =
+  //       'Unfortunately, the capabilities of this recommendation system are limited. Condition used in the WHERE statement' +
+  //       (sub ? sub_message : '') +
+  //       ' is too complex. Feel free to report this as bug, stating the chapter name, exercise number ' +
+  //       'and your query. Thank you! Your help is much appreciated.';
+  //   }
+  //   rec.recommendation.push(message0, message1, message2);
+  // }
+
   return rec;
 };
 
-// const generateDeleteTableRecommendations = () => {};
-const generateDeleteFromRecommendations = (
-  obj: ASTObject,
-  diff_type: string,
-  sub: boolean,
-  parent_query_type: string | undefined,
-  parent_query_statement: string | undefined
-): Recommendation => {
+const generateDeleteFromRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
   let rec = {
     query_type: 'DELETE',
     statement: 'FROM',
-    parent_query_type: parent_query_type?.toUpperCase(),
-    parent_statement: parent_query_statement?.toUpperCase(),
+    parent_query_type: undefined,
+    parent_statement: undefined,
     recommendation: [] as string[],
   };
+  if ('db' in obj && 'table' in obj) {
+    let message0 = 'Make sure you are deleting from the correct table.';
+    let message1 = obj.table + ' table is ' + diff_type + ' in the DELETE statement.';
+    let message2 = 'DELETE FROM ' + obj.table + ' is ' + (diff_type === 'missing' ? diff_type : 'incorrect') + '.';
+    rec.recommendation.push(message0, message1, message2);
+  } else {
+    let message =
+      'An unknown object has been found in the INSERT INTO <table> statement.' +
+      ' Please report this as bug, stating the chapter name, exercise number and your query. Thank you! Your help is much appreciated.';
+    rec.recommendation.push(message, message, message);
+  }
   return rec;
 };
 const generateDeleteWhereRecommendations = (
@@ -1041,9 +1394,9 @@ const recommender = (
   diff: ASTObject,
   diff_type: string,
   recs: Recommendation[],
-  sub: boolean,
   query_type: string,
-  branch: string | undefined
+  parent_query_type: string | undefined,
+  parent_query_statement: string | undefined
 ) => {
   // console.log('Checking:', diff_type, '; sub:', sub);
   for (let [key, value] of Object.entries(diff)) {
@@ -1051,16 +1404,31 @@ const recommender = (
     if (query_type === 'select') {
       if (key === 'distinct') {
         if (typeof value === 'object' && value !== null && 'type' in value) {
-          if (typeof value.type === 'string' && value.type !== null) {
+          if (value.type !== null) {
             recs.push(
-              generateSelectDistinctRecommendations(value, diff_type, sub, sub ? query_type : undefined, branch)
+              generateSelectDistinctRecommendations(
+                value,
+                diff_type,
+                parent_query_type !== undefined,
+                parent_query_type,
+                parent_query_statement
+              )
             );
           }
         }
       } else if (key === 'limit') {
-        if (typeof value === 'object' && value !== null && 'separator' in value && 'value' in value) {
-          if (value.separator !== '' && value.value.length > 0) {
-            recs.push(generateSelectLimitRecommendations(value, diff_type, sub, sub ? query_type : undefined, branch));
+        if (typeof value === 'object' && value !== null) {
+          if (value.value.length > 0) {
+            // if (value.separator !== '' && value.value.length > 0) {
+            recs.push(
+              generateSelectLimitRecommendations(
+                value,
+                diff_type,
+                parent_query_type !== undefined,
+                parent_query_type,
+                parent_query_statement
+              )
+            );
           }
         }
       } else if (
@@ -1075,80 +1443,194 @@ const recommender = (
           for (let [v_key, v_val] of Object.entries(value)) {
             if (typeof v_val === 'object' && v_val !== null && 'ast' in v_val) {
               const subAST = v_val['ast'] as ASTObject;
-              recommender(subAST, diff_type, recs, true, 'select', branch ? branch : 'select');
+              let newBranch = key === 'columns' ? 'select' : key;
+              recommender(subAST, diff_type, recs, 'select', 'select', newBranch);
             } else if (key === 'columns') {
               recs.push(
-                generateSelectColumnsRecommendations(v_val, diff_type, sub, sub ? query_type : undefined, branch)
+                generateSelectColumnsRecommendations(
+                  v_val,
+                  diff_type,
+                  parent_query_type !== undefined,
+                  parent_query_type,
+                  parent_query_statement
+                )
               );
             } else if (key === 'from') {
-              recs.push(generateSelectFromRecommendations(v_val, diff_type, sub, sub ? query_type : undefined, branch));
+              recs.push(
+                generateSelectFromRecommendations(
+                  v_val,
+                  diff_type,
+                  parent_query_type !== undefined,
+                  parent_query_type,
+                  parent_query_statement
+                )
+              );
             } else if (key === 'where') {
               recs.push(
-                generateSelectWhereRecommendations(v_val, diff_type, sub, sub ? query_type : undefined, branch)
+                generateSelectWhereRecommendations(
+                  v_val,
+                  diff_type,
+                  parent_query_type !== undefined,
+                  parent_query_type,
+                  parent_query_statement
+                )
               );
             } else if (key === 'groupby') {
               recs.push(
-                generateSelectGroupByRecommendations(v_val, diff_type, sub, sub ? query_type : undefined, branch)
+                generateSelectGroupByRecommendations(
+                  v_val,
+                  diff_type,
+                  parent_query_type !== undefined,
+                  parent_query_type,
+                  parent_query_statement
+                )
               );
             } else if (key === 'having') {
               recs.push(
-                generateSelectHavingRecommendations(v_val, diff_type, sub, sub ? query_type : undefined, branch)
+                generateSelectHavingRecommendations(
+                  v_val,
+                  diff_type,
+                  parent_query_type !== undefined,
+                  parent_query_type,
+                  parent_query_statement
+                )
               );
             } else if (key === 'orderby') {
               recs.push(
-                generateSelectOrderByRecommendations(v_val, diff_type, sub, sub ? query_type : undefined, branch)
+                generateSelectOrderByRecommendations(
+                  v_val,
+                  diff_type,
+                  parent_query_type !== undefined,
+                  parent_query_type,
+                  parent_query_statement
+                )
               );
             }
           }
         } else if (typeof value === 'object' && value !== null) {
           if ('ast' in value) {
             const subAST = value['ast'] as ASTObject;
-            recommender(subAST, diff_type, recs, true, 'select', branch ? branch : 'select');
+            let newBranch = key === 'columns' ? 'select' : key;
+            recommender(subAST, diff_type, recs, 'select', 'select', newBranch);
           } else if (key === 'columns') {
             recs.push(
-              generateSelectColumnsRecommendations(value, diff_type, sub, sub ? query_type : undefined, branch)
+              generateSelectColumnsRecommendations(
+                value,
+                diff_type,
+                parent_query_type !== undefined,
+                parent_query_type,
+                parent_query_statement
+              )
             );
           } else if (key === 'from') {
-            recs.push(generateSelectFromRecommendations(value, diff_type, sub, sub ? query_type : undefined, branch));
+            recs.push(
+              generateSelectFromRecommendations(
+                value,
+                diff_type,
+                parent_query_type !== undefined,
+                parent_query_type,
+                parent_query_statement
+              )
+            );
           } else if (key === 'where') {
-            recs.push(generateSelectWhereRecommendations(value, diff_type, sub, sub ? query_type : undefined, branch));
+            recs.push(
+              generateSelectWhereRecommendations(
+                value,
+                diff_type,
+                parent_query_type !== undefined,
+                parent_query_type,
+                parent_query_statement
+              )
+            );
           } else if (key === 'groupby') {
             recs.push(
-              generateSelectGroupByRecommendations(value, diff_type, sub, sub ? query_type : undefined, branch)
+              generateSelectGroupByRecommendations(
+                value,
+                diff_type,
+                parent_query_type !== undefined,
+                parent_query_type,
+                parent_query_statement
+              )
             );
           } else if (key === 'having') {
-            recs.push(generateSelectHavingRecommendations(value, diff_type, sub, sub ? query_type : undefined, branch));
+            recs.push(
+              generateSelectHavingRecommendations(
+                value,
+                diff_type,
+                parent_query_type !== undefined,
+                parent_query_type,
+                parent_query_statement
+              )
+            );
           } else if (key === 'orderby') {
             recs.push(
-              generateSelectOrderByRecommendations(value, diff_type, sub, sub ? query_type : undefined, branch)
+              generateSelectOrderByRecommendations(
+                value,
+                diff_type,
+                parent_query_type !== undefined,
+                parent_query_type,
+                parent_query_statement
+              )
             );
           }
         }
       }
     } else if (query_type === 'insert') {
       if (key === 'table') {
-        // value === Array? value === object?
+        if (Array.isArray(value) && value.length > 0) {
+          for (let [v_key, v_val] of Object.entries(value)) {
+            recs.push(generateInsertTableRecommendations(v_val, diff_type));
+          }
+        } else recs.push(generateInsertTableRecommendations(value, diff_type));
       } else if (key === 'columns') {
+        recs.push(generateInsertColumnsRecommendations(value, diff_type));
       } else if (key === 'values') {
-        /**
-         * ak values = []:
-         *    -> INSERT INTO ... VALUES (x,x,z),(a,b,c),(m,n,o) --> ci uz ide o vlozenie jedneho riadku (), alebo viacero riadkov (), (), ()
-         *          -> hodnoty vsak mozy byt vnoreny SELECT, napriklad ... VALUES (x,y,z), (a,b,(SELECT ...)), ((SELECT),(SELECT),x)
-         * ak values = {}
-         *    -> INSERT INTO ... SELECT x,x,(SELECT ..), y
-         *    -> cize values = AST, ale nema 'ast' key
-         *    -> hodnoty, ktore sa maju vlozit do tabulky su vo values.columns[{x},{x},{ast},{y}]
-         */
+        if (Array.isArray(value) && value.length > 0) {
+          for (let [v_key, v_val] of Object.entries(value)) {
+            if (typeof v_val === 'object' && v_val !== null && 'type' in v_val && v_val.type === 'expr_list') {
+              const o = v_val as expr_list;
+              for (let [o_key, o_val] of Object.entries(o.value)) {
+                if (typeof o_val === 'object' && o_val !== null && 'ast' in o_val) {
+                  const subAST = o_val['ast'] as ASTObject;
+                  recommender(subAST, diff_type, recs, 'select', 'insert', 'values');
+                } else recs.push(generateInsertValuesRecommendations(o_val, diff_type));
+              }
+            }
+          }
+        } else {
+          if (typeof value === 'object' && value !== null && 'ast' in value) {
+            const subAST = value['ast'] as ASTObject;
+            recommender(subAST, diff_type, recs, 'select', 'insert', 'values');
+          }
+        }
       }
     } else if (query_type === 'update') {
       if (key === 'table') {
-        // value === Array? value === object?
+        if (Array.isArray(value) && value.length > 0) {
+          for (let [v_key, v_val] of Object.entries(value)) {
+            recs.push(generateUpdateTableRecommendations(v_val, diff_type));
+          }
+        } else recs.push(generateUpdateTableRecommendations(value, diff_type));
       } else if (key === 'set') {
+        if (Array.isArray(value) && value.length > 0) {
+          for (let [v_key, v_val] of Object.entries(value)) {
+            if (typeof v_val === 'object' && v_val !== null) {
+              if ('ast' in v_val) {
+                const subAST = v_val['ast'] as ASTObject;
+                recommender(subAST, diff_type, recs, 'select', 'update', 'set');
+              } else recs.push(generateUpdateSetRecommendations(v_val, diff_type));
+            }
+          }
+        } else recs.push(generateUpdateSetRecommendations(value, diff_type));
       } else if (key === 'where') {
       }
     } else if (query_type === 'delete') {
       if (key === 'from') {
-        // value === Array? value === object?
+        if (Array.isArray(value) && value.length > 0) {
+          for (let [v_key, v_val] of Object.entries(value)) {
+            recs.push(generateDeleteFromRecommendations(v_val, diff_type));
+          }
+        } else recs.push(generateDeleteFromRecommendations(value, diff_type));
       } else if (key === 'where') {
       }
     }
@@ -1326,6 +1808,15 @@ const generateGeneralRecommendation = (queryType: string, branch: string, diff_t
   return '';
 };
 
+const removeDuplicateRecommendations = (recs: Recommendation[]): Recommendation[] => {
+  let newRecs: Recommendation[] = [];
+  for (let r of recs) {
+    if (!newRecs.find((x) => JSON.stringify(x) === JSON.stringify(r))) newRecs.push(r);
+    else console.log('Removing: ', r);
+  }
+  return newRecs;
+};
+
 export const createRecommendations = (
   queryType: string,
   missing: ASTObject,
@@ -1357,7 +1848,7 @@ export const createRecommendations = (
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'missing');
       }
     }
-    recommender(missing, 'missing', recs, false, queryType, undefined);
+    recommender(missing, 'missing', recs, queryType, undefined, undefined);
     /**
      * ak je to null, potom: ---> DONE!
      *      a. stud: normal, sol: normal                                -> vytvorim odporucania
@@ -1384,7 +1875,7 @@ export const createRecommendations = (
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'redundant');
       }
     }
-    recommender(extras, 'redundant', recs, false, queryType, undefined);
+    recommender(extras, 'redundant', recs, queryType, undefined, undefined);
     /**
      * ak to je null, potom:
      *      a. stud: normal, sol: normal                                -> vytvorim odporucania
@@ -1445,8 +1936,8 @@ export const createRecommendations = (
         // console.log('MISSING GENERAL RECOMMENDATION:', generalRecommendation);
       }
     }
-    recommender(missing, 'missing', recs, false, queryType, undefined);
-    recommender(extras, 'redundant', recs, false, queryType, undefined);
+    recommender(missing, 'missing', recs, queryType, undefined, undefined);
+    recommender(extras, 'redundant', recs, queryType, undefined, undefined);
     /**
      * ak su oboje null:
      *      a. nieco mu chyba, nieco ma navyse, NIE SU TAM AST (alebo su spravne)   -> vytvorim odporucania
@@ -1491,6 +1982,7 @@ export const createRecommendations = (
    */
 
   console.log('General recommendation:', generalRecommendation);
+  recs = removeDuplicateRecommendations(recs);
   console.log('recs:');
   console.dir(recs, { depth: null });
   let result: Recommendations = {

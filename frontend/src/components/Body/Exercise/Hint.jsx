@@ -23,7 +23,7 @@ export default function Hint({ exerciseId, userQuery, ...props }) {
     e.preventDefault();
     try {
       let result = await services.getHelp(userQuery, exerciseId);
-      setActive(true);
+      // setActive(true);
     } catch (error) {
       const { message } = await error.response.json();
       // setModalErrorMessage('Please fix the following errors first:\n\n' + message);
