@@ -38,6 +38,10 @@ export default function Exercise({ ...props }) {
   const [showModal, setShowModal] = useState(false);
   const [modalErrorMessage, setModalErrorMessage] = useState('');
 
+  const [hintDefaultLevel, setHintDefaultLevel] = useState(null);
+  const [generalHint, setGeneralHint] = useState(null);
+  const [hints, setHints] = useState(null);
+
   const initialize = async (chapterID, exerciseID) => {
     try {
       let response = await services.getExercise(exerciseID);
@@ -75,20 +79,12 @@ export default function Exercise({ ...props }) {
       setModalErrorMessage('');
       setUserQueryResult(null);
       setUserQueryErrorMsg(null);
+      setGeneralHint(null);
+      setHintDefaultLevel(null);
+      setHints(null);
       initialize(parseInt(chapterID), parseInt(exerciseID));
     }
   }, [searchParams.get('id')]);
-
-  const handleGivingHelp = async (e) => {
-    e.preventDefault();
-    try {
-      let result = await services.getHelp(userQuery, exercise.id);
-    } catch (error) {
-      const { message } = await error.response.json();
-      setModalErrorMessage('Please fix the following errors first:\n\n' + message);
-      setShowModal(true);
-    }
-  };
 
   const handleCloseModal = () => setShowModal(false);
 
@@ -150,6 +146,20 @@ export default function Exercise({ ...props }) {
     setSelectedKey(key);
   };
 
+  const handleGivingHelp = async (e) => {
+    e.preventDefault();
+    try {
+      let result = await services.getHelp(userQuery, exercise.id);
+      setHintDefaultLevel(result.recs.default_detail_level);
+      setGeneralHint(result.recs.generalRecommendation);
+      setHints(result.recs.recommendations);
+    } catch (error) {
+      const { message } = await error.response.json();
+      setModalErrorMessage('Please fix the following errors first:\n\n' + message);
+      setShowModal(true);
+    }
+  };
+
   return searchParams.get('id') === null ? (
     <div></div>
   ) : (
@@ -165,13 +175,13 @@ export default function Exercise({ ...props }) {
             flexDirection: 'column',
           }}
         >
-          <div className="pt-2" style={{ width: '100%' }}>
+          <div className="pt-2 px-1" style={{ width: '100%' }}>
             <h2 dangerouslySetInnerHTML={{ __html: exercise.name }} />
           </div>
-          <div className="pt-1" style={{ width: '100%' }}>
+          <div className="pt-1 px-1" style={{ width: '100%' }}>
             <p dangerouslySetInnerHTML={{ __html: exercise.question }} />
           </div>
-          <div style={{ width: '100%', maxHeight: '35vh' }}>
+          <div style={{ width: '100%', maxHeight: '30vh' }}>
             <Schema />
           </div>
           <div className="py-2" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', width: '100%' }}>
@@ -190,25 +200,18 @@ export default function Exercise({ ...props }) {
               />
             </div>
           </div>
-          <div className="py-2 px-1 w-100" style={{ display: 'flex' }}>
-            <div className="p-1" style={{ width: '60%', display: 'flex', flexDirection: 'column' }}>
+          <div className="py-2 px-1 w-100 d-flex">
+            <div className="p-1" style={{ flex: 3, display: 'flex', flexDirection: 'column' }}>
               <Form.Control
                 id="user_query"
-                rows={10}
-                style={{ fontSize: '0.9em', resize: 'vertical' }}
+                rows="5"
+                style={{ resize: 'vertical', fontSize: '0.8em' }}
                 as="textarea"
                 placeholder="Write your answer here"
                 value={userQuery}
                 onChange={handleUserQueryChange}
               />
               <div className="d-flex">
-                {/* <Button
-                  className="m-1"
-                  style={{ flex: 1, backgroundColor: '#2666CF' }}
-                  // onClick={handleGivingHelp}
-                >
-                  Help
-                </Button> */}
                 <Button
                   className="m-1"
                   style={{ flex: 1, backgroundColor: '#2666CF' }}
@@ -223,10 +226,15 @@ export default function Exercise({ ...props }) {
                 >
                   Submit
                 </Button>
+                <Button className="m-1" style={{ flex: 1, backgroundColor: '#2666CF' }} onClick={handleGivingHelp}>
+                  {hints ? 'Refresh hints' : 'Get hints'}
+                </Button>
               </div>
             </div>
 
-            <Hint exerciseId={exercise.id} userQuery={userQuery} />
+            <div className="p-1" style={{ flex: 2 }}>
+              <Hint hintDefaultLevel={hintDefaultLevel} generalHint={generalHint} hints={hints} />
+            </div>
           </div>
           <div className="py-2 px-1" style={{ width: '100%', maxHeight: '40vh' }}>
             <Tab.Container

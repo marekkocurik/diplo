@@ -4,117 +4,88 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Button } from 'react-bootstrap';
 import { services } from '../../../api/services';
+import SimpleBar from 'simplebar-react';
 
-export default function Hint({ exerciseId, userQuery, ...props }) {
+export default function Hint({ hintDefaultLevel, generalHint, hints, ...props }) {
   const [hint, setHint] = useState(0);
-  const [hints, setHints] = useState([0, 1, 2, 3, 4, 5, 6]);
-  const [tier, setTier] = useState(0);
-  const [active, setActive] = useState(false);
+  const [hintDetailLevel, setHintDetailLevel] = useState(0);
 
   const handleChangeTier = (value) => {
-    value >= 0 && value <= 2 && setTier(value);
+    value >= 0 && value <= 2 && setHintDetailLevel(value);
   };
 
   const handleChangeHint = (value) => {
-    value >= 0 && setHint(value);
-  };
-
-  const handleGivingHelp = async (e) => {
-    e.preventDefault();
-    try {
-      let result = await services.getHelp(userQuery, exerciseId);
-      // setActive(true);
-    } catch (error) {
-      const { message } = await error.response.json();
-      // setModalErrorMessage('Please fix the following errors first:\n\n' + message);
-      // setShowModal(true);
-    }
+    value >= 0 && value < hints.length && setHint(value);
+    setHintDetailLevel(hintDefaultLevel);
   };
 
   useEffect(() => {
-    setActive(false);
+    setHintDetailLevel(hintDefaultLevel);
     setHint(0);
-  }, [exerciseId]);
+  }, [hintDefaultLevel]);
 
-  return (
-    <div style={{ flex: 1, display: 'flex' }} className="hint">
-      {/* <div className="m-1">
-        {[0, 1, 2, 3].map((i) => (
-          <motion.div
-            animate={{ background: hint === i ? '#222730' : '#ffffff', color: hint === i ? '#ffffff' : '#222' }}
-            style={{ width: 40, height: 40 }}
-            onClick={() => setHint(i)}
-            className="mb-1 clickable d-flex justify-content-center align-items-center border rounded"
+  return hints?.length > 0 ? (
+    <div className="w-100 border rounded d-flex" style={{ flex: 1, height: '40vh' }}>
+      <motion.div
+        whileHover={{ background: hint > 0 ? '#f0f1f4' : '#fff' }}
+        animate={{ background: '#ffffff' }}
+        onClick={() => handleChangeHint(hint - 1)}
+        className="clickable d-flex justify-content-center align-items-center px-1 user-select-none"
+      >
+        <CgChevronLeft size={20} style={{ opacity: hint > 0 ? 1 : 0 }} />
+      </motion.div>
+      <div className="d-flex flex-column" style={{ flex: 1, justifyContent: 'space-between', maxHeight: '100%' }}>
+        <div className="pt-2" style={{ color: '#909498', fontWeight: 500, borderBottom: '1px solid black' }}>
+          HINT {hint + 1} - {hints[hint].query_type}
+        </div>
+        <div
+          className="pt-1"
+          style={{
+            flex: 1,
+            whiteSpace: 'pre-line',
+            overflow: 'auto',
+            overscrollBehavior: 'contain',
+            fontSize: '0.8em',
+          }}
+        >
+          {hints[hint].recommendation[hintDetailLevel]}
+        </div>
+        <div className="d-flex justify-content-center pt-2 pb-2">
+          <Button
+            className="mx-1"
+            disabled={hintDetailLevel === 0 || hints[hint].query_type === 'GENERAL'}
+            onClick={() => handleChangeTier(hintDetailLevel - 1)}
+            style={{ width: 100, fontSize: 12, background: '#222730', border: 'none' }}
           >
-            {i + 1}
-          </motion.div>
-        ))}
-      </div> */}
-      <div className="m-1 border rounded overflow-hidden" style={{ flex: 1, height: 300 }}>
-        {active && (
-          <div className="d-flex" style={{ flex: 1 }}>
-            <motion.div
-              whileHover={{ background: hint > 0 ? '#f0f1f4' : '#fff' }}
-              animate={{ background: '#ffffff' }}
-              onClick={() => handleChangeHint(hint - 1)}
-              className="clickable d-flex justify-content-center align-items-center px-1 user-select-none"
-            >
-              <CgChevronLeft size={30} style={{ opacity: hint > 0 ? 1 : 0 }} />
-            </motion.div>
-            <div className="d-flex flex-column" style={{ flex: 1 }}>
-              <div className="p-4 pt-5" style={{ flex: 1 }}>
-                <span style={{ color: '#909498', fontWeight: 500, fontSize: 12 }}>HINT {hint + 1}</span>
-                <h5 style={{ fontWeight: 600 }}>LEVEL {tier + 1}</h5>
-                Lorem ipsum, dolor sit amet consectetur adipisicing elit. Id ducimus aliquid eum pariatur quibusdam
-                repellendus et animi obcaecati explicabo cupiditate ratione quam ipsum, libero magnam alias mollitia
-                asperiores dolorem quidem.
-              </div>
-              <div className="d-flex justify-content-center py-3">
-                {/* {[0, 1, 2].map((i) => (
-              <VscCircleFilled
-                className="clickable"
-                onClick={() => setTier(i)}
-                style={{ opacity: tier >= i ? 1 : 0.3 }}
-              />
-            ))} */}
-                <Button
-                  className="mx-1"
-                  disabled={tier === 0}
-                  onClick={() => handleChangeTier(tier - 1)}
-                  style={{ width: 100, fontSize: 12, background: '#222730', border: 'none' }}
-                >
-                  See less
-                </Button>
-                <Button
-                  className="mx-1"
-                  disabled={tier === 2}
-                  onClick={() => handleChangeTier(tier + 1)}
-                  style={{ width: 100, fontSize: 12, background: '#222730', border: 'none' }}
-                >
-                  See more
-                </Button>
-              </div>
-            </div>
-            <motion.div
-              whileHover={{ background: hint < hints?.length ? '#f0f1f4' : '#fff' }}
-              animate={{ background: '#ffffff' }}
-              onClick={() => handleChangeHint(hint + 1)}
-              className="clickable d-flex justify-content-center align-items-center px-1 user-select-none"
-            >
-              <CgChevronRight size={30} style={{ opacity: hint < hints?.length ? 1 : 0 }} />
-            </motion.div>
-          </div>
-        )}
-
-        {!active && (
-          <div className="w-100 h-100 d-flex align-items-center justify-content-center flex-column">
-            <span>Need some help?</span>
-            <span className="clickable" style={{ textDecoration: 'underline' }} onClick={handleGivingHelp/*setActive(true)*/}>
-              Click here
-            </span>
-          </div>
-        )}
+            See less
+          </Button>
+          <Button
+            className="mx-1"
+            disabled={hintDetailLevel === 2 || hints[hint].query_type === 'GENERAL'}
+            onClick={() => handleChangeTier(hintDetailLevel + 1)}
+            style={{ width: 100, fontSize: 12, background: '#222730', border: 'none' }}
+          >
+            See more
+          </Button>
+        </div>
       </div>
+      <motion.div
+        whileHover={{ background: hint < hints?.length - 1 ? '#f0f1f4' : '#fff' }}
+        animate={{ background: '#ffffff' }}
+        onClick={() => handleChangeHint(hint + 1)}
+        className="clickable d-flex justify-content-center align-items-center px-1 user-select-none"
+      >
+        <CgChevronRight size={20} style={{ opacity: hint < hints?.length - 1 ? 1 : 0 }} />
+      </motion.div>
+    </div>
+  ) : (
+    <div
+      className="border rounded w-100 d-flex align-items-center justify-content-center flex-column"
+      style={{ height: '20vh' }}
+    >
+      {hints?.length === 0 ? <div>No hints to show</div> : <div>Need some help? Click 'Get hints'</div>}
     </div>
   );
+  // <div className="border rounded" style={{ flex: 1, display: 'flex', fontSize: '0.8em' }}>
+  // </div>
 }

@@ -31,10 +31,10 @@ export const exerciseSlice = createSlice({
     },
     historyUpdated: (state, action) => {
       state.history = [action.payload, ...state.history];
-      state.tree
-        .find((c) => c.id === state.activeChapterId)
-        .exercises.find((e) => e.id === state.activeExercise.id).solved =
-        action.payload.solution_success === 'COMPLETE';
+      const ex = state.tree.find((c) => c.id === state.activeChapterId).exercises.find((e) => e.id === state.activeExercise.id);
+      if (!(ex.solved)) ex.solved = action.payload.solution_success === 'COMPLETE';
+      // state.tree.find((c) => c.id === state.activeChapterId).exercises.find((e) => e.id === state.activeExercise.id).solved =
+      //   action.payload.solution_success === 'COMPLETE';
 
       state.tree
         .find((c) => c.id === state.activeChapterId)

@@ -11,7 +11,6 @@ interface Recommendation {
 
 export interface Recommendations {
   default_detail_level: number;
-  generalRecommendation: string;
   recommendations: Recommendation[];
 }
 
@@ -162,7 +161,7 @@ const reconstructAggregateFunction = (obj: ASTObject, nesting: number): string |
     s = obj.name + '(';
     let ret: string | undefined;
     if ('args' in obj && 'expr' in obj.args) ret = resolveType(obj.args.expr, nesting);
-    if (ret === undefined) s += '...)'
+    if (ret === undefined) s += '...)';
     else s += ret + ')';
     if ('as' in obj && obj.as !== null) s += ' AS ' + obj.as;
   }
@@ -325,7 +324,8 @@ const generateSelectColumnsRecommendations = (
         const alias = obj.as;
         message2 =
           "Aggregate function '" +
-          agrf_2 + (alias !== undefined && alias !== null ? ' AS ' + alias : '') +
+          agrf_2 +
+          (alias !== undefined && alias !== null ? ' AS ' + alias : '') +
           "' in the SELECT statement" +
           (sub ? sub_message : '') +
           ' is ' +
@@ -1239,7 +1239,15 @@ const checkIfContainsSubAST = (obj: ASTObject, parent: string | undefined): MyAS
   else return null;
 };
 
-const generateGeneralRecommendation = (queryType: string, branch: string, diff_type: string): string => {
+const generateGeneralRecommendation = (queryType: string, branch: string, diff_type: string): Recommendation | null => {
+  let rec = {
+    query_type: 'GENERAL',
+    statement: 'GENERAL',
+    parent_query_type: undefined,
+    parent_statement: undefined,
+    recommendation: [] as string[],
+  };
+  let message;
   if (queryType === 'select') {
     if (diff_type === 'missing') {
       let s =
@@ -1254,18 +1262,16 @@ const generateGeneralRecommendation = (queryType: string, branch: string, diff_t
             'SELECT ... FROM ... WHERE (SELECT ... nested query) <operator> <operand>;'
           : 'SELECT ... FROM ... GROUP BY ... HAVING <operand> <operator> (SELECT ... nested query);\n' +
             'SELECT ... FROM ... GROUP BY ... HAVING (SELECT ... nested query) <operator> <operand>;';
-      return (
+      message =
         'Apparently, it is needed to use nested query in the ' +
         (branch === 'columns' ? 'SELECT' : branch.toUpperCase()) +
-        ' statement. Here are some examples:\n' +
-        s
-      );
+        ' statement. Here are some examples:\n\n' +
+        s;
     } else if (diff_type === 'redundant') {
-      return (
+      message =
         'Unfortunately, there is no known solution that uses nested query in the ' +
         (branch === 'columns' ? 'SELECT' : branch.toUpperCase()) +
-        ' statement. Apparently, this exercise can be solved without using nested query.'
-      );
+        ' statement. Apparently, this exercise can be solved without using nested query.';
     } else {
       let s: string =
         branch === 'columns'
@@ -1279,87 +1285,81 @@ const generateGeneralRecommendation = (queryType: string, branch: string, diff_t
             'SELECT ... FROM ... WHERE (SELECT ... nested query) <operator> <operand>;'
           : 'SELECT ... FROM ... GROUP BY ... HAVING <operand> <operator> (SELECT ... nested query);\n' +
             'SELECT ... FROM ... GROUP BY ... HAVING (SELECT ... nested query) <operator> <operand>;';
-      return (
+      message =
         'Unfortunately, there is no known solution that uses nested query in the same statement as you did. ' +
         'However, it appears nested query is needed to solve this exercise. Try using it in the ' +
         (branch === 'columns' ? 'SELECT' : branch.toUpperCase()) +
-        ' statement. Here are some examples:\n' +
-        s
-      );
+        ' statement. Here are some examples:\n\n' +
+        s;
     }
   } else if (queryType === 'insert') {
     if (diff_type === 'missing') {
-      return (
-        'Apparently, it is needed to use nested query in the VALUES / SELECT statement. Here are some examples:\n' +
+      message =
+        'Apparently, it is needed to use nested query in the VALUES / SELECT statement. Here are some examples:\n\n' +
         'INSERT INTO ... VALUES (<values>, (SELECT ... nested query), <values>);\n' +
-        'INSERT INTO ... SELECT <values>, (SELECT ... nested query), <values>;'
-      );
+        'INSERT INTO ... SELECT <values>, (SELECT ... nested query), <values>;';
     } else if (diff_type === 'redundant') {
-      return (
+      message =
         'Unfortunately, there is no known solution that uses nested query in the VALUES / SELECT statement. Apparently, ' +
-        'this exercise can be solved without using nested query.'
-      );
+        'this exercise can be solved without using nested query.';
     } else {
-      return (
+      message =
         'Unfortunately, there is no known solution that uses nested query in the same statement as you did. ' +
-        'However, it appears nested query is needed to solve this exercise. Try using it in different statement. Here are some examples:\n' +
+        'However, it appears nested query is needed to solve this exercise. Try using it in different statement. Here are some examples:\n\n' +
         'INSERT INTO ... VALUES (<values>, (SELECT ... nested query), <values>);\n' +
-        'INSERT INTO ... SELECT <values>, (SELECT ... nested query), <values>;'
-      );
+        'INSERT INTO ... SELECT <values>, (SELECT ... nested query), <values>;';
     }
   } else if (queryType === 'update') {
     if (diff_type === 'missing') {
-      return (
+      message =
         'Apparently, it is needed to use nested query in the ' +
         branch.toUpperCase() +
-        ' statement. Here are some examples:\n' +
+        ' statement. Here are some examples:\n\n' +
         (branch === 'set'
           ? 'UPDATE ... SET <column_name> = (SELECT ... nested query)\n' +
             'UPDATE ... SET <column_name> = (SELECT ... nested query) WHERE ...'
           : 'UPDATE ... SET ... WHERE (SELECT ... nested query) <operator> <operand>\n' +
-            'UPDATE ... SET ... WHERE <operand> <operator> (SELECT ... nested query)')
-      );
+            'UPDATE ... SET ... WHERE <operand> <operator> (SELECT ... nested query)');
     } else if (diff_type === 'redundant') {
-      return (
+      message =
         'Unfortunately, there is no known solution that uses nested query in the ' +
         branch +
-        ' statement. Apparently, this exercise can be solved without using nested query.'
-      );
+        ' statement. Apparently, this exercise can be solved without using nested query.';
     } else {
-      return (
+      message =
         'Unfortunately, there is no known solution that uses nested query in the same statement as you did. ' +
         'However, it appears nested query is needed to solve this exercise. Try using it in ' +
         branch.toUpperCase() +
-        ' statement. Here are some examples:\n' +
+        ' statement. Here are some examples:\n\n' +
         (branch === 'set'
           ? 'UPDATE ... SET <column_name> = (SELECT ... nested query)\n' +
             'UPDATE ... SET <column_name> = (SELECT ... nested query) WHERE ...'
           : 'UPDATE ... SET ... WHERE (SELECT ... nested query) <operator> <operand>\n' +
-            'UPDATE ... SET ... WHERE <operand> <operator> (SELECT ... nested query)')
-      );
+            'UPDATE ... SET ... WHERE <operand> <operator> (SELECT ... nested query)');
     }
   } else if (queryType === 'delete') {
     if (diff_type === 'missing') {
-      return (
-        'Apparently, it is needed to use nested query in the WHERE statement. Here are some examples:\n' +
+      message =
+        'Apparently, it is needed to use nested query in the WHERE statement. Here are some examples:\n\n' +
         'DELETE FROM ... WHERE <operand> <operator> (SELECT ... nested query);\n' +
-        'DELETE FROM ... WHERE (SELECT ... nested query) <operator> <operand>;'
-      );
+        'DELETE FROM ... WHERE (SELECT ... nested query) <operator> <operand>;';
     } else if (diff_type === 'redundant') {
-      return (
+      message =
         'Unfortunately, there is no known solution that uses nested query in the WHERE statement. Apparently, ' +
-        'this exercise can be solved without using nested query.'
-      );
+        'this exercise can be solved without using nested query.';
     } else {
-      return (
+      message =
         'Unfortunately, there is no known solution that uses nested query in the same statement as you did. ' +
-        'However, it appears nested query is needed to solve this exercise. Try using it in different statement. Here are some examples:\n' +
+        'However, it appears nested query is needed to solve this exercise. Try using it in different statement. Here are some examples:\n\n' +
         'DELETE FROM ... WHERE <operand> <operator> (SELECT ... nested query);\n' +
-        'DELETE FROM ... WHERE (SELECT ... nested query) <operator> <operand>;'
-      );
+        'DELETE FROM ... WHERE (SELECT ... nested query) <operator> <operand>;';
     }
   }
-  return '';
+  if (message === undefined) return null;
+  else {
+    rec.recommendation.push(message,message,message);
+    return rec;
+  }
 };
 
 const removeDuplicateRecommendations = (recs: Recommendation[]): Recommendation[] => {
@@ -1378,7 +1378,7 @@ export const createRecommendations = (
   cluster: number
 ): Recommendations => {
   let recs: Recommendation[] = [];
-  let generalRecommendation: string = '';
+  let generalRecommendation: Recommendation | null;
 
   let missing_asts; //= checkIfContainsSubAST(missing);
   let extras_asts; //= checkIfContainsSubAST(extras);
@@ -1400,6 +1400,7 @@ export const createRecommendations = (
         const key = Object.keys(unmodifiedAST)[0];
         // console.log('queryType:', queryType, ';', 'parent:', key, '; missing ast value:', unmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'missing');
+        if (generalRecommendation !== null) recs.push(generalRecommendation);
       }
     }
     recommender(missing, 'missing', recs, queryType, undefined, undefined);
@@ -1427,6 +1428,7 @@ export const createRecommendations = (
         const key = Object.keys(unmodifiedAST)[0];
         // console.log('queryType:', queryType, ';', 'parent:', key, '; extras ast value:', unmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'redundant');
+        if (generalRecommendation !== null) recs.push(generalRecommendation);
       }
     }
     recommender(extras, 'redundant', recs, queryType, undefined, undefined);
@@ -1460,6 +1462,7 @@ export const createRecommendations = (
         const key = Object.keys(missingUnmodifiedAST)[0];
         // console.log('queryType:', queryType, ';', 'parent:', key, '; missing ast value:', missingUnmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'missing');
+        if (generalRecommendation !== null) recs.push(generalRecommendation);
         // console.log('MISSING GENERAL RECOMMENDATION:', generalRecommendation);
       }
     } else if (missing_asts === null && extras_asts !== null) {
@@ -1468,6 +1471,7 @@ export const createRecommendations = (
         const key = Object.keys(extrasUnmodifiedAST)[0];
         // console.log('queryType:', queryType, ';', 'parent:', key, '; extras ast value:', extrasUnmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'redundant');
+        if (generalRecommendation !== null) recs.push(generalRecommendation);
         // console.log('EXTRAS GENERAL RECOMMENDATION:', generalRecommendation);
       }
     } else if (missing_asts !== null && extras_asts !== null) {
@@ -1477,16 +1481,19 @@ export const createRecommendations = (
         const key = Object.keys(missingUnmodifiedAST)[0];
         // console.log('queryType:', queryType, ';', 'parent:', key, '; missing ast value:', missingUnmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'missing');
+        if (generalRecommendation !== null) recs.push(generalRecommendation);
         // console.log('MISSING GENERAL RECOMMENDATION:', generalRecommendation);
       } else if (missingUnmodifiedAST === null && extrasUnmodifiedAST !== null) {
         const key = Object.keys(extrasUnmodifiedAST)[0];
         // console.log('queryType:', queryType, ';', 'parent:', key, '; extras ast value:', extrasUnmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'redundant');
+        if (generalRecommendation !== null) recs.push(generalRecommendation);
         // console.log('EXTRAS GENERAL RECOMMENDATION:', generalRecommendation);
       } else if (missingUnmodifiedAST !== null && extrasUnmodifiedAST !== null) {
         const key = Object.keys(missingUnmodifiedAST)[0];
         // console.log('queryType:', queryType, ';', 'parent:', key, '; missing ast value:', missingUnmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'both');
+        if (generalRecommendation !== null) recs.push(generalRecommendation);
         // console.log('MISSING GENERAL RECOMMENDATION:', generalRecommendation);
       }
     }
@@ -1535,13 +1542,11 @@ export const createRecommendations = (
    *   }
    */
 
-  console.log('General recommendation:', generalRecommendation);
   recs = removeDuplicateRecommendations(recs);
   console.log('recs:');
   console.dir(recs, { depth: null });
   let result: Recommendations = {
     default_detail_level: cluster,
-    generalRecommendation: generalRecommendation,
     recommendations: recs,
   };
   return result;

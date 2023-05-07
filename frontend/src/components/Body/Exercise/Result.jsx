@@ -30,7 +30,7 @@ export default function Result({ table_name, queryResult, errorMessage, ...props
         style={{
           width: '100%',
           minHeight: '10vh',
-          maxHeight: '40vh',
+          maxHeight: '30vh',
           overflowY: 'auto',
           overscrollBehavior: 'contain',
         }}
