@@ -5,7 +5,14 @@ import { GeneralResponse, QueryResult } from '../../databaseControllers/database
 import { ASTObject, normalizeQuery } from '../ast/lexicalAnalysis/analyzer';
 import { createASTForQuery } from '../ast/abstractSyntaxTree';
 import { compareQueryASTS } from '../ast/lexicalAnalysis/comparator';
-import { createRecommendations, getRecommendationId, insertRecommendations, ratingsController, updateRecommendationRatingById, updateRecommendationVisitedById } from '../recommendations/recommender';
+import {
+  createRecommendations,
+  getRecommendationId,
+  insertRecommendations,
+  ratingsController,
+  updateRecommendationRatingById,
+  updateRecommendationVisitedById,
+} from '../recommendations/recommender';
 
 interface SolutionAttempt {
   original_query: string;
@@ -224,7 +231,7 @@ export const getHelp = async (request: any, reply: any) => {
       response = await usersToExercisesController.insertReturningId(user_id, exerciseId);
       if (response[0].code !== 200) {
         console.log('FAILED TO INSERT NEW RECORD INTO users.users_to_exercises');
-      } 
+      }
       ute_id = response[1] as number;
     }
     response = await insertRecommendations(recs, ute_id);
@@ -237,54 +244,26 @@ export const getHelp = async (request: any, reply: any) => {
   return;
 };
 
-type UpdateRecommendationVisitedResponse = [GeneralResponse, number | undefined] | [GeneralResponse, number] | GeneralResponse; 
-
 export const updateRecommendationVisited = async (request: any, reply: any) => {
-  const { exerciseId, recommendation } = request.query;
-  const user_id = request.query.id;
-  let response: UpdateRecommendationVisitedResponse;
-  response = await usersToExercisesController.getIdByUserIdAndExerciseId(user_id, exerciseId);
-  if (response[0].code !== 200) {
-    console.log('Failed to get users_to_exercises_id to update recommendation to visited');
-    return;
-  }
-  const ute = response[1] as number;
-  response = await getRecommendationId(ute, recommendation);
-  if (response[0].code !== 200) {
-    console.log('Failed to update recommendation to visited');
-    return;
-  }
-  const recomm_id = response[1] as number;
-  response = await updateRecommendationVisitedById(recomm_id);
+  const { recommendationId } = request.body;
+  let response = await updateRecommendationVisitedById(recommendationId);
   if (response.code !== 200) {
-    console.log('Failed to update recommendation to visited');
-    return;
+    console.log(response.message);
   }
-  reply.code(200).send({message: 'OK'});
-}
-
-type UpdateRecommendationRatingResponse = [GeneralResponse, number | undefined] | GeneralResponse;
+  reply.code(200).send({ message: 'OK' });
+  return;
+};
 
 export const updateRecommendationRating = async (request: any, reply: any) => {
-  const { exerciseId, recommendation, rating } = request.query;
-  const user_id = request.query.id;
-  let response: UpdateRecommendationRatingResponse;
-  response = await usersToExercisesController.getIdByUserIdAndExerciseId(user_id, exerciseId);
-  if (response[0].code !== 200) {
-    console.log('Failed to get users_to_exercises_id to update recommendation to visited');
+  const { recommendationId, rating } = request.body;
+  if (rating === null) {
+    reply.code(200).send({ message: 'OK' });
     return;
   }
-  const ute = response[1] as number;
-  response = await getRecommendationId(ute, recommendation);
-  if (response[0].code !== 200) {
-    console.log('Failed to update recommendation to visited');
-    return;
-  }
-  const rec_id = response[1] as number;
-  response = await updateRecommendationRatingById(rec_id, rating);
+  let response = await updateRecommendationRatingById(recommendationId, rating);
   if (response.code !== 200) {
-    console.log('Failed to update recommendation rating');
-    return;
+    console.log(response.message);
   }
-  reply.code(200).send({message: 'OK'});
-}
+  reply.code(200).send({ message: 'OK' });
+  return;
+};

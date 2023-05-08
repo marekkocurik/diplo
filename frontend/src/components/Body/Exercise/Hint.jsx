@@ -4,18 +4,46 @@ import { useEffect, useState } from 'react';
 import { Button } from 'react-bootstrap';
 import { services } from '../../../api/services';
 import Rating from '@mui/material/Rating';
-import Typography from '@mui/material/Typography';
 
-export default function Hint({ hintDefaultLevel, hints, ...props }) {
+export default function Hint({ hintDefaultLevel, hints, exerciseId, ...props }) {
   const [hint, setHint] = useState(0);
   const [hintDetailLevel, setHintDetailLevel] = useState(0);
   const [rating, setRating] = useState(0);
+
+  const handleRecommendationVisited = async (recommendationId) => {
+    try {
+      services.updateHintVisited(recommendationId);
+    } catch (error) {
+      console.log('failed to update visited');
+    }
+  };
+
+  // const handleRecommendationRating = async (rating) => {
+  //   try {
+  //     const recommId = hints[hint].recommendationsAndRatings[hintDetailLevel].id;
+  //     services.updateHintRating(recommId, rating);
+  //   } catch (error) {
+      
+  //   }
+  // };
+
+  const handleChangeRating = (rating) => {
+    try {
+      hints[hint].recommendationsAndRatings[hintDetailLevel].rating = rating;
+      const recommId = hints[hint].recommendationsAndRatings[hintDetailLevel].id
+      services.updateHintRating(recommId, rating);
+      setRating(rating);
+    } catch (error) {
+      console.log('failed to update rating');
+    }
+  };
 
   const handleChangeTier = (value) => {
     if (value >= 0 && value <= 2) {
       setHintDetailLevel(value);
       if (hints[hint].recommendationsAndRatings[value].rating === -1) setRating(0);
       else setRating(hints[hint].recommendationsAndRatings[value].rating);
+      handleRecommendationVisited(hints[hint].recommendationsAndRatings[value].id);
     }
   };
 
@@ -23,32 +51,17 @@ export default function Hint({ hintDefaultLevel, hints, ...props }) {
     if (value >= 0 && value < hints.length) {
       setHint(value);
       setHintDetailLevel(hintDefaultLevel);
-      if (hints[hint].recommendationsAndRatings[value].rating === -1) setRating(0);
-      else setRating(hints[hint].recommendationsAndRatings[value].rating);
+      if (hints[value].recommendationsAndRatings[hintDefaultLevel].rating === -1) setRating(0);
+      else setRating(hints[value].recommendationsAndRatings[hintDefaultLevel].rating);
+      handleRecommendationVisited(hints[value].recommendationsAndRatings[hintDefaultLevel].id);
     }
   };
 
-  const handleNewRating = (value) => {
-    console.log(value);
-    hints[hint].recommendationsAndRatings[hintDetailLevel].rating = value;
-    setRating(value);
-  };
-
   useEffect(() => {
-    console.log('calling use effect');
     setHintDetailLevel(hintDefaultLevel);
     setHint(0);
     setRating(0);
-  }, [hintDefaultLevel]);
-
-  // if (hints?.length > 0) {
-  //   console.log('hintDefaultLevel: ', hintDefaultLevel);
-  //   console.log('hintDetailLevel: ', hintDetailLevel);
-  //   console.log('hints[hint]: ', hints[hint]);
-  //   console.log('..recommendationsAndRatings: ', hints[hint].recommendationsAndRatings);
-  //   console.log('..[hintDetailLevel]: ', hints[hint].recommendationsAndRatings[hintDetailLevel]);
-  //   console.log('..recommendation: ', hints[hint].recommendationsAndRatings[hintDetailLevel].recommendation);
-  // }
+  }, [hints]);
 
   return hints?.length > 0 ? (
     <div className="w-100 border rounded d-flex" style={{ flex: 1, height: '40vh' }}>
@@ -75,7 +88,7 @@ export default function Hint({ hintDefaultLevel, hints, ...props }) {
           }}
         >
           {/* {console.log(hints[hint].recommendationsAndRatings[hintDetailLevel].recommendation)} */}
-          {hints[hint].recommendationsAndRatings[hintDetailLevel || hintDefaultLevel].recommendation} 
+          {hints[hint].recommendationsAndRatings[hintDetailLevel]?.recommendation}
         </div>
         <div className="d-flex justify-content-center pt-2 pb-2">
           <Button
@@ -95,13 +108,13 @@ export default function Hint({ hintDefaultLevel, hints, ...props }) {
             See more
           </Button>
         </div>
-        <div className="d-flex flex-column justify-content-center align-items-center pt-2 pb-2">
-          <Typography component="legend">Please rate this recommendation:</Typography>
+        <div className="d-flex justify-content-center pt-2 pb-2">
+          <div>Please rate this recommendation:</div>
           <Rating
             name="simple-controlled"
             value={rating}
-            onChange={(event, newValue) => {
-              handleNewRating(newValue);
+            onChange={(event, newRating) => {
+              handleChangeRating(newRating);
             }}
           />
         </div>

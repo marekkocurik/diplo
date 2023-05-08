@@ -1,11 +1,12 @@
 import { GeneralResponse } from '../../databaseControllers/databaseController';
-import RatingsController from '../../databaseControllers/ratingsController';
+import RatingsController, { RatingId } from '../../databaseControllers/ratingsController';
 import { ASTObject } from '../ast/lexicalAnalysis/analyzer';
 import { BINARY_OPERATORS, expr, expr_list, join_op } from 'node-sql-parser/ast/postgresql';
 
 export const ratingsController = new RatingsController();
 
 interface RecommendationWithRating {
+  id: number;
   rating: number;
   recommendation: string;
 }
@@ -183,35 +184,41 @@ const reconstructBinaryExpr = (obj: ASTObject, nesting: number): string | undefi
     // iba left
     let ret = resolveType(obj.left, nesting);
     if (ret !== undefined) s = "'" + ret + "...'";
+    else s = "'... <operator> ...'";
   } else if (!('left' in obj) && 'operator' in obj && !('right' in obj)) {
     // iba operator
     s = "'... " + obj.operator + " ...'";
   } else if (!('left' in obj) && !('operator' in obj) && 'right' in obj) {
     // iba right
     let ret = resolveType(obj.right, nesting);
-    if (ret !== undefined) s = "'..." + ret + "'";
+    if (ret !== undefined) s = "'... " + ret + "'";
+    else s = "'... <operator> ...'";
   } else if ('left' in obj && 'operator' in obj && !('right' in obj)) {
     // left a operator
     let ret = resolveType(obj.left, nesting);
-    if (ret !== undefined) s = "'" + ret + ' ' + obj.operator + "...'";
+    if (ret !== undefined) s = "'" + ret + ' ' + obj.operator + " ...'";
+    else s = "'... " + obj.operator + " ...'";
   } else if (!('left' in obj) && 'operator' in obj && 'right' in obj) {
     // operator a right
     let ret = resolveType(obj.right, nesting);
-    if (ret !== undefined) s = "'..." + obj.operator + ' ' + ret + "'";
+    if (ret !== undefined) s = "'... " + obj.operator + ' ' + ret + "'";
+    else s = "'... " + obj.operator + " ...'";
   } else if ('left' in obj && !('operator' in obj) && 'right' in obj) {
     // left a right
     let l = resolveType(obj.left, nesting);
     let r = resolveType(obj.right, nesting);
-    if (l !== undefined && r === undefined) s = "'" + l + "...'";
-    else if (l === undefined && r !== undefined) s = "'..." + r + "'";
-    else if (l !== undefined && r != undefined) s = "'" + l + '...' + r + "'";
+    if (l !== undefined && r === undefined) s = "'" + l + " <operator> ...'";
+    else if (l === undefined && r !== undefined) s = "'... <operator> " + r + "'";
+    else if (l !== undefined && r != undefined) s = "'" + l + ' <operator> ' + r + "'";
+    else s = "'... operator ...'";
   } else if ('left' in obj && 'operator' in obj && 'right' in obj) {
     // vsetky
     let l = resolveType(obj.left, nesting);
     let r = resolveType(obj.right, nesting);
-    if (l !== undefined && r === undefined) s = "'" + l + ' ' + obj.operator + "...'";
-    else if (l === undefined && r !== undefined) s = "'..." + obj.operator + ' ' + r + "'";
+    if (l !== undefined && r === undefined) s = "'" + l + ' ' + obj.operator + " ...'";
+    else if (l === undefined && r !== undefined) s = "'... " + obj.operator + ' ' + r + "'";
     else if (l !== undefined && r != undefined) s = "'" + l + ' ' + obj.operator + ' ' + r + "'";
+    else s = "'... " + obj.operator + " ...'";
   }
   return s;
 };
@@ -390,9 +397,9 @@ const generateSelectColumnsRecommendations = (
     } else [message0, message1, message2] = Array(3).fill(unknownObjectMessage('SELECT', sub ? sub_message : ''));
   }
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -421,9 +428,9 @@ const generateSelectDistinctRecommendations = (
     (sub ? sub_message : '') +
     '.';
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -506,9 +513,9 @@ const generateSelectFromRecommendations = (
     } else message2 = unknownObjectMessage('FROM/JOIN', sub ? sub_message : '');
   } else [message0, message1, message2] = Array(3).fill(unknownObjectMessage('FROM', sub ? sub_message : ''));
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -558,9 +565,9 @@ const generateSelectWhereRecommendations = (
     }
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('WHERE', sub ? sub_message : ''));
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -603,9 +610,9 @@ const generateSelectGroupByRecommendations = (
       ' or incorrect.';
   } else message2 = unknownObjectMessage('GROUP BY', sub ? sub_message : '');
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -655,9 +662,9 @@ const generateSelectHavingRecommendations = (
     }
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('HAVING', sub ? sub_message : ''));
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -708,9 +715,9 @@ const generateSelectOrderByRecommendations = (
     } else message2 = unknownObjectMessage('ORDER BY', sub ? sub_message : '');
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('ORDER BY', sub ? sub_message : ''));
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -769,9 +776,9 @@ const generateSelectLimitRecommendations = (
       );
   } else message2 = unknownObjectMessage('LIMIT', sub ? sub_message : '');
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -791,9 +798,9 @@ const generateInsertTableRecommendations = (obj: ASTObject, diff_type: string): 
     message2 = 'INSERT INTO ' + obj.table + ' is ' + (diff_type === 'missing' ? diff_type : 'incorrect') + '.';
   } else message2 = unknownObjectMessage('INSERT INTO <table>', '');
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -818,15 +825,15 @@ const generateInsertColumnsRecommendations = (obj: ASTObject, diff_type: string)
     for (let col of obj) message2 += col + ', ';
     message2 = message2.slice(0, -2) + ' in the INSERT INTO table(...) statement.';
     rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
-  );
+      { id: -1, rating: -1, recommendation: message0 },
+      { id: -1, rating: -1, recommendation: message1 },
+      { id: -1, rating: -1, recommendation: message2 }
+    );
   } else message2 = unknownObjectMessage('INSERT INTO table(column_1, column_2, ..., column_x)', '');
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -846,9 +853,9 @@ const generateInsertValuesRecommendations = (obj: ASTObject, diff_type: string):
     message2 = "VALUES statement is missing value '" + obj.value + "'.";
   } else message2 = unknownObjectMessage('INSERT INTO ... VALUES', '');
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -868,9 +875,9 @@ const generateUpdateTableRecommendations = (obj: ASTObject, diff_type: string): 
     message2 = 'UPDATE ' + obj.table + ' is ' + (diff_type === 'missing' ? diff_type : 'incorrect') + '.';
   } else message2 = unknownObjectMessage('UPDATE table', '');
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -901,9 +908,9 @@ const generateUpdateSetRecommendations = (obj: ASTObject, diff_type: string): Re
       ' or contains invalid values in the UPDATE statement.';
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('UPDATE-SET', ''));
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -933,9 +940,9 @@ const generateUpdateWhereRecommendations = (obj: ASTObject, diff_type: string): 
     }
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('UPDATE-WHERE', ''));
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -955,9 +962,9 @@ const generateDeleteFromRecommendations = (obj: ASTObject, diff_type: string): R
     message2 = 'DELETE FROM ' + obj.table + ' is ' + (diff_type === 'missing' ? diff_type : 'incorrect') + '.';
   } else message2 = unknownObjectMessage('DELETE FROM', '');
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -987,9 +994,9 @@ const generateDeleteWhereRecommendations = (obj: ASTObject, diff_type: string): 
     }
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('DELETE-WHERE', ''));
   rec.recommendationsAndRatings.push(
-    { rating: -1, recommendation: message0 },
-    { rating: -1, recommendation: message1 },
-    { rating: -1, recommendation: message2 }
+    { id: -1, rating: -1, recommendation: message0 },
+    { id: -1, rating: -1, recommendation: message1 },
+    { id: -1, rating: -1, recommendation: message2 }
   );
   return rec;
 };
@@ -1435,9 +1442,9 @@ const generateGeneralRecommendation = (queryType: string, branch: string, diff_t
   if (message === undefined) return null;
   else {
     rec.recommendationsAndRatings.push(
-      { rating: -1, recommendation: message },
-      { rating: -1, recommendation: message },
-      { rating: -1, recommendation: message }
+      { id: -1, rating: -1, recommendation: message },
+      { id: -1, rating: -1, recommendation: message },
+      { id: -1, rating: -1, recommendation: message }
     );
     return rec;
   }
@@ -1633,10 +1640,7 @@ export const createRecommendations = (
   return result;
 };
 
-export const insertRecommendations = async (
-  recs: RecommendationsWithDetail,
-  ute: number
-): Promise<GeneralResponse> => {
+export const insertRecommendations = async (recs: RecommendationsWithDetail, ute: number): Promise<GeneralResponse> => {
   try {
     let insert =
       'INSERT INTO users.ratings(users_to_exercises_id, query_type, statement, ' +
@@ -1644,13 +1648,16 @@ export const insertRecommendations = async (
     let i = 0;
     if (recs.recommendations[0].query_type === 'GENERAL') {
       i = 1;
-      let r = recs.recommendations[0]
+      let r = recs.recommendations[0];
       insert += '(' + ute + ",'" + r.query_type + "','" + r.statement + "',";
       if (r.parent_query_type === undefined) insert += 'null,';
       else insert += "'" + r.parent_query_type + "',";
       if (r.parent_statement === undefined) insert += 'null,';
       else insert += "'" + r.parent_statement + "',";
-      insert += "'" + r.recommendationsAndRatings[0].recommendation + "', true, 'low', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
+      insert +=
+        "'" +
+        r.recommendationsAndRatings[0].recommendation +
+        "', true, 'low', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
     }
     let ddl;
     for (; i < recs.recommendations.length; i++) {
@@ -1662,33 +1669,72 @@ export const insertRecommendations = async (
         else insert += "'" + r.parent_query_type + "',";
         if (r.parent_statement === undefined) insert += 'null,';
         else insert += "'" + r.parent_statement + "',";
-        insert += "'" + r.recommendationsAndRatings[j].recommendation + "'," + (i===0 && j === 0) + ",'" + ddl + "', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
+        insert +=
+          "'" +
+          r.recommendationsAndRatings[j].recommendation +
+          "'," +
+          (i === 0 && j === 0) +
+          ",'" +
+          ddl +
+          "', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
       }
     }
-    insert = insert.slice(0, -3) + ';';
+    insert = insert.slice(0, -3) + '\nRETURNING id;';
     // console.log('insert: ', insert);
-    let resp = await ratingsController.insertMany(insert);
+    let resp = await ratingsController.insertManyReturningIds(insert);
+    const ids = resp[1] as RatingId[];
+    console.log('before:');
+    console.dir(recs, { depth: null });
+    i = 0;
+    let genSet = false;
+    if (recs.recommendations[0].query_type === 'GENERAL') {
+      i = 1;
+      genSet = true;
+      recs.recommendations[0].recommendationsAndRatings[0].id = ids[0].id;
+      recs.recommendations[0].recommendationsAndRatings[1].id = ids[0].id;
+      recs.recommendations[0].recommendationsAndRatings[2].id = ids[0].id;
+    }
+    for (; i < recs.recommendations.length; i++) {
+      let r = recs.recommendations[i];
+      for (let j = 0; j < 3; j++) {
+        r.recommendationsAndRatings[j].id = ids[genSet ? (i - 1) * 3 + j + 1 : i * 3 + j].id;
+
+        // ak i zacina na 0:
+        // 0, 1, 2, 3, 4, 5,
+
+        //ak i zacina na 1:
+        //
+      }
+    }
+    console.log('after:');
+    console.dir(recs, { depth: null });
     return { code: 200, message: 'OK' };
   } catch (error) {
     return { code: 500, message: 'Something went wrong while trying to insert new recommendations' };
   }
 };
 
-export const getRecommendationId = async (users_to_exercises_id: number, recommendation: string): Promise<[GeneralResponse, number]> => {
+export const getRecommendationId = async (
+  users_to_exercises_id: number,
+  recommendation: string
+): Promise<[GeneralResponse, number]> => {
   try {
-    let response = await ratingsController.getIdByUsersToExercisesIdAndRecommendation(users_to_exercises_id, recommendation);
+    let response = await ratingsController.getIdByUsersToExercisesIdAndRecommendation(
+      users_to_exercises_id,
+      recommendation
+    );
     return response;
   } catch (error) {
-    return [{code:500, message: 'Something went wrong while trying to get Recommendation ID'}, -1];
+    return [{ code: 500, message: 'Something went wrong while trying to get Recommendation ID' }, -1];
   }
-}
+};
 
 export const updateRecommendationVisitedById = async (id: number): Promise<GeneralResponse> => {
   try {
     let response = await ratingsController.updateVisited(id);
     return response;
   } catch (error) {
-    return {code: 500, message: 'Something went wrong while trying to update Recommendation to visited'};
+    return { code: 500, message: 'Something went wrong while trying to update Recommendation to visited' };
   }
 };
 
@@ -1697,6 +1743,6 @@ export const updateRecommendationRatingById = async (id: number, rating: number)
     let response = await ratingsController.updateRating(id, rating);
     return response;
   } catch (error) {
-    return {code: 500, message: 'Something went wrong while trying to update Recommendation to visited'};
+    return { code: 500, message: 'Something went wrong while trying to update Recommendation to visited' };
   }
 };

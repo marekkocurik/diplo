@@ -144,9 +144,7 @@ export default function Exercise({ ...props }) {
     e.preventDefault();
     try {
       let result = await services.getHelp(userQuery, exercise.id);
-      console.log('Setting default level to: ', result.recs.default_detail_level);
       setHintDefaultLevel(result.recs.default_detail_level);
-      console.log('Setting hints to: ', result.recs.recommendations);
       setHints(result.recs.recommendations);
     } catch (error) {
       const { message } = await error.response.json();
@@ -228,7 +226,7 @@ export default function Exercise({ ...props }) {
             </div>
 
             <div className="p-1" style={{ flex: 2 }}>
-              <Hint hintDefaultLevel={hintDefaultLevel} hints={hints} />
+              <Hint hintDefaultLevel={hintDefaultLevel} hints={hints} exerciseId={exercise.id} />
             </div>
           </div>
           <div className="py-2 px-1" style={{ width: '100%', maxHeight: '40vh' }}>
