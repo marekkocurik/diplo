@@ -53,6 +53,9 @@ export const services = {
     client.post('home/hints/update-visited', postOptions({ recommendationId })).json(),
   updateHintRating: (recommendationId, rating) =>
     client.post('home/hints/update-rating', postOptions({ recommendationId, rating })).json(),
+  
+  getDummyData: () =>
+    client.get('home/exercise-solutions-others', { ...getOptions(), retry: 0 }).json(),
 
   getHello: () =>
     client.get('hello'),

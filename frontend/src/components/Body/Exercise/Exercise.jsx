@@ -143,9 +143,11 @@ export default function Exercise({ ...props }) {
   const handleGivingHelp = async (e) => {
     e.preventDefault();
     try {
-      let result = await services.getHelp(userQuery, exercise.id);
-      setHintDefaultLevel(result.recs.default_detail_level);
-      setHints(result.recs.recommendations);
+      // let result = await services.getHelp(userQuery, exercise.id);
+      let res2 = await services.getDummyData();
+      console.log(res2);
+      // setHintDefaultLevel(result.recs.default_detail_level);
+      // setHints(result.recs.recommendations);
     } catch (error) {
       const { message } = await error.response.json();
       setModalErrorMessage('Please fix the following errors first:\n\n' + message);

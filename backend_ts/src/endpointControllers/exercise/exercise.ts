@@ -275,3 +275,14 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
     .send({ message: queryTestResultPrimaryDatabase[0].message, queryResultInfo });
   return;
 };
+
+export const getDummyData = async (request: any, reply: any) => {
+  try {
+    let response = await answersController.getDummyData();
+    reply.code(200).send({message: 'OK', data: response[1]});
+    return;
+  } catch (error) {
+    reply.code(500).send({message: 'something wrong'});
+    return;
+  }
+}

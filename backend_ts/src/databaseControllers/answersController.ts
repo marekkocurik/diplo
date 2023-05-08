@@ -14,6 +14,12 @@ interface Answer_ID_query {
   query: string;
 }
 
+interface UserList {
+  name: string;
+  query: string;
+  execution_time: number;
+}
+
 export default class AnswersController extends DatabaseController {
   public async getAllUserExerciseSolutionAnswersByUserIdAndExerciseId(
     user_id: number,
@@ -131,6 +137,28 @@ export default class AnswersController extends DatabaseController {
       return [{ code: 200, message: 'OK' }, result.rows[0].id];
     } catch (e) {
       await client.query('ROLLBACK;');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getDummyData(): Promise<[GeneralResponse, UserList[]]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query = "SELECT u.name || ' ' || u.surname as name, a.query, a.execution_time "
+                + "FROM users.answers a JOIN users.users_to_exercises ute ON ute.id = a.users_to_exercises_id "
+                + "JOIN users.users u ON u.id = ute.user_id WHERE ute.user_id = 1";
+      let result = await client.query(query);
+      if (result.rows[0] === undefined) return [{ code: 500, message: 'Failed to get dummy data' }, []];
+      let response = {
+        code: 200,
+        message: 'OK',
+      };
+      return [response, result.rows];
+    } catch (e) {
       throw e;
     } finally {
       client.release();

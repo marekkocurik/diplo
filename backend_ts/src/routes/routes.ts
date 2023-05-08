@@ -9,6 +9,7 @@ import {
   getQueryExpectedResult,
   getQueryTestResult,
   getQuerySubmitResult,
+  getDummyData,
 } from '../endpointControllers/exercise/exercise';
 import { getHelp, updateRecommendationRating, updateRecommendationVisited } from '../endpointControllers/help/helper';
 import { jwt_secret, fe_ip_address } from '../env-config';
@@ -53,6 +54,7 @@ export default async function routes(server: any) {
 
   server.post('/home/hints/update-visited', { preHandler: checkJWT }, updateRecommendationVisited);
   server.post('/home/hints/update-rating', { preHandler: checkJWT }, updateRecommendationRating);
+  server.get('/home/exercise-solutions-others', { preHandler: checkJWT }, getDummyData);
 
   server.get('/home/query-expected-result', { preHandler: checkJWT }, getQueryExpectedResult);
   server.get('/home/query-test-result', { preHandler: checkJWT }, getQueryTestResult);
