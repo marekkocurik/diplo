@@ -1,11 +1,11 @@
 import { AST, Select } from 'node-sql-parser/build/postgresql';
-import { executeQuery, solutionsController } from '../exercise/exerciseFunctions';
+import { executeQuery, solutionsController, usersToExercisesController } from '../exercise/exerciseFunctions';
 import { Solution } from '../../databaseControllers/solutionsController';
 import { GeneralResponse, QueryResult } from '../../databaseControllers/databaseController';
 import { ASTObject, normalizeQuery } from '../ast/lexicalAnalysis/analyzer';
 import { createASTForQuery } from '../ast/abstractSyntaxTree';
 import { compareQueryASTS } from '../ast/lexicalAnalysis/comparator';
-import { createRecommendations } from '../recommendations/recommender';
+import { createRecommendations, insertRecommendations } from '../recommendations/recommender';
 
 interface SolutionAttempt {
   original_query: string;
@@ -18,7 +18,12 @@ type NormalizeStudentQueryAndCreateASTResponse =
   | [GeneralResponse, string]
   | [GeneralResponse, AST | null];
 
-type GetHelpResposne = [GeneralResponse, SolutionAttempt] | [GeneralResponse, Solution[]] | [GeneralResponse, ASTObject, ASTObject];
+type GetHelpResposne =
+  | [GeneralResponse, SolutionAttempt]
+  | [GeneralResponse, Solution[]]
+  | [GeneralResponse, ASTObject, ASTObject]
+  | [GeneralResponse, number | undefined]
+  | GeneralResponse;
 
 const normalizeStudentQueryAndCreateAST = async (
   role: string,
@@ -168,33 +173,35 @@ const prioritizeSolutions = (studentSolution: SolutionAttempt, exerciseSolutions
 
 export const getHelp = async (request: any, reply: any) => {
   const { role, cluster, exerciseId, queryToExecute } = request.query;
-  // const user_id = request.query.id;
-  // console.log('calling done');
+  const user_id = request.query.id;
+
   let response: GetHelpResposne;
   response = await normalizeStudentQueryAndCreateAST(role, queryToExecute);
   if (response[0].code !== 200) {
     reply.code(response[0].code).send({ message: response[0].message });
     return;
   }
+
   const solAttempt = response[1] as SolutionAttempt;
   response = await getExerciseSolutions(exerciseId);
   if (response[0].code !== 200) {
     reply.code(response[0].code).send({ message: response[0].message });
     return;
   }
+  // console.log('calling done');
   const exerciseSolutions = response[1] as Solution[];
   let prioritizedExerciseSolutions = prioritizeSolutions(solAttempt, exerciseSolutions);
 
   // console.log('Selected solution AST:');
   // console.dir(JSON.parse(prioritizedExerciseSolutions[0].ast), {depth:null});
 
-  console.log('User query AST:');
-  const x = createASTForQuery(queryToExecute);
-  console.dir(x, {depth:null});
+  // console.log('User query AST:');
+  // const x = createASTForQuery(queryToExecute);
+  // console.dir(x, { depth: null });
 
-  console.log('User query AST normalized:');
-  const xx = (await normalizeStudentQueryAndCreateAST(role, queryToExecute))[1].ast;
-  console.dir(xx, {depth:null});
+  // console.log('User query AST normalized:');
+  // const xx = (await normalizeStudentQueryAndCreateAST(role, queryToExecute))[1].ast;
+  // console.dir(xx, { depth: null });
 
   // porovnanie studentovho AST s prvym AST z prioritizovanych solutions
 
@@ -207,6 +214,25 @@ export const getHelp = async (request: any, reply: any) => {
   const extras = response[2] as ASTObject;
   const recs = createRecommendations(JSON.parse(prioritizedExerciseSolutions[0].ast).type, missing, extras, cluster);
 
-  reply.code(200).send({ message: 'OK', recs});
+  if (recs.recommendations.length > 0) {
+    response = await usersToExercisesController.getIdByUserIdAndExerciseId(user_id, exerciseId);
+    if (response[0].code !== 200) {
+      console.log('FAILED TO GET users.users_to_exercises id');
+    }
+    let ute_id = response[1];
+    if (ute_id === undefined) {
+      response = await usersToExercisesController.insertReturningId(user_id, exerciseId);
+      if (response[0].code !== 200) {
+        console.log('FAILED TO INSERT NEW RECORD INTO users.users_to_exercises');
+      } 
+      ute_id = response[1] as number;
+    }
+    response = await insertRecommendations(recs, ute_id);
+    if (response.code !== 200) {
+      console.log('FAILED TO INSERT RECOMMENDATIONS INTO users.ratings');
+    } else console.log('INSERT SUCCESSFULL');
+  } else console.log('NO RECOMMENDATIONS');
+
+  reply.code(200).send({ message: 'OK', recs });
   return;
 };

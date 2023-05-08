@@ -70,11 +70,16 @@ CREATE TABLE users.users_to_exercises (
 CREATE TABLE users.ratings (
   id SERIAL PRIMARY KEY,
   users_to_exercises_id INT NOT NULL,
-  rating INT,
-  type VARCHAR(20),
-  visited BOOLEAN,
-  detail_level INT,
-  date TIMESTAMP,
+  query_type VARCHAR(20),
+  statement VARCHAR(20),
+  parent_query_type VARCHAR(20),
+  parent_statement VARCHAR(20),
+  recommendation VARCHAR(1000),
+  rating INT DEFAULT NULL,
+  visited BOOLEAN DEFAULT FALSE,
+  detail_level VARCHAR(10) NOT NULL,
+  creation_date TIMESTAMP NOT NULL,
+  last_update TIMESTAMP NOT NULL,
   FOREIGN KEY (users_to_exercises_id) REFERENCES users.users_to_exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 

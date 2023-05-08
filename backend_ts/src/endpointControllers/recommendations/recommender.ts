@@ -1,5 +1,9 @@
+import { GeneralResponse } from '../../databaseControllers/databaseController';
+import RatingsController from '../../databaseControllers/ratingsController';
 import { ASTObject } from '../ast/lexicalAnalysis/analyzer';
 import { BINARY_OPERATORS, expr, expr_list, join_op } from 'node-sql-parser/ast/postgresql';
+
+const ratingsController = new RatingsController();
 
 interface Recommendation {
   query_type: string;
@@ -1357,7 +1361,7 @@ const generateGeneralRecommendation = (queryType: string, branch: string, diff_t
   }
   if (message === undefined) return null;
   else {
-    rec.recommendation.push(message,message,message);
+    rec.recommendation.push(message, message, message);
     return rec;
   }
 };
@@ -1551,3 +1555,46 @@ export const createRecommendations = (
   };
   return result;
 };
+
+export const insertRecommendations = async (
+  recommendations: Recommendations,
+  ute: number
+): Promise<GeneralResponse> => {
+  try {
+    let insert =
+      'INSERT INTO users.ratings(users_to_exercises_id, query_type, statement, ' +
+      'parent_query_type, parent_statement, recommendation, detail_level, creation_date, last_update) VALUES \n';
+    let i = 0;
+    if (recommendations.recommendations[0].query_type === 'GENERAL') {
+      i = 1;
+      let r = recommendations.recommendations[0];
+      insert += '(' + ute + ",'" + r.query_type + "','" + r.statement + "',";
+      if (r.parent_query_type === undefined) insert += 'null,';
+      else insert += "'" + r.parent_query_type + "',";
+      if (r.parent_statement === undefined) insert += 'null,';
+      else insert += "'" + r.parent_statement + "',";
+      insert += "'" + r.recommendation[0] + "','low', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
+    }
+    let ddl;
+    for (; i < recommendations.recommendations.length; i++) {
+      let r = recommendations.recommendations[i];
+      for (let j = 0; j < 3; j++) {
+        ddl = j === 0 ? 'low' : j === 1 ? 'medium' : 'high';
+        insert += '(' + ute + ",'" + r.query_type + "','" + r.statement + "',";
+        if (r.parent_query_type === undefined) insert += 'null,';
+        else insert += "'" + r.parent_query_type + "',";
+        if (r.parent_statement === undefined) insert += 'null,';
+        else insert += "'" + r.parent_statement + "',";
+        insert += "'" + r.recommendation[j] + "','" + ddl + "', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
+      }
+    }
+    insert = insert.slice(0, -3) + ';';
+    // console.log('insert: ', insert);
+    let resp = await ratingsController.insertMany(insert);
+    return { code: 200, message: 'OK' };
+  } catch (error) {
+    return { code: 500, message: 'Something went wrong while trying to insert new recommendations' };
+  }
+};
+
+export const updateRecommendation = () => {};
