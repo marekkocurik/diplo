@@ -62,12 +62,12 @@ CREATE TABLE users.users_to_exercises (
     user_id INT NOT NULL,
     exercise_id INT NOT NULL,
     solved BOOLEAN DEFAULT false,
-    finished BOOLEAN DEFAULT false,
+    finished TIMESTAMP DEFAULT NULL,
     FOREIGN KEY (user_id) REFERENCES users.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (exercise_id) REFERENCES users.exercises(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
-CREATE TABLE users.ratings (
+CREATE TABLE users.recommendations (
   id SERIAL PRIMARY KEY,
   users_to_exercises_id INT NOT NULL,
   query_type VARCHAR(20),
@@ -8557,9 +8557,9 @@ CREATE INDEX "cd2.members.recommendedby" ON cd2.members USING btree (recommended
 
 -- Create users:
 
-CREATE ROLE r_ratings_select WITH NOINHERIT;
-CREATE ROLE r_ratings_insert WITH NOINHERIT;
-CREATE ROLE r_ratings_update WITH NOINHERIT;
+CREATE ROLE r_recommendations_select WITH NOINHERIT;
+CREATE ROLE r_recommendations_insert WITH NOINHERIT;
+CREATE ROLE r_recommendations_update WITH NOINHERIT;
 
 CREATE ROLE r_users_select WITH NOINHERIT;
 CREATE ROLE r_users_insert WITH NOINHERIT;
@@ -8600,9 +8600,9 @@ CREATE ROLE r_facilities_insert WITH NOINHERIT;
 CREATE ROLE r_facilities_update WITH NOINHERIT;
 CREATE ROLE r_facilities_delete WITH NOINHERIT;
 
-GRANT USAGE ON SCHEMA users TO r_ratings_select;
-GRANT USAGE ON SCHEMA users TO r_ratings_insert;
-GRANT USAGE ON SCHEMA users TO r_ratings_update;
+GRANT USAGE ON SCHEMA users TO r_recommendations_select;
+GRANT USAGE ON SCHEMA users TO r_recommendations_insert;
+GRANT USAGE ON SCHEMA users TO r_recommendations_update;
 
 GRANT USAGE ON SCHEMA users TO r_users_select;
 GRANT USAGE ON SCHEMA users TO r_users_insert;
@@ -8643,7 +8643,7 @@ GRANT USAGE ON SCHEMA cd, cd2 TO r_facilities_insert;
 GRANT USAGE ON SCHEMA cd, cd2 TO r_facilities_update;
 GRANT USAGE ON SCHEMA cd, cd2 TO r_facilities_delete;
 
-GRANT USAGE ON SEQUENCE users.ratings_id_seq TO r_ratings_insert;
+GRANT USAGE ON SEQUENCE users.recommendations_id_seq TO r_recommendations_insert;
 GRANT USAGE ON SEQUENCE users.users_id_seq TO r_users_insert;
 GRANT USAGE ON SEQUENCE users.users_to_roles_id_seq TO r_users_to_roles_insert;
 GRANT USAGE ON SEQUENCE users.roles_id_seq TO r_roles_insert;
@@ -8651,9 +8651,9 @@ GRANT USAGE ON SEQUENCE users.users_to_exercises_id_seq TO r_users_to_exercises_
 GRANT USAGE ON SEQUENCE users.answers_id_seq TO r_answers_insert;
 GRANT USAGE ON SEQUENCE users.solutions_id_seq TO r_solutions_insert;
 
-GRANT SELECT ON users.ratings TO r_ratings_select;
-GRANT INSERT ON users.ratings TO r_ratings_insert;
-GRANT UPDATE ON users.ratings TO r_ratings_update;
+GRANT SELECT ON users.recommendations TO r_recommendations_select;
+GRANT INSERT ON users.recommendations TO r_recommendations_insert;
+GRANT UPDATE ON users.recommendations TO r_recommendations_update;
 
 GRANT SELECT ON users.users TO r_users_select;
 GRANT INSERT ON users.users TO r_users_insert;
@@ -8707,9 +8707,9 @@ GRANT UPDATE ON cd2.facilities TO r_facilities_update;
 GRANT DELETE ON cd2.facilities TO r_facilities_delete;
 
 CREATE USER u_executioner WITH NOLOGIN IN GROUP
-r_ratings_select,
-r_ratings_insert,
-r_ratings_update,
+r_recommendations_select,
+r_recommendations_insert,
+r_recommendations_update,
 r_users_select,
 r_users_insert,
 r_users_update,

@@ -7,9 +7,7 @@ import { createASTForQuery } from '../ast/abstractSyntaxTree';
 import { compareQueryASTS } from '../ast/lexicalAnalysis/comparator';
 import {
   createRecommendations,
-  getRecommendationId,
   insertRecommendations,
-  ratingsController,
   updateRecommendationRatingById,
   updateRecommendationVisitedById,
 } from '../recommendations/recommender';
@@ -236,7 +234,7 @@ export const getHelp = async (request: any, reply: any) => {
     }
     response = await insertRecommendations(recs, ute_id);
     if (response.code !== 200) {
-      console.log('FAILED TO INSERT RECOMMENDATIONS INTO users.ratings');
+      console.log('FAILED TO INSERT RECOMMENDATIONS INTO users.recommendations');
     } else console.log('INSERT SUCCESSFULL');
   } else console.log('NO RECOMMENDATIONS');
 

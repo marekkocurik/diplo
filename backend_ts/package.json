@@ -21,6 +21,7 @@
     "jsonwebtoken": "^9.0.0",
     "node-sql-parser": "github:marekkocurik/node-sql-parser",
     "nodemon": "^2.0.20",
+    "object-hash": "^3.0.0",
     "pg": "^8.8.0",
     "ts-node": "^10.9.1"
   },

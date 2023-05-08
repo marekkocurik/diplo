@@ -54,16 +54,10 @@ const diffArrays = (arr1: ASTObject[], arr2: ASTObject[]): ASTObject => {
       if (isSubQuery(x)) {
         let y = arr2.find((o2) => isSubQuery(o2) === true);
         if (y === undefined) {
-          // let newObj: { [key: string]: any } = {};
-          // newObj[parent] = { ast: getSubAST(x) };
-          // result.push(newObj);
           result.push({ ast: getSubAST(x) });
         } else {
           const diff = diffObjects(getSubAST(x), getSubAST(y), true);
           if (Object.keys(diff).length > 1) {
-            // let newObj: { [key: string]: any } = {};
-            // newObj[parent] = { ast: diff };
-            // result.push(newObj);
             result.push({ast: diff})
           }
         }

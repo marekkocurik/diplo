@@ -90,7 +90,7 @@ export default function Hint({ hintDefaultLevel, hints, exerciseId, ...props }) 
           {/* {console.log(hints[hint].recommendationsAndRatings[hintDetailLevel].recommendation)} */}
           {hints[hint].recommendationsAndRatings[hintDetailLevel]?.recommendation}
         </div>
-        <div className="d-flex justify-content-center pt-2 pb-2">
+        <div className="d-flex justify-content-center pt-2" style={{borderTop: '1px solid black'}}>
           <Button
             className="mx-1"
             disabled={hintDetailLevel === 0 || hints[hint].query_type === 'GENERAL'}
@@ -108,8 +108,8 @@ export default function Hint({ hintDefaultLevel, hints, exerciseId, ...props }) 
             See more
           </Button>
         </div>
-        <div className="d-flex justify-content-center pt-2 pb-2">
-          <div>Please rate this recommendation:</div>
+        <div className="d-flex justify-content-center py-1">
+          <div className="pt-1 px-1" style={{fontSize: '0.8em'}}>Please rate this recommendation:</div>
           <Rating
             name="simple-controlled"
             value={rating}

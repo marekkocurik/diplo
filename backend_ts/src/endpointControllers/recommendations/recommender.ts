@@ -1,9 +1,9 @@
 import { GeneralResponse } from '../../databaseControllers/databaseController';
-import RatingsController, { RatingId } from '../../databaseControllers/ratingsController';
+import RecommendationsController, { RecommendationId } from '../../databaseControllers/recommendationsController';
 import { ASTObject } from '../ast/lexicalAnalysis/analyzer';
 import { BINARY_OPERATORS, expr, expr_list, join_op } from 'node-sql-parser/ast/postgresql';
 
-export const ratingsController = new RatingsController();
+export const recommendationsController = new RecommendationsController;
 
 interface RecommendationWithRating {
   id: number;
@@ -1631,8 +1631,8 @@ export const createRecommendations = (
    */
 
   recs = removeDuplicateRecommendations(recs);
-  console.log('recs:');
-  console.dir(recs, { depth: null });
+  // console.log('recs:');
+  // console.dir(recs, { depth: null });
   let result: RecommendationsWithDetail = {
     default_detail_level: cluster,
     recommendations: recs,
@@ -1643,7 +1643,7 @@ export const createRecommendations = (
 export const insertRecommendations = async (recs: RecommendationsWithDetail, ute: number): Promise<GeneralResponse> => {
   try {
     let insert =
-      'INSERT INTO users.ratings(users_to_exercises_id, query_type, statement, ' +
+      'INSERT INTO users.recommendations(users_to_exercises_id, query_type, statement, ' +
       'parent_query_type, parent_statement, recommendation, visited, detail_level, creation_date, last_update) VALUES \n';
     let i = 0;
     if (recs.recommendations[0].query_type === 'GENERAL') {
@@ -1656,7 +1656,7 @@ export const insertRecommendations = async (recs: RecommendationsWithDetail, ute
       else insert += "'" + r.parent_statement + "',";
       insert +=
         "'" +
-        r.recommendationsAndRatings[0].recommendation +
+        r.recommendationsAndRatings[0].recommendation.replace(/'/g,"''") +
         "', true, 'low', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
     }
     let ddl;
@@ -1671,7 +1671,7 @@ export const insertRecommendations = async (recs: RecommendationsWithDetail, ute
         else insert += "'" + r.parent_statement + "',";
         insert +=
           "'" +
-          r.recommendationsAndRatings[j].recommendation +
+          r.recommendationsAndRatings[j].recommendation.replace(/'/g,"''") +
           "'," +
           (i === 0 && j === 0) +
           ",'" +
@@ -1680,11 +1680,11 @@ export const insertRecommendations = async (recs: RecommendationsWithDetail, ute
       }
     }
     insert = insert.slice(0, -3) + '\nRETURNING id;';
-    // console.log('insert: ', insert);
-    let resp = await ratingsController.insertManyReturningIds(insert);
-    const ids = resp[1] as RatingId[];
-    console.log('before:');
-    console.dir(recs, { depth: null });
+    // console.log('inserting recommendations: ', insert);
+    let resp = await recommendationsController.insertManyReturningIds(insert);
+    const ids = resp[1] as RecommendationId[];
+    // console.log('before:');
+    // console.dir(recs, { depth: null });
     i = 0;
     let genSet = false;
     if (recs.recommendations[0].query_type === 'GENERAL') {
@@ -1698,16 +1698,10 @@ export const insertRecommendations = async (recs: RecommendationsWithDetail, ute
       let r = recs.recommendations[i];
       for (let j = 0; j < 3; j++) {
         r.recommendationsAndRatings[j].id = ids[genSet ? (i - 1) * 3 + j + 1 : i * 3 + j].id;
-
-        // ak i zacina na 0:
-        // 0, 1, 2, 3, 4, 5,
-
-        //ak i zacina na 1:
-        //
       }
     }
-    console.log('after:');
-    console.dir(recs, { depth: null });
+    // console.log('after:');
+    // console.dir(recs, { depth: null });
     return { code: 200, message: 'OK' };
   } catch (error) {
     return { code: 500, message: 'Something went wrong while trying to insert new recommendations' };
@@ -1719,7 +1713,7 @@ export const getRecommendationId = async (
   recommendation: string
 ): Promise<[GeneralResponse, number]> => {
   try {
-    let response = await ratingsController.getIdByUsersToExercisesIdAndRecommendation(
+    let response = await recommendationsController.getIdByUsersToExercisesIdAndRecommendation(
       users_to_exercises_id,
       recommendation
     );
@@ -1731,7 +1725,7 @@ export const getRecommendationId = async (
 
 export const updateRecommendationVisitedById = async (id: number): Promise<GeneralResponse> => {
   try {
-    let response = await ratingsController.updateVisited(id);
+    let response = await recommendationsController.updateVisited(id);
     return response;
   } catch (error) {
     return { code: 500, message: 'Something went wrong while trying to update Recommendation to visited' };
@@ -1740,7 +1734,7 @@ export const updateRecommendationVisitedById = async (id: number): Promise<Gener
 
 export const updateRecommendationRatingById = async (id: number, rating: number): Promise<GeneralResponse> => {
   try {
-    let response = await ratingsController.updateRating(id, rating);
+    let response = await recommendationsController.updateRating(id, rating);
     return response;
   } catch (error) {
     return { code: 500, message: 'Something went wrong while trying to update Recommendation to visited' };

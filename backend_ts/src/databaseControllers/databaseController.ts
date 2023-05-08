@@ -82,4 +82,28 @@ export default class DatabaseController {
       client.release();
     }
   }
+
+  public async getNonSelectQueryResult(
+    role: string,
+    query: string,
+    table: string
+  ): Promise<[GeneralResponse, { queryResult: object }]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, { queryResult: [] }];
+    try {
+      let setRole = `SET ROLE ${role}`;
+      await client.query(setRole);
+      await client.query('BEGIN;');
+      let result = await client.query(query);
+      let select = 'SELECT * FROM cd.' + table + ';';
+      result = await client.query(select);
+      await client.query('ROLLBACK;');
+      return [{ code: 200, message: 'OK' }, { queryResult: result.rows }];
+    } catch (e) {
+      await client.query('ROLLBACK;');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
 }

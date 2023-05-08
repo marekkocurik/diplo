@@ -1,11 +1,11 @@
 import DatabaseController, { GeneralResponse } from './databaseController';
 
-export interface RatingId {
+export interface RecommendationId {
   id: number;
 }
 
-export default class RatingsController extends DatabaseController {
-  public async insertManyReturningIds(insert: string): Promise<[GeneralResponse, RatingId[]]> {
+export default class RecommendationsController extends DatabaseController {
+  public async insertManyReturningIds(insert: string): Promise<[GeneralResponse, RecommendationId[]]> {
     const client = await this.pool.connect();
     if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
     try {
@@ -34,7 +34,7 @@ export default class RatingsController extends DatabaseController {
     if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, -1];
     try {
       await client.query('SET ROLE u_executioner;');
-      let query = 'SELECT id FROM users.ratings WHERE users_to_exercises_id = $1 AND recommendation = $2;';
+      let query = 'SELECT id FROM users.recommendations WHERE users_to_exercises_id = $1 AND recommendation = $2;';
       let result = await client.query(query, [users_to_exercises_id, recommendation]);
       if (result.rows[0] === undefined) {
         return [
@@ -59,7 +59,7 @@ export default class RatingsController extends DatabaseController {
     try {
       await client.query('SET ROLE u_executioner;');
       await client.query('BEGIN;');
-      let update = 'UPDATE users.ratings SET rating = $1 WHERE id = $2;';
+      let update = 'UPDATE users.recommendations SET rating = $1 WHERE id = $2;';
       let result = await client.query(update, [rating, id]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
@@ -81,7 +81,7 @@ export default class RatingsController extends DatabaseController {
     try {
       await client.query('SET ROLE u_executioner;');
       await client.query('BEGIN;');
-      let update = 'UPDATE users.ratings SET visited = true WHERE id = $1;';
+      let update = 'UPDATE users.recommendations SET visited = true WHERE id = $1;';
       let result = await client.query(update, [id]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
