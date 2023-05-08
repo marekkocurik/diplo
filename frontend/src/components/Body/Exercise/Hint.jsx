@@ -1,28 +1,54 @@
 import { CgChevronLeft, CgChevronRight } from 'react-icons/cg';
-import { VscCircleFilled } from 'react-icons/vsc';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Button } from 'react-bootstrap';
 import { services } from '../../../api/services';
-import SimpleBar from 'simplebar-react';
+import Rating from '@mui/material/Rating';
+import Typography from '@mui/material/Typography';
 
-export default function Hint({ hintDefaultLevel, generalHint, hints, ...props }) {
+export default function Hint({ hintDefaultLevel, hints, ...props }) {
   const [hint, setHint] = useState(0);
   const [hintDetailLevel, setHintDetailLevel] = useState(0);
+  const [rating, setRating] = useState(0);
 
   const handleChangeTier = (value) => {
-    value >= 0 && value <= 2 && setHintDetailLevel(value);
+    if (value >= 0 && value <= 2) {
+      setHintDetailLevel(value);
+      if (hints[hint].recommendationsAndRatings[value].rating === -1) setRating(0);
+      else setRating(hints[hint].recommendationsAndRatings[value].rating);
+    }
   };
 
   const handleChangeHint = (value) => {
-    value >= 0 && value < hints.length && setHint(value);
-    setHintDetailLevel(hintDefaultLevel);
+    if (value >= 0 && value < hints.length) {
+      setHint(value);
+      setHintDetailLevel(hintDefaultLevel);
+      if (hints[hint].recommendationsAndRatings[value].rating === -1) setRating(0);
+      else setRating(hints[hint].recommendationsAndRatings[value].rating);
+    }
+  };
+
+  const handleNewRating = (value) => {
+    console.log(value);
+    hints[hint].recommendationsAndRatings[hintDetailLevel].rating = value;
+    setRating(value);
   };
 
   useEffect(() => {
+    console.log('calling use effect');
     setHintDetailLevel(hintDefaultLevel);
     setHint(0);
+    setRating(0);
   }, [hintDefaultLevel]);
+
+  // if (hints?.length > 0) {
+  //   console.log('hintDefaultLevel: ', hintDefaultLevel);
+  //   console.log('hintDetailLevel: ', hintDetailLevel);
+  //   console.log('hints[hint]: ', hints[hint]);
+  //   console.log('..recommendationsAndRatings: ', hints[hint].recommendationsAndRatings);
+  //   console.log('..[hintDetailLevel]: ', hints[hint].recommendationsAndRatings[hintDetailLevel]);
+  //   console.log('..recommendation: ', hints[hint].recommendationsAndRatings[hintDetailLevel].recommendation);
+  // }
 
   return hints?.length > 0 ? (
     <div className="w-100 border rounded d-flex" style={{ flex: 1, height: '40vh' }}>
@@ -48,7 +74,8 @@ export default function Hint({ hintDefaultLevel, generalHint, hints, ...props })
             fontSize: '0.8em',
           }}
         >
-          {hints[hint].recommendation[hintDetailLevel]}
+          {/* {console.log(hints[hint].recommendationsAndRatings[hintDetailLevel].recommendation)} */}
+          {hints[hint].recommendationsAndRatings[hintDetailLevel || hintDefaultLevel].recommendation} 
         </div>
         <div className="d-flex justify-content-center pt-2 pb-2">
           <Button
@@ -67,6 +94,16 @@ export default function Hint({ hintDefaultLevel, generalHint, hints, ...props })
           >
             See more
           </Button>
+        </div>
+        <div className="d-flex flex-column justify-content-center align-items-center pt-2 pb-2">
+          <Typography component="legend">Please rate this recommendation:</Typography>
+          <Rating
+            name="simple-controlled"
+            value={rating}
+            onChange={(event, newValue) => {
+              handleNewRating(newValue);
+            }}
+          />
         </div>
       </div>
       <motion.div

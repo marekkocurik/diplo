@@ -3,17 +3,22 @@ import RatingsController from '../../databaseControllers/ratingsController';
 import { ASTObject } from '../ast/lexicalAnalysis/analyzer';
 import { BINARY_OPERATORS, expr, expr_list, join_op } from 'node-sql-parser/ast/postgresql';
 
-const ratingsController = new RatingsController();
+export const ratingsController = new RatingsController();
+
+interface RecommendationWithRating {
+  rating: number;
+  recommendation: string;
+}
 
 interface Recommendation {
   query_type: string;
   statement: string;
   parent_query_type: string | undefined;
   parent_statement: string | undefined;
-  recommendation: string[];
+  recommendationsAndRatings: RecommendationWithRating[];
 }
 
-export interface Recommendations {
+export interface RecommendationsWithDetail {
   default_detail_level: number;
   recommendations: Recommendation[];
 }
@@ -277,7 +282,7 @@ const generateSelectColumnsRecommendations = (
     statement: 'SELECT',
     parent_query_type: parent_query_type?.toUpperCase(),
     parent_statement: parent_query_statement?.toUpperCase(),
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   const sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
   const diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
@@ -384,7 +389,11 @@ const generateSelectColumnsRecommendations = (
       } else [message1, message2] = Array(2).fill(unknownObjectMessage('SELECT', sub ? sub_message : ''));
     } else [message0, message1, message2] = Array(3).fill(unknownObjectMessage('SELECT', sub ? sub_message : ''));
   }
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateSelectDistinctRecommendations = (
@@ -399,7 +408,7 @@ const generateSelectDistinctRecommendations = (
     statement: 'DISTINCT',
     parent_query_type: parent_query_type?.toUpperCase(),
     parent_statement: parent_query_statement?.toUpperCase(),
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
   let diff_message = diff_type === 'missing' ? 'removing' : 'not removing';
@@ -411,7 +420,11 @@ const generateSelectDistinctRecommendations = (
     " 'SELECT DISTINCT' in the SELECT statement" +
     (sub ? sub_message : '') +
     '.';
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateSelectFromRecommendations = (
@@ -426,7 +439,7 @@ const generateSelectFromRecommendations = (
     statement: 'FROM',
     parent_query_type: parent_query_type?.toUpperCase(),
     parent_statement: parent_query_statement?.toUpperCase(),
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
   let diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
@@ -492,7 +505,11 @@ const generateSelectFromRecommendations = (
         'INNER LEFT/RIGHT JOIN, LEFT/RIGHT OUTER JOIN, FULL (OUTER) JOIN, CROSS JOIN, SELF-JOIN';
     } else message2 = unknownObjectMessage('FROM/JOIN', sub ? sub_message : '');
   } else [message0, message1, message2] = Array(3).fill(unknownObjectMessage('FROM', sub ? sub_message : ''));
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateSelectWhereRecommendations = (
@@ -507,7 +524,7 @@ const generateSelectWhereRecommendations = (
     statement: 'WHERE',
     parent_query_type: parent_query_type?.toUpperCase(),
     parent_statement: parent_query_statement?.toUpperCase(),
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
   let message0 = 'Make sure the condition in the WHERE statement' + (sub ? sub_message : '') + ' is correct.';
@@ -540,7 +557,11 @@ const generateSelectWhereRecommendations = (
       } else message2 = unknownObjectMessage('WHERE', sub ? sub_message : '');
     }
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('WHERE', sub ? sub_message : ''));
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateSelectGroupByRecommendations = (
@@ -555,7 +576,7 @@ const generateSelectGroupByRecommendations = (
     statement: 'GROUPBY',
     parent_query_type: parent_query_type?.toUpperCase(),
     parent_statement: parent_query_statement?.toUpperCase(),
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
   let diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
@@ -581,7 +602,11 @@ const generateSelectGroupByRecommendations = (
       diff_type +
       ' or incorrect.';
   } else message2 = unknownObjectMessage('GROUP BY', sub ? sub_message : '');
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateSelectHavingRecommendations = (
@@ -596,7 +621,7 @@ const generateSelectHavingRecommendations = (
     statement: 'HAVING',
     parent_query_type: parent_query_type?.toUpperCase(),
     parent_statement: parent_query_statement?.toUpperCase(),
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
   let message0 = 'Make sure the condition in the HAVING statement' + (sub ? sub_message : '') + ' is correct.';
@@ -629,7 +654,11 @@ const generateSelectHavingRecommendations = (
       } else message2 = unknownObjectMessage('HAVING', sub ? sub_message : '');
     }
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('HAVING', sub ? sub_message : ''));
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateSelectOrderByRecommendations = (
@@ -644,7 +673,7 @@ const generateSelectOrderByRecommendations = (
     statement: 'ORDERBY',
     parent_query_type: parent_query_type?.toUpperCase(),
     parent_statement: parent_query_statement?.toUpperCase(),
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let sub_message = ' of the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
   let message0, message1, message2;
@@ -678,7 +707,11 @@ const generateSelectOrderByRecommendations = (
       } else message2 = unknownObjectMessage('ORDER BY', sub ? sub_message : '');
     } else message2 = unknownObjectMessage('ORDER BY', sub ? sub_message : '');
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('ORDER BY', sub ? sub_message : ''));
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateSelectLimitRecommendations = (
@@ -693,7 +726,7 @@ const generateSelectLimitRecommendations = (
     statement: 'LIMIT',
     parent_query_type: parent_query_type?.toUpperCase(),
     parent_statement: parent_query_statement?.toUpperCase(),
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let sub_message = ' the nested query in the ' + parent_query_statement?.toUpperCase() + ' statement';
   let message0 = 'Expecting more/less rows to be returned by' + (sub ? sub_message + '.' : ' a query.');
@@ -735,7 +768,11 @@ const generateSelectLimitRecommendations = (
         'Content of LIMIT statement' + (sub ? ' of' + sub_message : '') + ' is too complex.'
       );
   } else message2 = unknownObjectMessage('LIMIT', sub ? sub_message : '');
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 
@@ -745,7 +782,7 @@ const generateInsertTableRecommendations = (obj: ASTObject, diff_type: string): 
     statement: 'TABLE',
     parent_query_type: undefined,
     parent_statement: undefined,
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let message0, message1, message2;
   message0 = 'Make sure you are inserting into the correct table.';
@@ -753,7 +790,11 @@ const generateInsertTableRecommendations = (obj: ASTObject, diff_type: string): 
   if ('table' in obj) {
     message2 = 'INSERT INTO ' + obj.table + ' is ' + (diff_type === 'missing' ? diff_type : 'incorrect') + '.';
   } else message2 = unknownObjectMessage('INSERT INTO <table>', '');
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateInsertColumnsRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
@@ -762,7 +803,7 @@ const generateInsertColumnsRecommendations = (obj: ASTObject, diff_type: string)
     statement: 'COLUMNS',
     parent_query_type: undefined,
     parent_statement: undefined,
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let message0, message1, message2;
   message0 =
@@ -776,9 +817,17 @@ const generateInsertColumnsRecommendations = (obj: ASTObject, diff_type: string)
     message2 = (diff_type === 'missing' ? 'Missing' : 'Redundant') + ' column/s: ';
     for (let col of obj) message2 += col + ', ';
     message2 = message2.slice(0, -2) + ' in the INSERT INTO table(...) statement.';
-    rec.recommendation.push(message0, message1, message2);
+    rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   } else message2 = unknownObjectMessage('INSERT INTO table(column_1, column_2, ..., column_x)', '');
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateInsertValuesRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
@@ -787,7 +836,7 @@ const generateInsertValuesRecommendations = (obj: ASTObject, diff_type: string):
     statement: 'VALUES',
     parent_query_type: undefined,
     parent_statement: undefined,
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let message0, message1, message2;
   let diff_message = diff_type === 'missing' ? 'ALL' : 'ONLY';
@@ -796,7 +845,11 @@ const generateInsertValuesRecommendations = (obj: ASTObject, diff_type: string):
   if ('value' in obj) {
     message2 = "VALUES statement is missing value '" + obj.value + "'.";
   } else message2 = unknownObjectMessage('INSERT INTO ... VALUES', '');
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 
@@ -806,7 +859,7 @@ const generateUpdateTableRecommendations = (obj: ASTObject, diff_type: string): 
     statement: 'TABLE',
     parent_query_type: undefined,
     parent_statement: undefined,
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let message0, message1, message2;
   message0 = 'Make sure you are updating the correct table.';
@@ -814,7 +867,11 @@ const generateUpdateTableRecommendations = (obj: ASTObject, diff_type: string): 
   if ('table' in obj) {
     message2 = 'UPDATE ' + obj.table + ' is ' + (diff_type === 'missing' ? diff_type : 'incorrect') + '.';
   } else message2 = unknownObjectMessage('UPDATE table', '');
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateUpdateSetRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
@@ -823,7 +880,7 @@ const generateUpdateSetRecommendations = (obj: ASTObject, diff_type: string): Re
     statement: 'SET',
     parent_query_type: undefined,
     parent_statement: undefined,
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let message0, message1, message2;
   message0 = 'Make sure you are setting the correct values and columns in the UPDATE statement.';
@@ -843,7 +900,11 @@ const generateUpdateSetRecommendations = (obj: ASTObject, diff_type: string): Re
       diff_type +
       ' or contains invalid values in the UPDATE statement.';
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('UPDATE-SET', ''));
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateUpdateWhereRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
@@ -852,7 +913,7 @@ const generateUpdateWhereRecommendations = (obj: ASTObject, diff_type: string): 
     statement: 'WHERE',
     parent_query_type: undefined,
     parent_statement: undefined,
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let message0 = 'Make sure the condition in the UPDATE statement is correct.';
   let message1, message2;
@@ -871,7 +932,11 @@ const generateUpdateWhereRecommendations = (obj: ASTObject, diff_type: string): 
       } else message2 = unknownObjectMessage('UPDATE-WHERE', '');
     }
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('UPDATE-WHERE', ''));
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 
@@ -881,7 +946,7 @@ const generateDeleteFromRecommendations = (obj: ASTObject, diff_type: string): R
     statement: 'FROM',
     parent_query_type: undefined,
     parent_statement: undefined,
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let message0, message1, message2;
   message0 = 'Make sure you are deleting from the correct table.';
@@ -889,7 +954,11 @@ const generateDeleteFromRecommendations = (obj: ASTObject, diff_type: string): R
   if ('table' in obj) {
     message2 = 'DELETE FROM ' + obj.table + ' is ' + (diff_type === 'missing' ? diff_type : 'incorrect') + '.';
   } else message2 = unknownObjectMessage('DELETE FROM', '');
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 const generateDeleteWhereRecommendations = (obj: ASTObject, diff_type: string): Recommendation => {
@@ -898,7 +967,7 @@ const generateDeleteWhereRecommendations = (obj: ASTObject, diff_type: string): 
     statement: 'WHERE',
     parent_query_type: undefined,
     parent_statement: undefined,
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let message0 = 'Make sure the condition in the DELETE statement is correct.';
   let message1, message2;
@@ -917,7 +986,11 @@ const generateDeleteWhereRecommendations = (obj: ASTObject, diff_type: string): 
       } else message2 = unknownObjectMessage('DELETE-WHERE', '');
     }
   } else [message1, message2] = Array(2).fill(unknownObjectMessage('DELETE-WHERE', ''));
-  rec.recommendation.push(message0, message1, message2);
+  rec.recommendationsAndRatings.push(
+    { rating: -1, recommendation: message0 },
+    { rating: -1, recommendation: message1 },
+    { rating: -1, recommendation: message2 }
+  );
   return rec;
 };
 
@@ -1249,7 +1322,7 @@ const generateGeneralRecommendation = (queryType: string, branch: string, diff_t
     statement: 'GENERAL',
     parent_query_type: undefined,
     parent_statement: undefined,
-    recommendation: [] as string[],
+    recommendationsAndRatings: [] as RecommendationWithRating[],
   };
   let message;
   if (queryType === 'select') {
@@ -1361,7 +1434,11 @@ const generateGeneralRecommendation = (queryType: string, branch: string, diff_t
   }
   if (message === undefined) return null;
   else {
-    rec.recommendation.push(message, message, message);
+    rec.recommendationsAndRatings.push(
+      { rating: -1, recommendation: message },
+      { rating: -1, recommendation: message },
+      { rating: -1, recommendation: message }
+    );
     return rec;
   }
 };
@@ -1380,7 +1457,7 @@ export const createRecommendations = (
   missing: ASTObject,
   extras: ASTObject,
   cluster: number
-): Recommendations => {
+): RecommendationsWithDetail => {
   let recs: Recommendation[] = [];
   let generalRecommendation: Recommendation | null;
 
@@ -1549,7 +1626,7 @@ export const createRecommendations = (
   recs = removeDuplicateRecommendations(recs);
   console.log('recs:');
   console.dir(recs, { depth: null });
-  let result: Recommendations = {
+  let result: RecommendationsWithDetail = {
     default_detail_level: cluster,
     recommendations: recs,
   };
@@ -1557,27 +1634,27 @@ export const createRecommendations = (
 };
 
 export const insertRecommendations = async (
-  recommendations: Recommendations,
+  recs: RecommendationsWithDetail,
   ute: number
 ): Promise<GeneralResponse> => {
   try {
     let insert =
       'INSERT INTO users.ratings(users_to_exercises_id, query_type, statement, ' +
-      'parent_query_type, parent_statement, recommendation, detail_level, creation_date, last_update) VALUES \n';
+      'parent_query_type, parent_statement, recommendation, visited, detail_level, creation_date, last_update) VALUES \n';
     let i = 0;
-    if (recommendations.recommendations[0].query_type === 'GENERAL') {
+    if (recs.recommendations[0].query_type === 'GENERAL') {
       i = 1;
-      let r = recommendations.recommendations[0];
+      let r = recs.recommendations[0]
       insert += '(' + ute + ",'" + r.query_type + "','" + r.statement + "',";
       if (r.parent_query_type === undefined) insert += 'null,';
       else insert += "'" + r.parent_query_type + "',";
       if (r.parent_statement === undefined) insert += 'null,';
       else insert += "'" + r.parent_statement + "',";
-      insert += "'" + r.recommendation[0] + "','low', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
+      insert += "'" + r.recommendationsAndRatings[0].recommendation + "', true, 'low', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
     }
     let ddl;
-    for (; i < recommendations.recommendations.length; i++) {
-      let r = recommendations.recommendations[i];
+    for (; i < recs.recommendations.length; i++) {
+      let r = recs.recommendations[i];
       for (let j = 0; j < 3; j++) {
         ddl = j === 0 ? 'low' : j === 1 ? 'medium' : 'high';
         insert += '(' + ute + ",'" + r.query_type + "','" + r.statement + "',";
@@ -1585,7 +1662,7 @@ export const insertRecommendations = async (
         else insert += "'" + r.parent_query_type + "',";
         if (r.parent_statement === undefined) insert += 'null,';
         else insert += "'" + r.parent_statement + "',";
-        insert += "'" + r.recommendation[j] + "','" + ddl + "', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
+        insert += "'" + r.recommendationsAndRatings[j].recommendation + "'," + (i===0 && j === 0) + ",'" + ddl + "', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP), \n";
       }
     }
     insert = insert.slice(0, -3) + ';';
@@ -1597,4 +1674,29 @@ export const insertRecommendations = async (
   }
 };
 
-export const updateRecommendation = () => {};
+export const getRecommendationId = async (users_to_exercises_id: number, recommendation: string): Promise<[GeneralResponse, number]> => {
+  try {
+    let response = await ratingsController.getIdByUsersToExercisesIdAndRecommendation(users_to_exercises_id, recommendation);
+    return response;
+  } catch (error) {
+    return [{code:500, message: 'Something went wrong while trying to get Recommendation ID'}, -1];
+  }
+}
+
+export const updateRecommendationVisitedById = async (id: number): Promise<GeneralResponse> => {
+  try {
+    let response = await ratingsController.updateVisited(id);
+    return response;
+  } catch (error) {
+    return {code: 500, message: 'Something went wrong while trying to update Recommendation to visited'};
+  }
+};
+
+export const updateRecommendationRatingById = async (id: number, rating: number): Promise<GeneralResponse> => {
+  try {
+    let response = await ratingsController.updateRating(id, rating);
+    return response;
+  } catch (error) {
+    return {code: 500, message: 'Something went wrong while trying to update Recommendation to visited'};
+  }
+};

@@ -10,7 +10,7 @@ import {
   getQueryTestResult,
   getQuerySubmitResult,
 } from '../endpointControllers/exercise/exercise';
-import { getHelp } from '../endpointControllers/help/helper';
+import { getHelp, updateRecommendationRating, updateRecommendationVisited } from '../endpointControllers/help/helper';
 import { jwt_secret, fe_ip_address } from '../env-config';
 const jwt = require('jsonwebtoken');
 
@@ -50,6 +50,8 @@ export default async function routes(server: any) {
   server.get('/home/exercise', { preHandler: checkJWT }, getExercise);
   server.get('/home/exercise-history', { preHandler: checkJWT }, getExerciseHistory);
   server.get('/home/exercise-solutions-user', { preHandler: checkJWT }, getUserExerciseSolutions);
+  server.get('/home/hints/update-visited', { preHandler: checkJWT }, updateRecommendationVisited);
+  server.get('/home/hints/update-rating', { preHandler: checkJWT }, updateRecommendationRating);
   server.get('/home/query-expected-result', { preHandler: checkJWT }, getQueryExpectedResult);
   server.get('/home/query-test-result', { preHandler: checkJWT }, getQueryTestResult);
   server.get('/home/query-submit-result', { preHandler: checkJWT }, getQuerySubmitResult);

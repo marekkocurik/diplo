@@ -39,7 +39,6 @@ export default function Exercise({ ...props }) {
   const [modalErrorMessage, setModalErrorMessage] = useState('');
 
   const [hintDefaultLevel, setHintDefaultLevel] = useState(null);
-  const [generalHint, setGeneralHint] = useState(null);
   const [hints, setHints] = useState(null);
 
   const initialize = async (chapterID, exerciseID) => {
@@ -79,7 +78,6 @@ export default function Exercise({ ...props }) {
       setModalErrorMessage('');
       setUserQueryResult(null);
       setUserQueryErrorMsg(null);
-      setGeneralHint(null);
       setHintDefaultLevel(null);
       setHints(null);
       initialize(parseInt(chapterID), parseInt(exerciseID));
@@ -98,14 +96,10 @@ export default function Exercise({ ...props }) {
 
       try {
         result = await apiCall(userQuery, exercise.solution, exercise.id);
-        console.log('result for: ', userQuery);
-        console.log(result.queryResultInfo);
         setUserQueryResult(result.queryResultInfo.queryResult);
         setUserQueryErrorMsg('');
       } catch (err) {
-        console.log('Error caught');
         const { message } = await err.response.json();
-        console.log('setting error message to: ', message);
         setUserQueryErrorMsg(message);
       }
 
@@ -150,8 +144,9 @@ export default function Exercise({ ...props }) {
     e.preventDefault();
     try {
       let result = await services.getHelp(userQuery, exercise.id);
+      console.log('Setting default level to: ', result.recs.default_detail_level);
       setHintDefaultLevel(result.recs.default_detail_level);
-      setGeneralHint(result.recs.generalRecommendation);
+      console.log('Setting hints to: ', result.recs.recommendations);
       setHints(result.recs.recommendations);
     } catch (error) {
       const { message } = await error.response.json();
@@ -233,7 +228,7 @@ export default function Exercise({ ...props }) {
             </div>
 
             <div className="p-1" style={{ flex: 2 }}>
-              <Hint hintDefaultLevel={hintDefaultLevel} generalHint={generalHint} hints={hints} />
+              <Hint hintDefaultLevel={hintDefaultLevel} hints={hints} />
             </div>
           </div>
           <div className="py-2 px-1" style={{ width: '100%', maxHeight: '40vh' }}>
