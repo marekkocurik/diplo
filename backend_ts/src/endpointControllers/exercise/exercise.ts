@@ -1,6 +1,10 @@
 import { Exercise, TreeExercise } from '../../databaseControllers/exercisesController';
 import { queryToUpperCase } from '../ast/lexicalAnalysis/analyzer';
-import { GeneralResponse } from '../../databaseControllers/databaseController';
+import {
+  GeneralResponse,
+  LeaderboardAttemptItem,
+  LeaderboardExecTimeItem,
+} from '../../databaseControllers/databaseController';
 import { Solution_ID_OriginalQuery } from '../../databaseControllers/solutionsController';
 import { TreeChapter } from '../../databaseControllers/chaptersController';
 import { ExerciseFinished, ExerciseStartedOrSolved } from '../../databaseControllers/usersToExercisesController';
@@ -18,7 +22,10 @@ import {
   processNewAnswerReturningId,
   getUsersToExercisesId,
   updateUsersToExerciseToSolved,
+  databaseController,
 } from './exerciseFunctions';
+import { LeaderboardAttempts, LeaderboardExecTime } from '../../databaseControllers/answersController';
+import { userController } from '../auth/auth';
 
 type ExerciseTreeResponse =
   | [GeneralResponse, TreeChapter[]]
@@ -34,6 +41,10 @@ type QueryTestResultResponse =
   | GeneralResponse;
 
 type QuerySubmitResultResponse = [GeneralResponse, QueryTestResponse] | [GeneralResponse, number] | GeneralResponse;
+
+type OverallLeaderboardResponse =
+  | [GeneralResponse, LeaderboardAttemptItem[]]
+  | [GeneralResponse, LeaderboardExecTimeItem[]];
 
 export const getExerciseTree = async (request: any, reply: any) => {
   const user_id = request.query.id;
@@ -205,7 +216,7 @@ export const getQueryTestResult = async (request: any, reply: any) => {
 };
 
 export const getQuerySubmitResult = async (request: any, reply: any) => {
-  const { role, exerciseId, solution } = request.query;
+  const { role, exerciseId, solution, cluster } = request.query;
   let { queryToExecute } = request.query;
   const user_id = request.query.id;
   const uppercaseQuery = queryToUpperCase(queryToExecute);
@@ -254,10 +265,11 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
       response = await proccessNewSolution(exerciseId, queryToExecute);
       if (response.code !== 200) {
         // TODO: user case: solution je spravne, ale nejde ulozit - co s tym chcem spravit? Mozem vytvorit nejaky proces, ktory raz za cas prebehne answers a porovna, ci vsetky success = 'COMPLETE' su aj v users.solutions
-        let res = {
-          message: 'Solution is correct, but it could not be saved.',
-        };
+        // let res = {
+        //   message: 'Solution is correct, but it could not be saved.',
+        // };
       }
+      checkAverageSubmitAttempts(user_id, cluster);
       reply.code(res.code).send({ message: res.message, queryResultInfo });
       return;
     } else solutionSuccess = 'ERROR';
@@ -303,13 +315,80 @@ export const updateShowSolutions = async (request: any, reply: any) => {
   }
 };
 
-export const getDummyData = async (request: any, reply: any) => {
+type ExerciseLeaderboardResponse = [GeneralResponse, LeaderboardExecTime[]] | [GeneralResponse, LeaderboardAttempts[]];
+
+export const getExerciseLeaderboard = async (request: any, reply: any) => {
+  const { exerciseId } = request.query;
   try {
-    let response = await answersController.getDummyData();
-    reply.code(200).send({ message: 'OK', data: response[1] });
+    let response: ExerciseLeaderboardResponse;
+    response = await answersController.getExerciseLeaderboardExecTimeByExerciseId(exerciseId);
+    const byTime = response[1] as LeaderboardExecTime[];
+    response = await answersController.getExerciseLeaderboardAttemptsByExerciseId(exerciseId);
+    const byAttempts = response[1] as LeaderboardAttempts[];
+    if (byTime.length === 0 || byAttempts.length === 0) {
+      reply.code(500).send({
+        message: 'Something went wrong while trying to get exercise leaderboards',
+        leaderboards: { byTime: [], byAttempts: [] },
+      });
+      return;
+    }
+    reply.code(200).send({ message: 'OK', leaderboards: { byTime, byAttempts } });
     return;
   } catch (error) {
-    reply.code(500).send({ message: 'something wrong' });
+    reply.code(500).send({
+      message: 'Something went wrong while trying to get exercise leaderboards',
+      leaderboards: { byTime: [], byAttempts: [] },
+    });
     return;
+  }
+};
+
+export const getLeaderboard = async (request: any, reply: any) => {
+  try {
+    let response: OverallLeaderboardResponse;
+    response = await databaseController.getOverallLeaderboardAttempts();
+    const byAttempts = response[1];
+    response = await databaseController.getOverallLeaderboardExecTime();
+    const byTime = response[1];
+    if (byTime.length === 0 || byAttempts.length === 0) {
+      reply.code(500).send({
+        message: 'Something went wrong while trying to get exercise leaderboards',
+        leaderboards: { byTime: [], byAttempts: [] },
+      });
+      return;
+    }
+    reply.code(200).send({ message: 'OK', leaderboards: { byTime, byAttempts } });
+    return;
+  } catch (error) {
+    reply.code(500).send({
+      message: 'Something went wrong while trying to get overall leaderboard',
+      leaderboards: { byTime: [], byAttempts: [] },
+    });
+    return;
+  }
+};
+
+export const checkAverageSubmitAttempts = async (user_id: number, cluster: number): Promise<GeneralResponse> => {
+  try {
+    let response = await userController.getAverageSubmitAttempts(user_id);
+    if (response[0].code !== 200) return response[0];
+    const avg = response[1] as number;
+    console.log('avg: ', avg, 'cluster:', cluster);
+    let resp2: GeneralResponse | undefined;
+    if (avg <= 2 && cluster !== 0) {
+      resp2 = await userController.updateUserClusterById(user_id, 0);
+    } else if (avg > 2 && avg <= 5 && cluster !== 1) {
+      resp2 = await userController.updateUserClusterById(user_id, 1);
+    } else if (avg > 5 && cluster !== 2) {
+      resp2 = await userController.updateUserClusterById(user_id, 2);
+    }
+    if (resp2 === undefined) {
+      return { code: 200, message: 'OK' };
+    } else return resp2;
+  } catch (error) {
+    return {
+      code: 500,
+      message: 'Something went wrong while trying to check average submit attempts for user: ' + user_id,
+    };
   }
 };

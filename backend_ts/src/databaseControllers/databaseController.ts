@@ -14,6 +14,24 @@ export interface QueryResult {
   executionTime: number;
 }
 
+export interface LeaderboardAttemptItem {
+  c_id: number;
+  c_name: string;
+  e_id: number;
+  e_name: string;
+  username: string;
+  attempts: number;
+}
+
+export interface LeaderboardExecTimeItem {
+  c_id: number;
+  c_name: string;
+  e_id: number;
+  e_name: string;
+  query: string;
+  execution_time: number;
+}
+
 export default class DatabaseController {
   constructor() {}
   public pool = new Pool();
@@ -101,6 +119,90 @@ export default class DatabaseController {
       return [{ code: 200, message: 'OK' }, { queryResult: result.rows }];
     } catch (e) {
       await client.query('ROLLBACK;');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getOverallLeaderboardAttempts(): Promise<[GeneralResponse, LeaderboardAttemptItem[]]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query =
+        "SELECT sub.c_id, sub.c_name, sub.e_id, sub.e_name, u.name || ' ' || u.surname as username, attempts " +
+        'FROM ( ' +
+        'SELECT qa.c_id, qa.c_name, qa.e_id, qa.e_name, qb.u_id, qb.attempts ' +
+        'FROM ( ' +
+        '  SELECT c.id AS c_id, c.name AS c_name, ' +
+        '         ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY e.exercise_order) AS e_id, e.id as e_r_id, ' +
+        '         e.name AS e_name ' +
+        '  FROM users.chapters c ' +
+        '  JOIN users.exercises e ON e.chapter_id = c.id ' +
+        ') qa ' +
+        'JOIN ( ' +
+        '  SELECT ute.user_id AS u_id, ute.exercise_id AS e_id, ute.id AS ute_id, ' +
+        '         (SELECT COUNT(*) ' +
+        '          FROM users.answers a2 ' +
+        '          WHERE a2.users_to_exercises_id = ute.id ' +
+        '            AND a2.submit_attempt = true ' +
+        '            AND a2.id <= MIN(a.id)) AS attempts ' +
+        '  FROM users.answers a ' +
+        '  JOIN users.users_to_exercises ute ON ute.id = a.users_to_exercises_id ' +
+        "  WHERE a.solution_success = 'COMPLETE' " +
+        '  GROUP BY u_id, e_id, ute_id ' +
+        ') qb ' +
+        'ON qa.e_r_id = qb.e_id ' +
+        'ORDER BY qa.c_id, qa.e_id, qb.u_id ' +
+        ') sub ' +
+        'JOIN users.users u on u.id = sub.u_id ' +
+        'ORDER BY c_id, e_id, attempts, username;';
+      let result = await client.query(query);
+      if (result.rows === undefined) return [{ code: 500, message: 'Failed to get overall leadeboard - attempts' }, []];
+      let response = {
+        code: 200,
+        message: 'OK',
+      };
+      return [response, result.rows];
+    } catch (e) {
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getOverallLeaderboardExecTime(): Promise<[GeneralResponse, LeaderboardExecTimeItem[]]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query =
+        'SELECT qa.c_id, qa.c_name, qa.e_id, qa.e_name, qb.query, qb.execution_time ' +
+        'FROM ( ' +
+        '  SELECT c.id AS c_id, c.name AS c_name, ' +
+        '		 ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY e.exercise_order) AS e_id, e.id as e_r_id, ' +
+        '		 e.name AS e_name ' +
+        '  FROM users.chapters c ' +
+        '  JOIN users.exercises e ON e.chapter_id = c.id ' +
+        ') qa ' +
+        'JOIN ( ' +
+        '	SELECT ute.exercise_id e_id, a.query, MIN(a.execution_time) AS execution_time ' +
+        '	FROM users.users_to_exercises ute ' +
+        '	JOIN users.answers a ON ute.id = a.users_to_exercises_id ' +
+        "	WHERE ute.solved = true AND a.solution_success = 'COMPLETE' " +
+        '	GROUP BY ute.exercise_id, a.query ' +
+        ') qb ' +
+        'ON qa.e_r_id = qb.e_id ' +
+        'ORDER BY qa.c_id, qa.e_id, qb.execution_time;';
+      let result = await client.query(query);
+      if (result.rows === undefined) return [{ code: 500, message: 'Failed to get overall leadeboard - execTime' }, []];
+      let response = {
+        code: 200,
+        message: 'OK',
+      };
+      return [response, result.rows];
+    } catch (e) {
       throw e;
     } finally {
       client.release();

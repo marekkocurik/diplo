@@ -2,72 +2,82 @@ import { useEffect, useState } from 'react';
 import { Button, Modal, Table } from 'react-bootstrap';
 import { services } from '../../../api/services';
 
-export function ModalLeaderboards({ show, setShow, ...props }) {
+export function ModalLeaderboards({ show, setShow, exerciseId, finished, ...props }) {
   const handleClose = () => setShow(false);
   const [data, setData] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [mode, setMode] = useState('execTime');
 
   const initialize = async () => {
-    const res = await services.getDummyData();
-    setData(res.data);
+    try {
+      const res = await services.showSolutions(exerciseId);
+      setData(res.leaderboards);
+      setErrorMessage(null);
+    } catch (error) {
+      const { message } = await error.response.json();
+      setErrorMessage(message);
+    }
   };
 
-  const [mode, setMode] = useState('exec');
-
   useEffect(() => {
-    initialize();
-  }, []);
+    if (show) {
+      initialize();
+    }
+  }, [show]);
 
   return (
     <Modal className="custom-modal" centered size="lg" animation={false} show={show} onHide={handleClose}>
       <Modal.Header className="border-0" closeButton>
-        <Modal.Title>Task Leaderboards</Modal.Title>
+        <Modal.Title style={{ fontSize: '1.5em' }}>Task Leaderboards</Modal.Title>
       </Modal.Header>
       <div className="w-100 d-flex px-3">
-        <Button style={{ opacity: mode === 'exec' ? 1 : 0.5 }} onClick={() => setMode('exec')}>
+        <Button
+          style={{ opacity: mode === 'execTime' ? 1 : 0.5, fontSize: '0.9em' }}
+          onClick={() => setMode('execTime')}
+        >
           Execution time
         </Button>
-        <Button style={{ opacity: mode === 'attempts' ? 1 : 0.5 }} onClick={() => setMode('attempts')}>
+        <Button
+          className="mx-1"
+          style={{ opacity: mode === 'attempts' ? 1 : 0.5, fontSize: '0.9em' }}
+          onClick={() => setMode('attempts')}
+        >
           Attempts
         </Button>
       </div>
       <Modal.Body style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-        {mode === 'exec' && (
-          <Table striped bordered hover>
+        {errorMessage ? (
+          errorMessage
+        ) : mode === 'execTime' ? (
+          <Table striped bordered hover style={{ fontSize: '0.8em' }}>
             <thead>
               <tr>
-                <th>User</th>
                 <th>Query</th>
                 <th>Execution Time</th>
               </tr>
             </thead>
             <tbody>
-              {data?.map((item, index) => (
+              {data?.byTime.map((item, index) => (
                 <tr key={index}>
-                  <td>{item.name}</td>
                   <td style={{ maxWidth: '300px' }}>{item.query}</td>
                   <td>{item.execution_time}</td>
                 </tr>
               ))}
             </tbody>
           </Table>
-        )}
-
-        
-        {mode === 'attempts' && (
-          <Table striped bordered hover>
+        ) : (
+          <Table striped bordered hover style={{ fontSize: '0.8em', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
             <thead>
               <tr>
                 <th>User</th>
-                <th>Query</th>
-                <th>Execution Time</th>
+                <th>Attempts</th>
               </tr>
             </thead>
             <tbody>
-              {data?.map((item, index) => (
+              {data?.byAttempts.map((item, index) => (
                 <tr key={index}>
-                  <td>{item.name}</td>
-                  <td style={{ maxWidth: '300px' }}>{item.query}</td>
-                  <td>{item.execution_time}</td>
+                  <td>{item.username}</td>
+                  <td>{item.attempts}</td>
                 </tr>
               ))}
             </tbody>

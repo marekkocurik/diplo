@@ -58,6 +58,10 @@ export const exerciseSlice = createSlice({
       const { exerciseId } = action.payload;
       state.tree[activeChapterId - 1].exercises.find((e) => e.id === exerciseId).solved = true;
     },
+    exerciseFinished: (state, action) => {
+      const { exerciseId } = action.payload;
+      state.tree[activeChapterId - 1].exercises.find((e) => e.id === exerciseId).finished = new Date();
+    },
     chapterSolved: (state, action) => {
       const { chapterId } = action.payload;
       state.tree[chapterId - 1].solved = true;
@@ -70,6 +74,7 @@ export const {
   exerciseSelected,
   exerciseStarted,
   exerciseSolved,
+  exerciseFinished,
   chapterSolved,
   historyInitialized,
   historyUpdated,

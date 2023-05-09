@@ -314,12 +314,49 @@ export default class UserController extends DatabaseController {
       let result = await client.query(query, [cluster, user_id]);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
-        return { code: 500, message: "Failed to obtain user's cluster" };
+        return { code: 500, message: "Failed to update user's cluster" };
       }
       await client.query('COMMIT;');
       return { code: 200, message: 'OK' };
     } catch (e) {
       await client.query('ROLLBACK;');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getAverageSubmitAttempts(
+    user_id: number
+  ): Promise<[GeneralResponse, number]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, -1];
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query =
+        'SELECT AVG(sub.attempts) ' +
+        'FROM ( ' +
+        '	SELECT ute.exercise_id AS e_id, ute.id AS ute_id,  ' +
+        '		(SELECT COUNT(*) FROM users.answers a2  ' +
+        '			WHERE a2.users_to_exercises_id = ute.id AND a2.submit_attempt = true AND a2.id <= MIN(a.id)  ' +
+        '		) AS attempts  ' +
+        '	FROM users.answers a  ' +
+        '	JOIN users.users_to_exercises ute ON ute.id = a.users_to_exercises_id  ' +
+        "	WHERE a.solution_success = 'COMPLETE' AND ute.user_id = $1 " +
+        '	GROUP BY e_id, ute_id ' +
+        ') sub;';
+      let result = await client.query(query, [user_id]);
+      if (result.rows[0] === undefined)
+        return [
+          { code: 500, message: 'Failed to obtain avergate submit attempts for user: ' + user_id },
+          -1,
+        ];
+      let response = {
+        code: 200,
+        message: 'OK',
+      };
+      return [response, result.rows[0].avg];
+    } catch (e) {
       throw e;
     } finally {
       client.release();

@@ -9,8 +9,9 @@ import {
   getQueryExpectedResult,
   getQueryTestResult,
   getQuerySubmitResult,
-  getDummyData,
+  getExerciseLeaderboard,
   updateShowSolutions,
+  getLeaderboard,
 } from '../endpointControllers/exercise/exercise';
 import { getHelp, updateRecommendationRating, updateRecommendationVisited } from '../endpointControllers/help/helper';
 import { jwt_secret, fe_ip_address } from '../env-config';
@@ -21,16 +22,11 @@ export default async function routes(server: any) {
     try {
       const token = req.headers.authorization.replace('Bearer ', '');
       const decoded = jwt.verify(token, jwt_secret);
-      console.log('token is valid');
       if (!req.query) req.query = {};
       req.query.role = decoded.role;
       req.query.id = decoded.id;
       req.query.cluster = decoded.cluster;
-      // console.log('decoded role: ' +decoded.role, ' decoded id: ' +decoded.id);
     } catch (e) {
-      console.log('token is expired');
-      // reply.redirect(fe_ip_address);
-      // reply.code(302).redirect(fe_ip_address).headers({'Origin': 'http://localhost:8080'}).send({ message: 'Token is expired.' });
       reply.code(302).send({ message: 'Token is expired.' });
       return;
     }
@@ -55,8 +51,9 @@ export default async function routes(server: any) {
 
   server.post('/home/hints/update-visited', { preHandler: checkJWT }, updateRecommendationVisited);
   server.post('/home/hints/update-rating', { preHandler: checkJWT }, updateRecommendationRating);
-  server.get('/home/exercise-solutions-others', { preHandler: checkJWT }, getDummyData);
-  server.post('/home/exercise/show-solutions-others', { preHandler: checkJWT }, updateShowSolutions);
+  server.get('/home/exercise/show-solutions-others', { preHandler: checkJWT }, getExerciseLeaderboard);
+  server.post('/home/exercise/update-finished', { preHandler: checkJWT }, updateShowSolutions);
+  server.get('/home/leaderboard', { preHandler: checkJWT }, getLeaderboard);
 
   server.get('/home/query-expected-result', { preHandler: checkJWT }, getQueryExpectedResult);
   server.get('/home/query-test-result', { preHandler: checkJWT }, getQueryTestResult);

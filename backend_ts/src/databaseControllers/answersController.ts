@@ -14,10 +14,14 @@ interface Answer_ID_query {
   query: string;
 }
 
-interface UserList {
-  name: string;
+export interface LeaderboardExecTime {
   query: string;
   execution_time: number;
+}
+
+export interface LeaderboardAttempts {
+  username: string;
+  attempts: number;
 }
 
 export default class AnswersController extends DatabaseController {
@@ -143,16 +147,55 @@ export default class AnswersController extends DatabaseController {
     }
   }
 
-  public async getDummyData(): Promise<[GeneralResponse, UserList[]]> {
+  public async getExerciseLeaderboardAttemptsByExerciseId(exercise_id: number): Promise<[GeneralResponse, LeaderboardAttempts[]]> {
     const client = await this.pool.connect();
     if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
     try {
       await client.query('SET ROLE u_executioner;');
-      let query = "SELECT u.name || ' ' || u.surname as name, a.query, a.execution_time "
-                + "FROM users.answers a JOIN users.users_to_exercises ute ON ute.id = a.users_to_exercises_id "
-                + "JOIN users.users u ON u.id = ute.user_id WHERE ute.user_id = 1";
-      let result = await client.query(query);
-      if (result.rows[0] === undefined) return [{ code: 500, message: 'Failed to get dummy data' }, []];
+      let query =
+        "SELECT u.name || ' ' || u.surname as username, sub.attempts " +
+        'FROM ( ' +
+        'SELECT ute.user_id AS u_id, ute.exercise_id AS e_id, ute.id AS ute_id, ' +
+        '(SELECT COUNT(*) FROM users.answers a2 ' +
+        'WHERE a2.users_to_exercises_id = ute.id AND a2.submit_attempt = true AND a2.id <= MIN(a.id) ' +
+        ') AS attempts ' +
+        'FROM users.answers a ' +
+        'JOIN users.users_to_exercises ute ON ute.id = a.users_to_exercises_id ' +
+        "WHERE a.solution_success = 'COMPLETE' AND ute.exercise_id = $1 " +
+        'GROUP BY u_id, e_id, ute_id ' +
+        ') sub ' +
+        'JOIN users.users u on u.id = sub.u_id ' +
+        'ORDER BY sub.attempts, username;';
+      let result = await client.query(query, [exercise_id]);
+      if (result.rows[0] === undefined)
+        return [{ code: 500, message: 'Failed to get leaderboard - attempts for exercise: ' + exercise_id }, []];
+      let response = {
+        code: 200,
+        message: 'OK',
+      };
+      return [response, result.rows];
+    } catch (e) {
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getExerciseLeaderboardExecTimeByExerciseId(
+    exercise_id: number
+  ): Promise<[GeneralResponse, LeaderboardExecTime[]]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query =
+        'SELECT a.query, MIN(a.execution_time) AS execution_time ' +
+        'FROM users.users_to_exercises ute JOIN users.answers a ON ute.id = a.users_to_exercises_id ' +
+        "WHERE ute.exercise_id = $1 AND ute.solved = true AND a.solution_success = 'COMPLETE' " +
+        'GROUP BY ute.user_id, a.query ORDER BY execution_time;';
+      let result = await client.query(query, [exercise_id]);
+      if (result.rows[0] === undefined)
+        return [{ code: 500, message: 'Failed to get leaderboard - executionTime for exercise: ' + exercise_id }, []];
       let response = {
         code: 200,
         message: 'OK',

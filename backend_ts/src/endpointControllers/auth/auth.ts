@@ -5,7 +5,7 @@ import { pepper, jwt_secret } from '../../env-config';
 import { GeneralResponse } from '../../databaseControllers/databaseController';
 
 const jwt = require('jsonwebtoken');
-const userController = new UserController();
+export const userController = new UserController();
 
 const createSalt = () => {
   return crypto.randomBytes(16).toString('hex');

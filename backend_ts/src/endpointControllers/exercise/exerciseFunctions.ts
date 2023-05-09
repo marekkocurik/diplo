@@ -1,4 +1,4 @@
-import { GeneralResponse, QueryResult } from '../../databaseControllers/databaseController';
+import DatabaseController, { GeneralResponse, QueryResult } from '../../databaseControllers/databaseController';
 import ExerciseController from '../../databaseControllers/exercisesController';
 import { ASTObject, normalizeQuery } from '../ast/lexicalAnalysis/analyzer';
 import SolutionController from '../../databaseControllers/solutionsController';
@@ -13,6 +13,7 @@ export interface QueryTestResponse extends QueryResult {
   queriesResultsMatch: boolean;
 }
 
+export const databaseController = new DatabaseController();
 export const exercisesController = new ExerciseController();
 export const solutionsController = new SolutionController();
 export const answersController = new AnswersController();

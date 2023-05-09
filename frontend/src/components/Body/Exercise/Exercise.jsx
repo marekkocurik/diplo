@@ -237,7 +237,7 @@ export default function Exercise({ ...props }) {
               // style={{ maxHeight: '100%', overflow: 'auto' }}
             >
               <div className="w-100 d-flex">
-                <div className="px-4" style={{ width: 200 }}>
+                <div className="px-2" style={{ width: 150 }}>
                   <Nav variant="pills" className="flex-column" activeKey={selectedKey} onSelect={handleSelect}>
                     <Nav.Item>
                       <Nav.Link

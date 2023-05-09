@@ -147,25 +147,4 @@ export default class SolutionController extends DatabaseController {
       client.release();
     }
   }
-
-  // public async getAllSolutions(): Promise<[GeneralResponse, Solution[]]> {
-  //   const client = await this.pool.connect();
-  //   if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
-  //   try {
-  //     await client.query('SET ROLE u_executioner;');
-  //     let query =
-  //       'SELECT S.id, S.original_query, S.normalized_query, S.abstract_syntax_tree as ast FROM users.solutions S WHERE S.id <= 69 ORDER BY S.id;';
-  //     let result = await client.query(query);
-  //     if (result.rows[0] === undefined) return [{ code: 500, message: 'Failed to obtain all solutions' }, []];
-  //     let response = {
-  //       code: 200,
-  //       message: 'OK',
-  //     };
-  //     return [response, result.rows];
-  //   } catch (e) {
-  //     throw e;
-  //   } finally {
-  //     client.release();
-  //   }
-  // }
 }

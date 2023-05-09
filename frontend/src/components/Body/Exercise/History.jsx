@@ -48,14 +48,13 @@ export default function History({ exerciseId, setUserQuery, ...props }) {
     <div
       style={{
         width: '100%',
-        // maxHeight: '90%',
-        overflow: 'auto',
+        maxHeight: '20vh'
       }}
     >
       {errorMessage ? (
         errorMessage
       ) : history ? (
-        <Table id="user_query_history" striped bordered hover style={{ fontSize: '0.7em' }}>
+        <Table responsive striped bordered hover style={{ fontSize: '0.7em' }}>
           <thead>
             <tr>
               <th key={'th_action'} style={{ maxWidth: '15%' }}>
