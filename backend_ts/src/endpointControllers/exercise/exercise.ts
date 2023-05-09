@@ -3,7 +3,7 @@ import { queryToUpperCase } from '../ast/lexicalAnalysis/analyzer';
 import { GeneralResponse } from '../../databaseControllers/databaseController';
 import { Solution_ID_OriginalQuery } from '../../databaseControllers/solutionsController';
 import { TreeChapter } from '../../databaseControllers/chaptersController';
-import { ExerciseStartedOrSolved } from '../../databaseControllers/usersToExercisesController';
+import { ExerciseFinished, ExerciseStartedOrSolved } from '../../databaseControllers/usersToExercisesController';
 import {
   exercisesController,
   solutionsController,
@@ -23,7 +23,8 @@ import {
 type ExerciseTreeResponse =
   | [GeneralResponse, TreeChapter[]]
   | [GeneralResponse, TreeExercise[]]
-  | [GeneralResponse, ExerciseStartedOrSolved[]];
+  | [GeneralResponse, ExerciseStartedOrSolved[]]
+  | [GeneralResponse, ExerciseFinished[]];
 
 type ExerciseResponse = [GeneralResponse, Exercise] | [GeneralResponse, Solution_ID_OriginalQuery];
 
@@ -43,8 +44,7 @@ export const getExerciseTree = async (request: any, reply: any) => {
       reply.code(response[0].code).send({ message: response[0].message });
       return;
     }
-    const chapters = response[1] as TreeChapter[];
-    let exercise_ids: number[] = [];
+    let chapters = response[1] as TreeChapter[];
     let i = 1;
     for (let chapter of chapters) {
       response = await exercisesController.getTreeExercisesByChapterId(chapter.id);
@@ -52,35 +52,48 @@ export const getExerciseTree = async (request: any, reply: any) => {
         reply.code(response[0].code).send({ message: response[0].message });
         return;
       }
-      const exercises = response[1] as TreeExercise[];
+      let exercises = response[1] as TreeExercise[];
       let j = 1;
-      for (let exercise of exercises) {
-        exercise._id = j++;
-        exercise_ids.push(exercise.id);
-      }
+      for (let exercise of exercises) exercise._id = j++;
       chapter._id = i++;
       chapter.exercises = exercises;
     }
     response = await usersToExercisesController.getSolvedExercisesByUserId(user_id);
-    if (response[0].code === 200) {
-      let exercises_solved = response[1] as ExerciseStartedOrSolved[];
-      for (let c of chapters) {
-        c.solved = true;
-        for (let e of c.exercises) {
-          let o = exercises_solved.find((item) => item.exercise_id === e.id);
-          e.solved = o === undefined ? false : true;
-          if (c.solved && !e.solved) c.solved = false;
-        }
+    if (response[0].code !== 200) {
+      reply.code(response[0].code).send({ message: response[0].message });
+      return;
+    }
+    let exercises_solved = response[1] as ExerciseStartedOrSolved[];
+    for (let c of chapters) {
+      c.solved = true;
+      for (let e of c.exercises) {
+        let o = exercises_solved.find((item) => item.exercise_id === e.id);
+        e.solved = o === undefined ? false : true;
+        if (c.solved && !e.solved) c.solved = false;
       }
-      response = await usersToExercisesController.getStartedExercisesByUserId(user_id);
-      if (response[0].code === 200) {
-        let exercises_started = response[1] as ExerciseStartedOrSolved[];
-        for (let c of chapters) {
-          for (let e of c.exercises) {
-            let o = exercises_started.find((item) => item.exercise_id === e.id);
-            e.started = o === undefined ? false : true;
-          }
-        }
+    }
+    response = await usersToExercisesController.getStartedExercisesByUserId(user_id);
+    if (response[0].code !== 200) {
+      reply.code(response[0].code).send({ message: response[0].message });
+      return;
+    }
+    let exercises_started = response[1] as ExerciseStartedOrSolved[];
+    for (let c of chapters) {
+      for (let e of c.exercises) {
+        let o = exercises_started.find((item) => item.exercise_id === e.id);
+        e.started = o === undefined ? false : true;
+      }
+    }
+    response = await usersToExercisesController.getFinishedExercisesByUserId(user_id);
+    if (response[0].code !== 200) {
+      reply.code(response[0].code).send({ message: response[0].message });
+      return;
+    }
+    let exercises_finished = response[1] as ExerciseFinished[];
+    for (let c of chapters) {
+      for (let e of c.exercises) {
+        let o = exercises_finished.find((item) => item.exercise_id === e.id);
+        e.finished = o === undefined ? null : o.finished;
       }
     }
     reply.code(200).send({ message: 'OK', tree: chapters });
@@ -276,13 +289,27 @@ export const getQuerySubmitResult = async (request: any, reply: any) => {
   return;
 };
 
+export const updateShowSolutions = async (request: any, reply: any) => {
+  const { exerciseId } = request.body;
+  const user_id = request.query.id;
+  try {
+    console.log('updating to finished for uid:', user_id, 'eid:', exerciseId);
+    let response = await usersToExercisesController.updateToFinished(user_id, exerciseId);
+    reply.code(response.code).send({ message: response.message });
+    return;
+  } catch (error) {
+    reply.code(500).send({ message: 'Something went wrong while trying to update exercise to finished' });
+    return;
+  }
+};
+
 export const getDummyData = async (request: any, reply: any) => {
   try {
     let response = await answersController.getDummyData();
-    reply.code(200).send({message: 'OK', data: response[1]});
+    reply.code(200).send({ message: 'OK', data: response[1] });
     return;
   } catch (error) {
-    reply.code(500).send({message: 'something wrong'});
+    reply.code(500).send({ message: 'something wrong' });
     return;
   }
-}
+};

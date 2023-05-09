@@ -1,7 +1,7 @@
 import { React, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { services } from '../../../api/services';
-import { Button, Form, Modal } from 'react-bootstrap';
+import { Button, Col, Form, Modal, Row } from 'react-bootstrap';
 import Schema from './Schema';
 import Result from './Result';
 import History from './History';
@@ -143,11 +143,9 @@ export default function Exercise({ ...props }) {
   const handleGivingHelp = async (e) => {
     e.preventDefault();
     try {
-      // let result = await services.getHelp(userQuery, exercise.id);
-      let res2 = await services.getDummyData();
-      console.log(res2);
-      // setHintDefaultLevel(result.recs.default_detail_level);
-      // setHints(result.recs.recommendations);
+      let result = await services.getHelp(userQuery, exercise.id);
+      setHintDefaultLevel(result.recs.default_detail_level);
+      setHints(result.recs.recommendations);
     } catch (error) {
       const { message } = await error.response.json();
       setModalErrorMessage('Please fix the following errors first:\n\n' + message);
@@ -231,47 +229,55 @@ export default function Exercise({ ...props }) {
               <Hint hintDefaultLevel={hintDefaultLevel} hints={hints} exerciseId={exercise.id} />
             </div>
           </div>
-          <div className="py-2 px-1" style={{ width: '100%', maxHeight: '40vh' }}>
+          <div className="py-2 px-1 w-100" style={{ maxHeight: '40vh', marginTop: 100 }}>
             <Tab.Container
               id="left-tabs-example"
               defaultActiveKey="hist"
               key={exercise.id}
               // style={{ maxHeight: '100%', overflow: 'auto' }}
             >
-              <Nav fill variant="tabs" activeKey={selectedKey} onSelect={handleSelect}>
-                <Nav.Item>
-                  <Nav.Link
-                    eventKey="hist"
-                    style={{
-                      opacity: selectedKey === 'hist' ? 1 : 0.55,
-                      backgroundColor: '#2666CF',
-                      color: 'white',
-                    }}
-                  >
-                    History
-                  </Nav.Link>
-                </Nav.Item>
-                <Nav.Item>
-                  <Nav.Link
-                    eventKey="sol"
-                    style={{
-                      opacity: selectedKey === 'sol' ? 1 : 0.55,
-                      backgroundColor: '#2666CF',
-                      color: 'white',
-                    }}
-                  >
-                    Solutions
-                  </Nav.Link>
-                </Nav.Item>
-              </Nav>
-              <Tab.Content style={{ maxHeight: '80%', overflow: 'auto' }}>
-                <Tab.Pane eventKey="hist" style={{ overflow: 'auto' }}>
-                  <History exerciseId={exercise.id} setUserQuery={setUserQuery} />
-                </Tab.Pane>
-                <Tab.Pane eventKey="sol">
-                  <Solutions exerciseId={exercise.id} setUserQuery={setUserQuery} />
-                </Tab.Pane>
-              </Tab.Content>
+              <div className="w-100 d-flex">
+                <div className="px-4" style={{ width: 200 }}>
+                  <Nav variant="pills" className="flex-column" activeKey={selectedKey} onSelect={handleSelect}>
+                    <Nav.Item>
+                      <Nav.Link
+                        eventKey="hist"
+                        style={{
+                          transition: 'none',
+                          // opacity: selectedKey === 'hist' ? 1 : 0.7,
+                          backgroundColor: selectedKey === 'hist' ? '#2666CF' : 'white',
+                          color: selectedKey === 'hist' ? 'white' : '#2666CF',
+                        }}
+                      >
+                        History
+                      </Nav.Link>
+                    </Nav.Item>
+                    <Nav.Item>
+                      <Nav.Link
+                        eventKey="sol"
+                        style={{
+                          transition: 'none',
+                          // opacity: selectedKey === 'sol' ? 1 : 0.7,
+                          backgroundColor: selectedKey === 'sol' ? '#2666CF' : 'white',
+                          color: selectedKey === 'sol' ? 'white' : '#2666CF',
+                        }}
+                      >
+                        Solutions
+                      </Nav.Link>
+                    </Nav.Item>
+                  </Nav>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Tab.Content style={{ overflow: 'auto', minHeight: '20vh' }}>
+                    <Tab.Pane eventKey="hist" style={{ overflow: 'auto' }}>
+                      <History exerciseId={exercise.id} setUserQuery={setUserQuery} />
+                    </Tab.Pane>
+                    <Tab.Pane eventKey="sol">
+                      <Solutions exerciseId={exercise.id} setUserQuery={setUserQuery} />
+                    </Tab.Pane>
+                  </Tab.Content>
+                </div>
+              </div>
             </Tab.Container>
           </div>
           <div className="py-3" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>

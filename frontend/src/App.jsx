@@ -1,7 +1,6 @@
 import './App.scss';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import routes from './routes';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import 'simplebar-react/dist/simplebar.min.css';
 
 const router = createBrowserRouter(routes);

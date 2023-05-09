@@ -12,6 +12,7 @@ export interface TreeExercise {
   name: string;
   solved: boolean;
   started: boolean;
+  finished: Date | null;
 }
 
 export default class ExerciseController extends DatabaseController {

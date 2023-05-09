@@ -4,6 +4,11 @@ export interface ExerciseStartedOrSolved {
   exercise_id: number;
 }
 
+export interface ExerciseFinished {
+  exercise_id: number;
+  finished: Date;
+}
+
 export default class UsersToExercisesController extends DatabaseController {
   public async getIdByUserIdAndExerciseId(
     user_id: number,
@@ -63,9 +68,36 @@ export default class UsersToExercisesController extends DatabaseController {
     if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
     try {
       await client.query('SET ROLE u_executioner;');
-      let query = 'SELECT exercise_id FROM users.users_to_exercises WHERE user_id = $1 ';
+      let query =
+        'SELECT DISTINCT ute.exercise_id ' +
+        'FROM users.users_to_exercises ute ' +
+        'JOIN users.answers a ON ute.id = a.users_to_exercises_id ' +
+        'WHERE ute.user_id = $1;';
       let result = await client.query(query, [user_id]);
       if (result.rows === undefined) return [{ code: 500, message: 'Failed to obtain any user started exercises' }, []];
+      let response = {
+        code: 200,
+        message: 'OK',
+      };
+      return [response, result.rows];
+    } catch (e) {
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getFinishedExercisesByUserId(user_id: number): Promise<[GeneralResponse, ExerciseFinished[]]> {
+    const client = await this.pool.connect();
+    if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
+    try {
+      await client.query('SET ROLE u_executioner;');
+      let query =
+        'SELECT DISTINCT ute.exercise_id, ute.finished ' +
+        'FROM users.users_to_exercises ute ' +
+        'WHERE ute.user_id = $1 AND ute.finished IS NOT null';
+      let result = await client.query(query, [user_id]);
+      if (result.rows === undefined) return [{ code: 500, message: 'Failed to obtain any user finished exercises' }, []];
       let response = {
         code: 200,
         message: 'OK',
@@ -128,6 +160,35 @@ export default class UsersToExercisesController extends DatabaseController {
             'Failed to upadte users_to_exercises to solved for user_id: ' + user_id + ', exercise_id: ' + exercise_id,
         };
       }
+      await client.query('COMMIT;');
+      return { code: 200, message: 'OK' };
+    } catch (e) {
+      await client.query('ROLLBACK;');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async updateToFinished(user_id: number, exercise_id: number): Promise<GeneralResponse> {
+    const client = await this.pool.connect();
+    if (client === undefined) return { code: 500, message: 'Error accessing database' };
+    try {
+      await client.query('SET ROLE u_executioner;');
+      await client.query('BEGIN;');
+      let update = 'UPDATE users.users_to_exercises SET finished = CURRENT_TIMESTAMP WHERE user_id = $1 AND exercise_id = $2;';
+      console.log('update is ready');
+      let result = await client.query(update, [user_id, exercise_id]);
+      // console.log(result);
+      if (result.rowCount !== 1) {
+        await client.query('ROLLBACK;');
+        return {
+          code: 500,
+          message:
+            'Failed to upadte users_to_exercises to finished for user_id: ' + user_id + ', exercise_id: ' + exercise_id,
+        };
+      }
+      console.log('update is finished');
       await client.query('COMMIT;');
       return { code: 200, message: 'OK' };
     } catch (e) {
