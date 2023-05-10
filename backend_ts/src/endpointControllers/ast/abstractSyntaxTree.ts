@@ -350,63 +350,17 @@ export const testCreateASTsForNormalizedQueries = (response: QueryCompare[]) => 
 
 export const testAST = async (request: any, reply: any) => {
   // let query = 'SELECT A.*, F.MONTHLYMAINTENANCE '+
-  let query =
-    'SELECT A.FACID, A.name, A.membercost, A.guestcost, A.initialoutlay, F.MONTHLYMAINTENANCE ' +
-    'FROM (SELECT FACID, NAME, MEMBERCOST, GUESTCOST, INITIALOUTLAY FROM CD.FACILITIES) AS A ' +
-    'JOIN CD.FACILITIES F ON F.FACID = A.FACID;';
-  let [code, res] = await normalizeQuery(query);
-  console.log(res);
+  let insert =
+    "INSERT INTO cd.facilities(facid, name, membercost, guestcost, initialoutlay, monthlymaintenance) VALUES (9, (SELECT 'Spa'), 20, 30, 100000, 800)";
+  let update = '';
+  let delet = 'DELETE FROM CD.MEMBERS WHERE MEMID NOT IN (SELECT MEMID FROM CD.BOOKINGS);';
+  let [code, res] = await normalizeQuery(delet);
+  // console.log(res);
   // let ast = parser.astify(query, opt);
   // console.dir(ast, {depth:null});
   // sortASTAlphabetically(ast);
   // console.dir(ast, { depth: null });
-  reply.code(200).send({ message: 'OK' });
+  reply.code(code.code).send({ message: code.message });
   return;
 };
 
-export const getAST = async (request: any, reply: any) => {
-  // let { query } = request.query;
-  // if (query[query.length - 1] === ';') query = query.slice(0, -1);
-
-  // let response: queryWithTAC[] = [];
-  // let response: queryCompare[] = [];
-  let response = queries;
-  let [code, result] = await normalizeQuery(queries[0].original);
-  reply.code(code).send(result);
-
-  // await test(response, query);
-  // await test(response, "INSERT INTO CD.FACILITIES (FACID, NAME, MEMBERCOST, GUESTCOST, INITIALOUTLAY, MONTHLYMAINTENANCE) SELECT (SELECT MAX(FACID) FROM CD.FACILITIES)+1, 'Spa', 20, 30, 100000, 800;");
-  // await test(response, "INSERT INTO CD.FACILITIES (FACID, NAME, MEMBERCOST, GUESTCOST, INITIALOUTLAY, MONTHLYMAINTENANCE) VALUES (9, 'Spa', 20, 30, 100000, 800);");
-
-  // let [code, res] = await testAll(response);
-  // if (code !== 200) {
-  //   reply.code(code).send(res);
-  //   return;
-  // }
-  // console.log(response);
-  // response = checkResponse(response); //check v pripade ze zmenim regexy, aby sa skontrolovalo ci su query upravene spravne
-
-  // createASTsForNormalizedQueries(response);
-
-  // for (let o of response) {
-  //   let [code, res] = await insertNormalizedQuery(o.id, o.normalized);
-  //   if (code !== 200) {
-  //     reply.code(code).send(res);
-  //     return;
-  //   }
-  // }
-
-  // for (let o of response) {
-  //   let [code, res] = await updateSolutionAST(o.id, o.normalized);
-  //   if (code !== 200) {
-  //     reply.code(code).send(res);
-  //     return;
-  //   }
-  // }
-
-  // sortQueryAlphabetically("SELECT DISTINCT MEMBERS.FIRSTNAME || ' ' || MEMBERS.SURNAME, FACILITIES.NAME FROM CD.MEMBERS INNER JOIN CD.BOOKINGS ON MEMBERS.MEMID = BOOKINGS.MEMID INNER JOIN CD.FACILITIES ON BOOKINGS.FACID = FACILITIES.FACID WHERE FACILITIES.NAME IN ('Tennis Court 2','Tennis Court 1') ORDER BY MEMBERS.SURNAME, FACILITIES.NAME;");
-  // sortQueryAlphabetically("SELECT MEMBERS.SURNAME, FACILITIES.NAME, COST FROM ( SELECT MEMBERS.FIRSTNAME || ' ' || MEMBERS.SURNAME, FACILITIES.NAME, CASE WHEN MEMBERS.MEMID = 0 THEN BOOKINGS.SLOTS*FACILITIES.GUESTCOST ELSE BOOKINGS.SLOTS*FACILITIES.MEMBERCOST END AS COST FROM CD.MEMBERS INNER JOIN CD.BOOKINGS ON MEMBERS.MEMID = BOOKINGS.MEMID INNER JOIN CD.FACILITIES ON BOOKINGS.FACID = FACILITIES.FACID WHERE BOOKINGS.STARTTIME >= '2012-09-14' AND BOOKINGS.STARTTIME < '2012-09-15' ) AS BOOKINGS WHERE COST > 30 ORDER BY COST DESC;");
-
-  // reply.code(200).send({ message: 'ok', response });
-  return;
-};

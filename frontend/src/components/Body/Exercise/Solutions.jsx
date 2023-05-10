@@ -6,15 +6,13 @@ import _ from 'lodash';
 import { exerciseFinished, solutionsInitialized } from '../../../store/slices/exerciseSlice';
 import { ModalConfirmation } from '../Modal/ModalConfirmation';
 import { ModalLeaderboards } from '../Modal/ModalLeaderboards';
-import { selectActiveChapter, selectActiveExercise } from '../../../store/selectors';
+import { selectActiveExerciseFinished } from '../../../store/selectors';
 
 export default function Solutions({ setUserQuery, exerciseId, ...props }) {
   const [errorMessage, setErrorMessage] = useState(null);
   const dispatch = useDispatch();
   const solutions = useSelector((state) => state.exercise.solutions);
-  const exerciseTree = useSelector((state) => state.exercise.tree);
-  const activeChapterId = useSelector(selectActiveChapter)?.id;
-  const finished = useSelector(selectActiveExercise)?.finished;
+  const finished = useSelector(selectActiveExerciseFinished);
 
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showLeaderboards, setShowLeaderboards] = useState(false);
@@ -30,7 +28,7 @@ export default function Solutions({ setUserQuery, exerciseId, ...props }) {
   const handleShowSolutions = async () => {
     try {
       let result = await services.updateExerciseFinished(exerciseId);
-      dispatch(exerciseFinished({ exerciseId }));
+      dispatch(exerciseFinished({ exerciseId: exerciseId, date: new Date()}));
       setShowConfirmation(false);
       setShowLeaderboards(true);
     } catch (error) {
@@ -67,9 +65,7 @@ export default function Solutions({ setUserQuery, exerciseId, ...props }) {
             show={showLeaderboards}
             setShow={setShowLeaderboards}
             exerciseId={exerciseId}
-            finished={
-              exerciseTree.find((o) => o.id === activeChapterId)?.exercises.find((o) => o.id === exerciseId).finished
-            }
+            finished={finished}
           />
           <ModalConfirmation show={showConfirmation} setShow={setShowConfirmation} onAgree={handleShowSolutions} />
           <div style={{ maxHeight: '18vh', overflowY: 'auto' }}>

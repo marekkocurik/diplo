@@ -305,7 +305,6 @@ export const updateShowSolutions = async (request: any, reply: any) => {
   const { exerciseId } = request.body;
   const user_id = request.query.id;
   try {
-    console.log('updating to finished for uid:', user_id, 'eid:', exerciseId);
     let response = await usersToExercisesController.updateToFinished(user_id, exerciseId);
     reply.code(response.code).send({ message: response.message });
     return;
@@ -373,7 +372,6 @@ export const checkAverageSubmitAttempts = async (user_id: number, cluster: numbe
     let response = await userController.getAverageSubmitAttempts(user_id);
     if (response[0].code !== 200) return response[0];
     const avg = response[1] as number;
-    console.log('avg: ', avg, 'cluster:', cluster);
     let resp2: GeneralResponse | undefined;
     if (avg <= 2 && cluster !== 0) {
       resp2 = await userController.updateUserClusterById(user_id, 0);

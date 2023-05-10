@@ -85,48 +85,6 @@ const findSubAST = (obj: ASTObject): boolean => {
   }
 };
 
-// const findSubAST = (obj: ASTObject): boolean => {
-//     console.log('Starting the search for obj:');
-//     console.log(obj);
-//   if (Array.isArray(obj)) {
-//     console.log('Obj is ARRAY');
-//     for (let i = 0; i < obj.length; i++) {
-//       if (typeof obj[i] === 'object' && obj[i] !== null) {
-//         // if (isSubAst(obj[i]) || findSubAST(obj[i])) return true;
-//         if (isSubAst(obj[i])) {
-//             console.log('FOUND SUB AST AND RETURNING TRUE');
-//             return true;
-//         }
-//         console.log('GOING DEEPER');
-//         if(findSubAST(obj[i])) {
-//             console.log('RETURNING TRUE');
-//             return true;
-//         }
-//       }
-//     }
-//     console.log('RETURNING FALSE');
-//     return false;
-//   } else {
-//     console.log('Obj is NOT ARRAY');
-//     for (let key in obj) {
-//       if (typeof obj[key] === 'object' && obj[key] !== null) {
-//         // if (isSubAst(obj[key]) || findSubAST(obj[key])) return true;
-//         if (isSubAst(obj[key])) {
-//             console.log('FOUND SUB AST AND RETURNING TRUE');
-//             return true;
-//         }
-//         console.log('GOING DEEPER');
-//         if(findSubAST(obj[key])) {
-//             console.log('RETURNING TRUE');
-//             return true;
-//         }
-//       }
-//     }
-//     console.log('RETURNING FALSE');
-//     return false;
-//   }
-// };
-
 const selectHasSubquery = (ast: Select): string => {
   if (ast.columns !== null && ast.columns !== '*' && findSubAST(ast.columns)) return 'select';
   else if (ast.from !== null && findSubAST(ast.from)) return 'from';
@@ -193,22 +151,8 @@ export const getHelp = async (request: any, reply: any) => {
     reply.code(response[0].code).send({ message: response[0].message });
     return;
   }
-  // console.log('calling done');
   const exerciseSolutions = response[1] as Solution[];
   let prioritizedExerciseSolutions = prioritizeSolutions(solAttempt, exerciseSolutions);
-
-  // console.log('Selected solution AST:');
-  // console.dir(JSON.parse(prioritizedExerciseSolutions[0].ast), {depth:null});
-
-  // console.log('User query AST:');
-  // const x = createASTForQuery(queryToExecute);
-  // console.dir(x, { depth: null });
-
-  // console.log('User query AST normalized:');
-  // const xx = (await normalizeStudentQueryAndCreateAST(role, queryToExecute))[1].ast;
-  // console.dir(xx, { depth: null });
-
-  // porovnanie studentovho AST s prvym AST z prioritizovanych solutions
 
   response = compareQueryASTS(solAttempt.ast, JSON.parse(prioritizedExerciseSolutions[0].ast));
   if (response[0].code !== 200) {

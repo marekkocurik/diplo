@@ -1,7 +1,8 @@
 import TableController, { Solution } from '../../../databaseControllers/solutionsController';
 import { sortASTAlphabetically } from './sorter';
 import { GeneralResponse } from '../../../databaseControllers/databaseController';
-import { Parser } from 'node-sql-parser/build/postgresql';
+import { AST, Parser } from 'node-sql-parser/build/postgresql';
+import { createASTForQuery } from '../abstractSyntaxTree';
 // import { Parser } from '../../../lib/node-sql-parser/types';
 
 const parser = new Parser();
@@ -81,12 +82,10 @@ const getTablesAndAliasesFromAST = (ast: ASTObject): TableWithAlias[] => {
 const getTableNamesAliasesAndColumnsFromQuery = async (
   query: string
 ): Promise<[GeneralResponse, TableWithAliasAndColumns[]]> => {
-  const ast = parser.astify(query, opt);
-  if (Array.isArray(ast)) {
-    if ((ast[0].type as string).toLowerCase() === 'insert') return [{ code: 200, message: 'OK' }, []];
-  } else {
-    if ((ast.type as string).toLowerCase() === 'insert') return [{ code: 200, message: 'OK' }, []];
-  }
+  let ast = parser.astify(query, opt);
+  if (Array.isArray(ast)) ast = ast[0];
+  // if ((ast[0].type as string).toLowerCase() === 'insert') return [{ code: 200, message: 'OK' }, []];
+  if ((ast.type as string).toLowerCase() === 'insert') return [{ code: 200, message: 'OK' }, []];
 
   const tablesWithAliasesAndColumns = getTablesAndAliasesFromAST(ast);
   let tac: TableWithAliasAndColumns[] = [];
@@ -170,7 +169,7 @@ const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns[]): st
     for (let c of t.columns) {
       let regex = new RegExp(
         `(?<=SELECT\\s+(.*)?${t.table}\\.${c}\\s+)(?:as\\s+|AS\\s+)?(\\w+)(?=\\s*(?:,|FROM))`,
-        'gi' 
+        'gi'
       );
       let matches = result.matchAll(regex);
       result = result.replace(regex, ``);
@@ -189,21 +188,58 @@ const removeColumnAliases = (query: string, tac: TableWithAliasAndColumns[]): st
   return result.trim();
 };
 
+export const subQueryInObject = (obj: ASTObject): boolean => {
+  return typeof obj === 'object' && obj !== null && 'ast' in obj;
+};
+
+const findSubQueryInArray = (arr: ASTObject[]): boolean => {
+  for (let [key, val] of Object.entries(arr)) {
+    if (typeof val === 'object' && val !== null) {
+      if (Array.isArray(val) && val.length > 0) {
+        if (findSubQueryInArray(val)) return true;
+      } else {
+        if (subQueryInObject(val) || findSubQuery(val)) return true;
+      }
+    }
+  }
+  return false;
+};
+
+const findSubQuery = (obj: ASTObject): boolean => {
+  for (let [key, val] of Object.entries(obj)) {
+    if (typeof val === 'object' && val !== null) {
+      if (Array.isArray(val) && val.length > 0) {
+        if (findSubQueryInArray(val)) return true;
+      } else {
+        if (subQueryInObject(val) || findSubQuery(val)) return true;
+      }
+    }
+  }
+  return false;
+};
+
 export const normalizeQuery = async (query: string): Promise<[GeneralResponse, string]> => {
   let newQuery = queryToUpperCase(query);
-  try {
-    let [response, tablesAliasesAndColumns] = await getTableNamesAliasesAndColumnsFromQuery(newQuery);
-    if (response.code !== 200) return [{ code: response.code, message: response.message }, ''];
-    newQuery = replaceTableAliasesWithTableName(newQuery, tablesAliasesAndColumns);
-    //TODO: odstranit useless aliasy (SELECT * FROM cd.facilities as F)
-    // console.log(newQuery);
-    newQuery = replaceAsterixWithTableAndColumns(newQuery, tablesAliasesAndColumns);
-    newQuery = specifyColumnsWithoutTables(newQuery, tablesAliasesAndColumns);
-    newQuery = removeTableAliases(newQuery, tablesAliasesAndColumns);
-    newQuery = removeColumnAliases(newQuery, tablesAliasesAndColumns);
-    // newQuery = sortQueryAlphabetically(newQuery);
-    return [{ code: 200, message: 'OK' }, newQuery];
-  } catch (error) {
-    return [{ code: 500, message: 'Something went wrong while trying to normalize query' }, ''];
+  const queryAstresponse = createASTForQuery(query);
+  if (queryAstresponse[0].code !== 200) return [queryAstresponse[0], query];
+  const ast = queryAstresponse[1] as AST;
+  if (ast.type !== 'insert') {
+    try {
+      let [response, tablesAliasesAndColumns] = await getTableNamesAliasesAndColumnsFromQuery(newQuery);
+      if (response.code !== 200) return [{ code: response.code, message: response.message }, ''];
+      newQuery = replaceTableAliasesWithTableName(newQuery, tablesAliasesAndColumns);
+      //TODO: odstranit useless aliasy (SELECT * FROM cd.facilities as F)
+      // console.log(newQuery);
+      newQuery = replaceAsterixWithTableAndColumns(newQuery, tablesAliasesAndColumns);
+      newQuery = specifyColumnsWithoutTables(newQuery, tablesAliasesAndColumns);
+      newQuery = removeTableAliases(newQuery, tablesAliasesAndColumns);
+      newQuery = removeColumnAliases(newQuery, tablesAliasesAndColumns);
+      // newQuery = sortQueryAlphabetically(newQuery);
+      return [{ code: 200, message: 'OK' }, newQuery];
+    } catch (error) {
+      return [{ code: 500, message: 'Something went wrong while trying to normalize query' }, query];
+    }
+  } else {
+    return [{ code: 200, message: 'OK' }, query];
   }
 };

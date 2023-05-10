@@ -16,6 +16,18 @@ export const selectActiveChapter = (state) => {
   return tree.find((c) => c.id === activeChapterId);
 };
 
+export const selectActiveExerciseFinished = (state) => {
+  if(selectActiveChapter(state) === undefined) return null;
+  // const { activeExercise, tree, activeChapterId } = state.exercise;
+  const exer = selectActiveChapter(state).exercises.find(
+    (e) => e.id === state.exercise.activeExercise.id
+  );
+  return exer.finished;
+
+
+  // return tree?.find((c) => c === activeChapterId)?.exercises?.find((e) => e.id === activeExercise.id)?.finished;
+};
+
 export const selectNextExerciseUrlString = (state) => {
   if (selectActiveChapter(state) === undefined) return false;
 

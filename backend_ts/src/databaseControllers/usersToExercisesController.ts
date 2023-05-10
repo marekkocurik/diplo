@@ -177,9 +177,7 @@ export default class UsersToExercisesController extends DatabaseController {
       await client.query('SET ROLE u_executioner;');
       await client.query('BEGIN;');
       let update = 'UPDATE users.users_to_exercises SET finished = CURRENT_TIMESTAMP WHERE user_id = $1 AND exercise_id = $2;';
-      console.log('update is ready');
       let result = await client.query(update, [user_id, exercise_id]);
-      // console.log(result);
       if (result.rowCount !== 1) {
         await client.query('ROLLBACK;');
         return {
@@ -188,7 +186,6 @@ export default class UsersToExercisesController extends DatabaseController {
             'Failed to upadte users_to_exercises to finished for user_id: ' + user_id + ', exercise_id: ' + exercise_id,
         };
       }
-      console.log('update is finished');
       await client.query('COMMIT;');
       return { code: 200, message: 'OK' };
     } catch (e) {

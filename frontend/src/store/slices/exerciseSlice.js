@@ -31,8 +31,10 @@ export const exerciseSlice = createSlice({
     },
     historyUpdated: (state, action) => {
       state.history = [action.payload, ...state.history];
-      const ex = state.tree.find((c) => c.id === state.activeChapterId).exercises.find((e) => e.id === state.activeExercise.id);
-      if (!(ex.solved)) ex.solved = action.payload.solution_success === 'COMPLETE';
+      const ex = state.tree
+        .find((c) => c.id === state.activeChapterId)
+        .exercises.find((e) => e.id === state.activeExercise.id);
+      if (!ex.solved) ex.solved = action.payload.solution_success === 'COMPLETE';
       // state.tree.find((c) => c.id === state.activeChapterId).exercises.find((e) => e.id === state.activeExercise.id).solved =
       //   action.payload.solution_success === 'COMPLETE';
 
@@ -52,15 +54,15 @@ export const exerciseSlice = createSlice({
     },
     exerciseStarted: (state, action) => {
       const { exerciseId } = action.payload;
-      state.tree[activeChapterId - 1].exercises.find((e) => e.id === exerciseId).started = true;
+      state.tree.find((c) => c.id === state.activeChapterId).exercises.find((e) => e.id === exerciseId).started = true;
     },
     exerciseSolved: (state, action) => {
       const { exerciseId } = action.payload;
-      state.tree[activeChapterId - 1].exercises.find((e) => e.id === exerciseId).solved = true;
+      state.tree.find((c) => c.id === state.activeChapterId).exercises.find((e) => e.id === exerciseId).solved = true;
     },
     exerciseFinished: (state, action) => {
-      const { exerciseId } = action.payload;
-      state.tree[activeChapterId - 1].exercises.find((e) => e.id === exerciseId).finished = new Date();
+      const { exerciseId, date } = action.payload;
+      state.tree.find((c) => c.id === state.activeChapterId).exercises.find((e) => e.id === exerciseId).finished = date;
     },
     chapterSolved: (state, action) => {
       const { chapterId } = action.payload;

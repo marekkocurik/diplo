@@ -229,7 +229,7 @@ export default function Exercise({ ...props }) {
               <Hint hintDefaultLevel={hintDefaultLevel} hints={hints} exerciseId={exercise.id} />
             </div>
           </div>
-          <div className="py-2 px-1 w-100" style={{ maxHeight: '40vh', marginTop: 100 }}>
+          <div className="py-2 px-1 w-100" style={{ maxHeight: '40vh', marginTop: 20 }}>
             <Tab.Container
               id="left-tabs-example"
               defaultActiveKey="hist"

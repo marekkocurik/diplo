@@ -23,13 +23,6 @@ export const usersToExercisesController = new UsersToExercisesController();
 type ProcessNewSolutionResponse = [GeneralResponse, string] | [GeneralResponse, AST | null] | GeneralResponse;
 
 export const queryResultsMatch = (solution_query_result: Object, student_query_result: Object): boolean => {
-  // const stud_hash = hash(student_query_result);
-  // const sol_
-  // if (JSON.stringify(solution_query_result) === JSON.stringify(student_query_result)) return true;
-  console.log(student_query_result);
-  console.log(typeof student_query_result);
-  console.log(hash(student_query_result));
-  console.log(hash(solution_query_result));
   return hash(student_query_result) === hash(solution_query_result);
 };
 
@@ -92,32 +85,24 @@ export const testQueries = async (
   const sol_ast = createASTForQuery(solutionQuery)[1];
 
   if (sol_ast !== null && sol_ast.type !== 'select') {
-    console.log('query nie je select');
     if (stud_ast !== null && stud_ast.type === sol_ast.type) {
       const sol_table = getNonSelectQueryTable(sol_ast) as string;
       const stud_table = getNonSelectQueryTable(stud_ast) as string;
       const sol_select = await executeNonSelectQuery(role, solutionQuery, sol_table);
       const stud_select = await executeNonSelectQuery(role, studentQuery, stud_table);
-      console.log(sol_table, stud_table);
-      console.log(sol_select);
-      console.log(stud_select);
       if (sol_select[0].code !== 200 || stud_select[0].code !== 200) {
-        console.log('returning here 1')
         return [
           { code: 500, message: 'Internal error: failed to evaluate correctness of a query' },
           Object.assign({ queriesResultsMatch: false }, studentResult),
         ];
       } else {
-        console.log('returning here 2')
         let match = queryResultsMatch(sol_select[1].queryResult, stud_select[1].queryResult);
         return [{ code: 200, message: 'OK' }, Object.assign({ queriesResultsMatch: match }, studentResult)];
       }
     } else {
-      console.log('returning here 3')
       return [{ code: 200, message: 'OK' }, Object.assign({ queriesResultsMatch: false }, studentResult)];
     }
   } else {
-    console.log('query je select');
     testResponse.queriesResultsMatch = queryResultsMatch(solutionResult.queryResult, studentResult.queryResult);
     return [{ code: 200, message: 'OK' }, Object.assign(testResponse, studentResult)];
   }
