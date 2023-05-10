@@ -1468,171 +1468,70 @@ export const createRecommendations = (
   let recs: Recommendation[] = [];
   let generalRecommendation: Recommendation | null;
 
-  let missing_asts; //= checkIfContainsSubAST(missing);
-  let extras_asts; //= checkIfContainsSubAST(extras);
-
-  console.log('missing:');
-  console.dir(missing, { depth: null });
-  console.log('extras:');
-  console.dir(extras, { depth: null });
+  let missing_asts;
+  let extras_asts; 
 
   if (Object.keys(missing).length > 0 && Object.keys(extras).length === 0) {
-    console.log('First case');
     missing_asts = checkIfContainsSubAST(missing, undefined);
-    // console.log('miss_asts:');
-    // console.dir(missing_asts, { depth: null });
-
     if (missing_asts !== null) {
       const unmodifiedAST = checkUnmodifiedASTs(missing_asts);
       if (unmodifiedAST !== null) {
         const key = Object.keys(unmodifiedAST)[0];
-        // console.log('queryType:', queryType, ';', 'parent:', key, '; missing ast value:', unmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'missing');
         if (generalRecommendation !== null) recs.push(generalRecommendation);
       }
     }
     recommender(missing, 'missing', recs, queryType, undefined, undefined);
-    /**
-     * ak je to null, potom: ---> DONE!
-     *      a. stud: normal, sol: normal                                -> vytvorim odporucania
-     *      b. stud: subQuery, sol: subQuery, ale subquery sa zhoduju   -> vytvorim odporucania
-     * ak to nie je null, potom:
-     *      a. ast je full -->      stud: normal, sol: subQuery         -> otestujem ako vyzera ked chyba cele AST
-     *                                                                  -> vytvorim odporucanie, ktore povie:
-     *                                                                      "Skus pouzit subQuery vo vetve X.."
-     *                                                                  -> nasledne vytvorim odporucania
-     *      b. ast nie je full -->  stud: subQuery, sol: subQuery, rovnake vetvy, ale studentovi v subQuery nieco chyba
-     *                                                                  -> vytvorim odporucania
-     */
   } else if (Object.keys(missing).length === 0 && Object.keys(extras).length > 0) {
-    console.log('Second case');
     extras_asts = checkIfContainsSubAST(extras, undefined);
-    // console.log('extras_asts:');
-    // console.dir(extras_asts, { depth: null });
-
     if (extras_asts !== null) {
       const unmodifiedAST = checkUnmodifiedASTs(extras_asts);
       if (unmodifiedAST !== null) {
         const key = Object.keys(unmodifiedAST)[0];
-        // console.log('queryType:', queryType, ';', 'parent:', key, '; extras ast value:', unmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'redundant');
         if (generalRecommendation !== null) recs.push(generalRecommendation);
       }
     }
     recommender(extras, 'redundant', recs, queryType, undefined, undefined);
-    /**
-     * ak to je null, potom:
-     *      a. stud: normal, sol: normal                                -> vytvorim odporucania
-     *      b. stud: subQuery, sol: subQuery, ale subquery sa zhoduju   -> vytvorim odporucania
-     * ak to nie je null, potom:
-     *      a. ast je full -->      stud: subQuery, sol: normal         -> vytvorim odporucanie, ktore povie:
-     *                                                                      "Ulohu je mozne vyriesit bez pouzitia subQuery" alebo
-     *                                                                      ak student ma 2 subquery a sol ma iba jedno
-     *                                                                      "Ulohu je mozne vyriesit bez subquery vo vetve X
-     *                                                                       Bohuzial nepozname riesenie ...."
-     *                                                                  -> TOTO JE NAJHORSI MOZNY PRIPAD, pretoze budem studenta
-     *                                                                     navadzat aby komplet prepisal svoje riesenie
-     *      b. ast nie je full -->  stud: subQuery, sol: subQuery, rovnake vetvy, ale student ma v subQuery nieco navyse
-     *                                                                  -> vytvorim odporucania
-     */
   } else if (Object.keys(missing).length > 0 && Object.keys(extras).length > 0) {
-    console.log('Third case');
     missing_asts = checkIfContainsSubAST(missing, undefined);
     extras_asts = checkIfContainsSubAST(extras, undefined);
-    // console.log('miss_asts:');
-    // console.dir(missing_asts, { depth: null });
-    // console.log('extras_asts:');
-    // console.dir(extras_asts, { depth: null });
-
     if (missing_asts !== null && extras_asts === null) {
       const missingUnmodifiedAST = checkUnmodifiedASTs(missing_asts);
       if (missingUnmodifiedAST !== null) {
         const key = Object.keys(missingUnmodifiedAST)[0];
-        // console.log('queryType:', queryType, ';', 'parent:', key, '; missing ast value:', missingUnmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'missing');
         if (generalRecommendation !== null) recs.push(generalRecommendation);
-        // console.log('MISSING GENERAL RECOMMENDATION:', generalRecommendation);
       }
     } else if (missing_asts === null && extras_asts !== null) {
       const extrasUnmodifiedAST = checkUnmodifiedASTs(extras_asts);
       if (extrasUnmodifiedAST !== null) {
         const key = Object.keys(extrasUnmodifiedAST)[0];
-        // console.log('queryType:', queryType, ';', 'parent:', key, '; extras ast value:', extrasUnmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'redundant');
         if (generalRecommendation !== null) recs.push(generalRecommendation);
-        // console.log('EXTRAS GENERAL RECOMMENDATION:', generalRecommendation);
       }
     } else if (missing_asts !== null && extras_asts !== null) {
       const missingUnmodifiedAST = checkUnmodifiedASTs(missing_asts);
       const extrasUnmodifiedAST = checkUnmodifiedASTs(extras_asts);
       if (missingUnmodifiedAST !== null && extrasUnmodifiedAST === null) {
         const key = Object.keys(missingUnmodifiedAST)[0];
-        // console.log('queryType:', queryType, ';', 'parent:', key, '; missing ast value:', missingUnmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'missing');
         if (generalRecommendation !== null) recs.push(generalRecommendation);
-        // console.log('MISSING GENERAL RECOMMENDATION:', generalRecommendation);
       } else if (missingUnmodifiedAST === null && extrasUnmodifiedAST !== null) {
         const key = Object.keys(extrasUnmodifiedAST)[0];
-        // console.log('queryType:', queryType, ';', 'parent:', key, '; extras ast value:', extrasUnmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'redundant');
         if (generalRecommendation !== null) recs.push(generalRecommendation);
-        // console.log('EXTRAS GENERAL RECOMMENDATION:', generalRecommendation);
       } else if (missingUnmodifiedAST !== null && extrasUnmodifiedAST !== null) {
         const key = Object.keys(missingUnmodifiedAST)[0];
-        // console.log('queryType:', queryType, ';', 'parent:', key, '; missing ast value:', missingUnmodifiedAST[key]);
         generalRecommendation = generateGeneralRecommendation(queryType, key, 'both');
         if (generalRecommendation !== null) recs.push(generalRecommendation);
-        // console.log('MISSING GENERAL RECOMMENDATION:', generalRecommendation);
       }
     }
     recommender(missing, 'missing', recs, queryType, undefined, undefined);
     recommender(extras, 'redundant', recs, queryType, undefined, undefined);
-    /**
-     * ak su oboje null:
-     *      a. nieco mu chyba, nieco ma navyse, NIE SU TAM AST (alebo su spravne)   -> vytvorim odporucania
-     * ak iba missing nie je null:
-     *      a. aspon jedno AST je full                  -> chyba mu cele subquery vo vetve X, cize
-     *                                                     "Skus pouzit subquery vo vetve x" + vytvorim odporucania
-     *      b. ziadne nie je full                       -> nieco mu chyba v subqueries, takze vytvorim odporucania
-     * ak iba extras nie je null:
-     *      a. aspon jedno AST je full                  -> OPAT NAJHORSI PRIPAD, pretoze ma navyse cele query, takze sa asi snazi
-     *                                                     vyriesit ulohu novym sposobom, cize
-     *                                                     "Ulohu je mozne vyriesit bez pouzitia subquery vo vetve X
-     *                                                      Bohuzial nepozname riesenie ...." + odporucania
-     *      b. ziadne nie je full                       -> v subqueries ma nieco navyse, takze vytvorim odporucania
-     * ani jedno nie je null:
-     *      a. obe maju aspon jedno full                -> VELMI ZLY PRIPAD, pretoze ma subquery v nespravnej vetve, respektive
-     *                                                     nepoznam riesenie so subquery v rovnakej vetve, takze budem studenta zavadzat
-     *                                                      "Pre tuto ulohu je potrebne subquery, no nepozname riesenie so subquery
-     *                                                      v rovnakej vetve ako napisal student, takze mozeme zavzadzat ...."
-     *      b. iba missing ma aspon jedno full          -> chyba mu cele subquery vo vetve X, cize
-     *                                                     "Skus pouzit subquery vo vetve x" + vytvorim odporucania
-     *      c. iba extras ma aspon jedno full           -> DALSI NAJHORSI PRIPAD
-     *                                                     "Ulohu je mozne vyriesit bez pouzitia subquery vo vetve X" + odporucania
-     *      d. ziadne nema aspon jedno full             -> nieco mu chyba, nieco ma navyse... cize vytvorim odporucania
-     */
   }
 
-  /* if (missing_asts === null && extras_asts === null) {}
-   *
-   * oboje su null ->           stud: normal, sol: normal
-   * missing nie je null ->     stud: normal, sol: subQuery
-   * extras nie je null ->      stud: subQuery, sol: normal
-   * oboje nie su null ->       stud: subQuery, sol: subQuery (tu je este rozdiel ci su to rovnake alebo rozdielne vetvy)
-   *
-   *   if (Object.keys(missing).length > 0) {
-   *     console.log('Creating recommendations for missing objects');
-   *     recommender(queryType, missing, 'missing', recs, false, undefined);
-   *   }
-   *   if (Object.keys(extras).length > 0) {
-   *     console.log('Creating recommendations for extras objects');
-   *     recommender(queryType, extras, 'extra', recs, false, undefined);
-   *   }
-   */
-
   recs = removeDuplicateRecommendations(recs);
-  // console.log('recs:');
-  // console.dir(recs, { depth: null });
   let result: RecommendationsWithDetail = {
     default_detail_level: cluster,
     recommendations: recs,
@@ -1680,11 +1579,8 @@ export const insertRecommendations = async (recs: RecommendationsWithDetail, ute
       }
     }
     insert = insert.slice(0, -3) + '\nRETURNING id;';
-    // console.log('inserting recommendations: ', insert);
     let resp = await recommendationsController.insertManyReturningIds(insert);
     const ids = resp[1] as RecommendationId[];
-    // console.log('before:');
-    // console.dir(recs, { depth: null });
     i = 0;
     let genSet = false;
     if (recs.recommendations[0].query_type === 'GENERAL') {
@@ -1700,8 +1596,6 @@ export const insertRecommendations = async (recs: RecommendationsWithDetail, ute
         r.recommendationsAndRatings[j].id = ids[genSet ? (i - 1) * 3 + j + 1 : i * 3 + j].id;
       }
     }
-    // console.log('after:');
-    // console.dir(recs, { depth: null });
     return { code: 200, message: 'OK' };
   } catch (error) {
     return { code: 500, message: 'Something went wrong while trying to insert new recommendations' };

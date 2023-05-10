@@ -164,23 +164,30 @@ export const getHelp = async (request: any, reply: any) => {
   const recs = createRecommendations(JSON.parse(prioritizedExerciseSolutions[0].ast).type, missing, extras, cluster);
 
   if (recs.recommendations.length > 0) {
-    response = await usersToExercisesController.getIdByUserIdAndExerciseId(user_id, exerciseId);
-    if (response[0].code !== 200) {
-      console.log('FAILED TO GET users.users_to_exercises id');
-    }
-    let ute_id = response[1];
-    if (ute_id === undefined) {
-      response = await usersToExercisesController.insertReturningId(user_id, exerciseId);
+    try {
+      response = await usersToExercisesController.getIdByUserIdAndExerciseId(user_id, exerciseId);
       if (response[0].code !== 200) {
-        console.log('FAILED TO INSERT NEW RECORD INTO users.users_to_exercises');
+        reply.code(response[0].code).send({ message: response[0].message });
+        return;
       }
-      ute_id = response[1] as number;
+      let ute_id = response[1];
+      if (ute_id === undefined) {
+        response = await usersToExercisesController.insertReturningId(user_id, exerciseId);
+        if (response[0].code !== 200) {
+          reply.code(response[0].code).send({ message: response[0].message });
+          return;
+        }
+        ute_id = response[1] as number;
+      }
+      response = await insertRecommendations(recs, ute_id);
+      if (response.code !== 200) {
+        console.log('FAILED TO INSERT RECOMMENDATIONS INTO users.recommendations');
+      }
+    } catch (error) {
+      reply.code(500).send({ message: 'Something went wrong while trying to create recommendations' });
+      return;
     }
-    response = await insertRecommendations(recs, ute_id);
-    if (response.code !== 200) {
-      console.log('FAILED TO INSERT RECOMMENDATIONS INTO users.recommendations');
-    } else console.log('INSERT SUCCESSFULL');
-  } else console.log('NO RECOMMENDATIONS');
+  }
 
   reply.code(200).send({ message: 'OK', recs });
   return;

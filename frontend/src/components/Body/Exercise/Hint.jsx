@@ -18,15 +18,6 @@ export default function Hint({ hintDefaultLevel, hints, exerciseId, ...props }) 
     }
   };
 
-  // const handleRecommendationRating = async (rating) => {
-  //   try {
-  //     const recommId = hints[hint].recommendationsAndRatings[hintDetailLevel].id;
-  //     services.updateHintRating(recommId, rating);
-  //   } catch (error) {
-      
-  //   }
-  // };
-
   const handleChangeRating = (rating) => {
     try {
       hints[hint].recommendationsAndRatings[hintDetailLevel].rating = rating;

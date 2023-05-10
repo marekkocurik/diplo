@@ -72,12 +72,6 @@ export default class AnswersController extends DatabaseController {
     try {
       await client.query('SET ROLE u_executioner;');
       let query =
-        // 'SELECT A.id, A.query, A.solution_success, A.submit_attempt, A.execution_time, A.date FROM users.answers A ' +
-        // 'JOIN users.exercises E ON E.id = A.exercise_id ' +
-        // 'JOIN users.users U ON U.id = A.user_id ' +
-        // 'WHERE A.exercise_id = $1 AND A.user_id = $2 ' +
-        // 'ORDER BY A.id DESC;';
-
         'SELECT A.id, A.query, A.solution_success, A.submit_attempt, A.execution_time, A.date ' +
         'FROM users.answers A ' +
         'JOIN users.users_to_exercises UTE on UTE.id = A.users_to_exercises_id ' +
