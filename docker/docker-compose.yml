@@ -1,6 +1,16 @@
 version: '3.8'
 services:
-  server-backend:
+  frontend:
+    build: ../frontend
+    image: mk-dp/frontend
+    container_name: mk-dp-fe
+    ports:
+      - 3000:80
+    depends_on:
+      - backend
+    restart: on-failure
+
+  backend:
     build: ../backend_ts
     image: mk-dp/backend_ts
     container_name: mk-dp-be
@@ -8,19 +18,15 @@ services:
       - 80:80
     env_file:
       - ../backend_ts/.env
+    depends_on:
+      - database
     restart: on-failure
-    
-  server-frontend:
-    build: ../frontend
-    image: mk-dp/frontend
-    container_name: mk-dp-fe
-    # entrypoint: /bin/sh
+  
+  database:
+    build: ../database
+    image: mk-dp/database
+    container_name: mk-dp-db
     ports:
-      - 3000:3000
-    # working_dir: /srv/app
-    # volumes:
-    #   - type: bind
-    #     source: ../frontend
-    #     target: /srv/app
-    tty: true
-    restart: on-failure
+      - '5432:5432'
+    env_file:
+      - ../database/.env
