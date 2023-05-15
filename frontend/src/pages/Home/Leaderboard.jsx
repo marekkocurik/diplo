@@ -53,8 +53,8 @@ export default function Leaderboard({ ...props }) {
                     <th>Chapter Name</th>
                     <th>Exercise ID</th>
                     <th>Exercise Name</th>
-                    <th>Query</th>
-                    <th>Execution Time</th>
+                    <th>User Name</th>
+                    <th>Execution Time (ms)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -64,7 +64,7 @@ export default function Leaderboard({ ...props }) {
                       <td>{item.c_name}</td>
                       <td>{item.e_id}</td>
                       <td>{item.e_name}</td>
-                      <td>{item.query}</td>
+                      <td>{item.username}</td>
                       <td>{item.execution_time}</td>
                     </tr>
                   ))}

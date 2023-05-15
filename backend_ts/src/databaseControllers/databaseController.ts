@@ -28,7 +28,7 @@ export interface LeaderboardExecTimeItem {
   c_name: string;
   e_id: number;
   e_name: string;
-  query: string;
+  username: string;
   execution_time: number;
 }
 
@@ -178,22 +178,25 @@ export default class DatabaseController {
     try {
       await client.query('SET ROLE u_executioner;');
       let query =
-        'SELECT qa.c_id, qa.c_name, qa.e_id, qa.e_name, qb.query, qb.execution_time ' +
-        'FROM ( ' +
-        '  SELECT c.id AS c_id, c.name AS c_name, ' +
-        '		 ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY e.exercise_order) AS e_id, e.id as e_r_id, ' +
-        '		 e.name AS e_name ' +
-        '  FROM users.chapters c ' +
+        "SELECT qa.c_id, qa.c_name, qa.e_id, qa.e_name, u.name || ' ' || u.surname AS username, qb.execution_time   " +
+        'FROM (   ' +
+        '  SELECT c.id AS c_id, c.name AS c_name,   ' +
+        '		 ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY e.exercise_order) AS e_id, e.id AS e_r_id,   ' +
+        '		 e.name AS e_name   ' +
+        '  FROM users.chapters c   ' +
         '  JOIN users.exercises e ON e.chapter_id = c.id ' +
-        ') qa ' +
-        'JOIN ( ' +
-        '	SELECT ute.exercise_id e_id, a.query, MIN(a.execution_time) AS execution_time ' +
-        '	FROM users.users_to_exercises ute ' +
-        '	JOIN users.answers a ON ute.id = a.users_to_exercises_id ' +
+        ') qa   ' +
+        'JOIN (   ' +
+        '	SELECT ute.exercise_id AS e_id, ute.user_id AS u_id, MIN(a.execution_time) AS execution_time, ' +
+        '		ROW_NUMBER() OVER (PARTITION BY ute.exercise_id ORDER BY MIN(a.execution_time)) AS row_num ' +
+        '	FROM users.users_to_exercises ute   ' +
+        '	JOIN users.answers a ON ute.id = a.users_to_exercises_id   ' +
         "	WHERE ute.solved = true AND a.solution_success = 'COMPLETE' " +
-        '	GROUP BY ute.exercise_id, a.query ' +
-        ') qb ' +
+        '	GROUP BY ute.exercise_id, ute.user_id ' +
+        ') qb   ' +
         'ON qa.e_r_id = qb.e_id ' +
+        'JOIN users.users AS u ON u.id = qb.u_id ' +
+        'WHERE qb.row_num <= 10 ' +
         'ORDER BY qa.c_id, qa.e_id, qb.execution_time;';
       let result = await client.query(query);
       if (result.rows === undefined) return [{ code: 500, message: 'Failed to get overall leadeboard - execTime' }, []];

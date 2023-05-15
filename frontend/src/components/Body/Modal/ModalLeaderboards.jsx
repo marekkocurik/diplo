@@ -52,13 +52,15 @@ export function ModalLeaderboards({ show, setShow, exerciseId, finished, ...prop
           <Table striped bordered hover style={{ fontSize: '0.8em' }}>
             <thead>
               <tr>
+                <th>User Name</th>
                 <th>Query</th>
-                <th>Execution Time</th>
+                <th>Execution Time (ms)</th>
               </tr>
             </thead>
             <tbody>
               {data?.byTime.map((item, index) => (
                 <tr key={index}>
+                  <td>{item.username}</td>
                   <td style={{ maxWidth: '300px' }}>{item.query}</td>
                   <td>{item.execution_time}</td>
                 </tr>

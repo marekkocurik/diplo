@@ -15,6 +15,7 @@ interface Answer_ID_query {
 }
 
 export interface LeaderboardExecTime {
+  username: string;
   query: string;
   execution_time: number;
 }
@@ -183,10 +184,16 @@ export default class AnswersController extends DatabaseController {
     try {
       await client.query('SET ROLE u_executioner;');
       let query =
-        'SELECT a.query, MIN(a.execution_time) AS execution_time ' +
-        'FROM users.users_to_exercises ute JOIN users.answers a ON ute.id = a.users_to_exercises_id ' +
-        "WHERE ute.exercise_id = $1 AND ute.solved = true AND a.solution_success = 'COMPLETE' " +
-        'GROUP BY ute.user_id, a.query ORDER BY execution_time;';
+        "SELECT u.name || ' ' || u.surname as username, sub.query, sub.execution_time " +
+        'FROM ( ' +
+        '	SELECT ute.user_id, a.query, MIN(a.execution_time) AS execution_time ' +
+        '	FROM users.users_to_exercises ute ' +
+        '	JOIN users.answers a ON ute.id = a.users_to_exercises_id ' +
+        "	WHERE ute.exercise_id = $1 AND ute.solved = true AND a.solution_success = 'COMPLETE' " +
+        '	GROUP BY ute.user_id, a.query ' +
+        '	ORDER BY execution_time ' +
+        '	LIMIT 10 ) sub ' +
+        'JOIN users.users u ON u.id = sub.user_id';
       let result = await client.query(query, [exercise_id]);
       if (result.rows[0] === undefined)
         return [{ code: 500, message: 'Failed to get leaderboard - executionTime for exercise: ' + exercise_id }, []];
