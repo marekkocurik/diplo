@@ -1,0 +1,15 @@
+DROP TABLE users.ratings;
+DROP TABLE users.answers;
+DROP TABLE users.solutions;
+DROP TABLE users.users_to_exercises;
+DROP TABLE users.exercises;
+DROP TABLE users.chapters;
+DROP TABLE users.users_to_roles;
+DROP TABLE users.roles;
+DROP TABLE users.users;
+DROP TABLE cd.bookings;
+DROP TABLE cd.members;
+DROP TABLE cd.facilities;
+DROP TABLE cd2.bookings;
+DROP TABLE cd2.members;
+DROP TABLE cd2.facilities;
