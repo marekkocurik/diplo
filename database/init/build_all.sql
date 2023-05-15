@@ -8772,7 +8772,7 @@ GRANT ALL ON SCHEMA users, cd, cd2 TO u_admin;
 GRANT ALL ON ALL TABLES IN SCHEMA users, cd, cd2 TO u_admin;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA users, cd, cd2 TO u_admin;
 
-CREATE USER u_connection WITH LOGIN ENCRYPTED PASSWORD '' VALID UNTIL 'infinity' NOINHERIT IN GROUP
+CREATE USER u_connection WITH LOGIN ENCRYPTED PASSWORD 'RfTPG5YQG8+f!HcDklPFo+b/s02VAE' VALID UNTIL 'infinity' NOINHERIT IN GROUP
 u_executioner,
 u_student,
 u_teacher,

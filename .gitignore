@@ -14,6 +14,9 @@
 # backend_ts env
 /backend_ts/.env
 
+# database env
+/database/.env
+
 # testing
 /coverage
 
