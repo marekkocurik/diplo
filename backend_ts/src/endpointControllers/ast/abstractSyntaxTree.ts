@@ -3,7 +3,6 @@ import { GeneralResponse } from '../../databaseControllers/databaseController';
 import SolutionController from '../../databaseControllers/solutionsController';
 import { normalizeQuery, queryToUpperCase } from './lexicalAnalysis/analyzer';
 import { sortASTAlphabetically } from './lexicalAnalysis/sorter';
-import { queries } from './queries';
 
 const { Parser } = require('node-sql-parser/build/postgresql');
 
