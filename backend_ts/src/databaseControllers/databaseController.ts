@@ -192,6 +192,7 @@ export default class DatabaseController {
         '	FROM users.users_to_exercises ute   ' +
         '	JOIN users.answers a ON ute.id = a.users_to_exercises_id   ' +
         "	WHERE ute.solved = true AND a.solution_success = 'COMPLETE' " +
+        ' AND (ute.finished is null OR a.date < ute.finished) ' +
         '	GROUP BY ute.exercise_id, ute.user_id ' +
         ') qb   ' +
         'ON qa.e_r_id = qb.e_id ' +

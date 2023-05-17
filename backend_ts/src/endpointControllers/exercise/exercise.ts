@@ -179,15 +179,27 @@ export const getQueryExpectedResult = async (request: any, reply: any) => {
   return;
 };
 
+/**
+ * Funkcia getQueryTestResult je volana v pripade ze pouzivatel testuje svoj dopyt. 
+ * Najskor sa pomocou funkcie testQueries otestuje pouzivatelov dopyt a dopyt vzrovoreho riesenia. 
+ * Ak je pouzivatelov dopyt prazdny alebo nastala chyba v pripojeni na databazu, pouzivatel je na to upozorneny.
+ * Ak sa vsak podari vykonat oba dopyty, v ramci testQueries sa kontroluje typ dopytu. Ak ide o iny dopyt ako SELECT,
+ * vykona sa tiez SELECT * nad tabulkou, ktorej sa dopyt tyka, cim sa ziska vysledny stav danej tabulky po
+ * pouzivatelovom dopyte.
+ * Po ziskani vysledkov dopytov sa tieto vysledky zasifruju pomocou SHA1 a sifry sa porovnaju cim sa ziska
+ * vysledok testovania dopytu.
+ * Vysledok testu moze byt ERROR (v pripade syntaktickej chyby), WRONG (v pripade nezhody sifier vysledkov)
+ * alebo PARTIAL (v pripade zhody sifier vysledkov). Tato hodnota je na webovom rozhrani zobrazena v
+ * tabulke History v stlpci Success.
+ * Nasledne sa pomocou funkcie processNewAnswerReturningId zapise novy zaznam do tabulky answers, pre udrzanie
+ * historie pouzivatelov dopytov.
+ * Nakoniec je pouzivatel oboznameny s vysledkom testovania jeho dopytu.
+ */ 
 export const getQueryTestResult = async (request: any, reply: any) => {
   const { role, exerciseId, queryToExecute, solution } = request.query;
   const user_id = request.query.id;
   let response: QueryTestResultResponse;
   response = await testQueries(role, solution, queryToExecute, 'test');
-  // 200 - OK
-  // 400 - ERROR query
-  // 403 - BAD REQUEST (prazdne query)
-  // 500 - chyba s pripojenim na DB
   if (response[0].code === 403 || response[0].code === 500) {
     reply.code(response[0].code).send({ message: response[0].message });
     return;
@@ -215,6 +227,20 @@ export const getQueryTestResult = async (request: any, reply: any) => {
   return;
 };
 
+/**
+ * Funkcia getQuerySubmitResult je volana v pripade, ze pouzivatel odovzdava svoj dopyt.
+ * Najskor sa dopyt testuje rovnako ako pri testovani pomocou funkcie testQueries. Ak je vysledkom testovania
+ * hodnota PARTIAL, proces odovzdavania pokracuje. Inak je pouzivatel upozorneny na ci uz syntakticku chybu,
+ * nespravny dopyt, alebo moze odovzdavanie zlyhat aj v pripade chyby s pripojenim na databazu.
+ * Ak je teda vysledkom PARTIAL, pouzivatelov dopyt aj vzorovy dopyt sa pomocou funkcie editQueryToSecondScheme
+ * upravia pomocou regularnych vyrazov. Pri uprave sa zmeni schema z cd na cd2 a dopyty su opat testovane.
+ * Ak maju dopyty rovnake vysledky aj pre sekundarnu schemu, v databaze sa zaznamena, ze pouzivatel vyriesil
+ * ulohu a nasledne sa jeho riesenie porovnava s existujucimi rieseniami. Ak je pouzivatelovo riesenie unikatne,
+ * ulozi ako nove vzorove riesenie.
+ * V ramci odovzdavania sa tiez prepocita pouzivatelov priemer v pocte pokusov o odovzdanie riesenia, aby sa 
+ * mu pripadne upravil zhluk, v ktorom sa nachadza.
+ * Nakoniec je pouizivatel oboznameny s vysledkom odovzdania
+ */
 export const getQuerySubmitResult = async (request: any, reply: any) => {
   const { role, exerciseId, solution, cluster } = request.query;
   let { queryToExecute } = request.query;

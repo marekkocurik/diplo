@@ -142,7 +142,9 @@ export default class AnswersController extends DatabaseController {
     }
   }
 
-  public async getExerciseLeaderboardAttemptsByExerciseId(exercise_id: number): Promise<[GeneralResponse, LeaderboardAttempts[]]> {
+  public async getExerciseLeaderboardAttemptsByExerciseId(
+    exercise_id: number
+  ): Promise<[GeneralResponse, LeaderboardAttempts[]]> {
     const client = await this.pool.connect();
     if (client === undefined) return [{ code: 500, message: 'Error accessing database' }, []];
     try {
@@ -190,6 +192,7 @@ export default class AnswersController extends DatabaseController {
         '	FROM users.users_to_exercises ute ' +
         '	JOIN users.answers a ON ute.id = a.users_to_exercises_id ' +
         "	WHERE ute.exercise_id = $1 AND ute.solved = true AND a.solution_success = 'COMPLETE' " +
+        ' AND (ute.finished is null OR a.date < ute.finished) ' +
         '	GROUP BY ute.user_id, a.query ' +
         '	ORDER BY execution_time ' +
         '	LIMIT 10 ) sub ' +

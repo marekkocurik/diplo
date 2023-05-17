@@ -228,8 +228,6 @@ export const normalizeQuery = async (query: string): Promise<[GeneralResponse, s
       let [response, tablesAliasesAndColumns] = await getTableNamesAliasesAndColumnsFromQuery(newQuery);
       if (response.code !== 200) return [{ code: response.code, message: response.message }, ''];
       newQuery = replaceTableAliasesWithTableName(newQuery, tablesAliasesAndColumns);
-      //TODO: odstranit useless aliasy (SELECT * FROM cd.facilities as F)
-      // console.log(newQuery);
       newQuery = replaceAsterixWithTableAndColumns(newQuery, tablesAliasesAndColumns);
       newQuery = specifyColumnsWithoutTables(newQuery, tablesAliasesAndColumns);
       newQuery = removeTableAliases(newQuery, tablesAliasesAndColumns);

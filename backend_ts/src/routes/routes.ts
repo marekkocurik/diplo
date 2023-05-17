@@ -33,10 +33,13 @@ export default async function routes(server: any) {
   };
 
   const sayHello = async (req: any, reply: any) => {
-    console.log('Ya man.');
-    reply.code(200).send({ message: 'Ya man LETS GOO' });
+    console.log('Backend is up and running.');
+    reply.code(200).send({ message: 'Backend is up and running.' });
   };
 
+  /**
+   * popis jednotlivych sluzieb sa nachadza v prilohe F, cast F3 - Sluzby aplikacneho servera
+   */
   // server.get('/maintenance/database-update', updateDatabase); 
   // server.get('/test-ast', testAST);
   server.get('/hello', sayHello);
